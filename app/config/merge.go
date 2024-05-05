@@ -83,11 +83,11 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envEthNet.MessageSigner.IntervalMS != 0 {
 				mergedConfig.EthereumNetworks[i].MessageSigner.IntervalMS = envEthNet.MessageSigner.IntervalMS
 			}
-			if envEthNet.MessageProcessor.Enabled {
-				mergedConfig.EthereumNetworks[i].MessageProcessor.Enabled = envEthNet.MessageProcessor.Enabled
+			if envEthNet.MessageRelayer.Enabled {
+				mergedConfig.EthereumNetworks[i].MessageRelayer.Enabled = envEthNet.MessageRelayer.Enabled
 			}
-			if envEthNet.MessageProcessor.IntervalMS != 0 {
-				mergedConfig.EthereumNetworks[i].MessageProcessor.IntervalMS = envEthNet.MessageProcessor.IntervalMS
+			if envEthNet.MessageRelayer.IntervalMS != 0 {
+				mergedConfig.EthereumNetworks[i].MessageRelayer.IntervalMS = envEthNet.MessageRelayer.IntervalMS
 			}
 		}
 	}
@@ -137,11 +137,11 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envCosmosNet.MessageSigner.IntervalMS != 0 {
 				mergedConfig.CosmosNetworks[i].MessageSigner.IntervalMS = envCosmosNet.MessageSigner.IntervalMS
 			}
-			if envCosmosNet.MessageProcessor.Enabled {
-				mergedConfig.CosmosNetworks[i].MessageProcessor.Enabled = envCosmosNet.MessageProcessor.Enabled
+			if envCosmosNet.MessageRelayer.Enabled {
+				mergedConfig.CosmosNetworks[i].MessageRelayer.Enabled = envCosmosNet.MessageRelayer.Enabled
 			}
-			if envCosmosNet.MessageProcessor.IntervalMS != 0 {
-				mergedConfig.CosmosNetworks[i].MessageProcessor.IntervalMS = envCosmosNet.MessageProcessor.IntervalMS
+			if envCosmosNet.MessageRelayer.IntervalMS != 0 {
+				mergedConfig.CosmosNetworks[i].MessageRelayer.IntervalMS = envCosmosNet.MessageRelayer.IntervalMS
 			}
 		}
 	}

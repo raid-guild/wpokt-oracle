@@ -36,7 +36,7 @@ type EthereumNetworkConfig struct {
 	OracleAddresses       []string      `yaml:"oracle_addresses" json:"oracle_addresses"`
 	MessageMonitor        ServiceConfig `yaml:"message_monitor" json:"message_monitor"`
 	MessageSigner         ServiceConfig `yaml:"message_signer" json:"message_signer"`
-	MessageProcessor      ServiceConfig `yaml:"message_processor" json:"message_processor"`
+	MessageRelayer        ServiceConfig `yaml:"message_relayer" json:"message_relayer"`
 }
 
 type CosmosNetworkConfig struct {
@@ -53,7 +53,7 @@ type CosmosNetworkConfig struct {
 	MultisigThreshold  int64         `yaml:"multisig_threshold" json:"multisig_threshold"`
 	MessageMonitor     ServiceConfig `yaml:"message_monitor" json:"message_monitor"`
 	MessageSigner      ServiceConfig `yaml:"message_signer" json:"message_signer"`
-	MessageProcessor   ServiceConfig `yaml:"message_processor" json:"message_processor"`
+	MessageRelayer     ServiceConfig `yaml:"message_relayer" json:"message_relayer"`
 }
 
 type ServiceConfig struct {

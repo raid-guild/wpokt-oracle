@@ -61,9 +61,9 @@ func LoadConfigFromEnv(envFile string) models.Config {
 				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_ENABLED"),
 				IntervalMS: getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
 			},
-			MessageProcessor: models.ServiceConfig{
-				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_PROCESSOR_ENABLED"),
-				IntervalMS: getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_PROCESSOR_INTERVAL_MS"),
+			MessageRelayer: models.ServiceConfig{
+				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_ENABLED"),
+				IntervalMS: getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
 			},
 		}
 	}
@@ -92,9 +92,9 @@ func LoadConfigFromEnv(envFile string) models.Config {
 				Enabled:    getBoolEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_ENABLED"),
 				IntervalMS: getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
 			},
-			MessageProcessor: models.ServiceConfig{
-				Enabled:    getBoolEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_PROCESSOR_ENABLED"),
-				IntervalMS: getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_PROCESSOR_INTERVAL_MS"),
+			MessageRelayer: models.ServiceConfig{
+				Enabled:    getBoolEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_ENABLED"),
+				IntervalMS: getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
 			},
 		}
 	}

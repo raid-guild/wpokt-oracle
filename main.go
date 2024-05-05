@@ -3,10 +3,14 @@ package main
 import (
 	"flag"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 
 	"github.com/dan13ram/wpokt-oracle/app"
+	"github.com/dan13ram/wpokt-oracle/app/service"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,61 +56,65 @@ func main() {
 
 	log.Debug("[MAIN] Starting server")
 
-	/*
+	// healthcheck := app.NewHealthCheck()
+	//
+	// serviceHealthMap := make(map[string]models.ServiceHealth)
+	//
+	// if app.Config.HealthCheck.ReadLastHealth {
+	// 	if lastHealth, err := healthcheck.FindLastHealth(); err == nil {
+	// 		for _, serviceHealth := range lastHealth.ServiceHealths {
+	// 			serviceHealthMap[serviceHealth.Name] = serviceHealth
+	// 		}
+	// 	}
+	// }
 
-		pokt.ValidateNetwork()
-		eth.ValidateNetwork()
+	services := []service.ChainServiceInterface{}
+	var wg sync.WaitGroup
 
-		healthcheck := app.NewHealthCheck()
+	for _, ethNetwork := range app.Config.EthereumNetworks {
+		chainService := service.NewEthereumChainService(ethNetwork, &wg)
+		services = append(services, chainService)
+	}
 
-		serviceHealthMap := make(map[string]models.ServiceHealth)
+	for _, cosmosNetwork := range app.Config.CosmosNetworks {
+		chainService := service.NewCosmosChainService(cosmosNetwork, &wg)
+		services = append(services, chainService)
+	}
 
-		if app.Config.HealthCheck.ReadLastHealth {
-			if lastHealth, err := healthcheck.FindLastHealth(); err == nil {
-				for _, serviceHealth := range lastHealth.ServiceHealths {
-					serviceHealthMap[serviceHealth.Name] = serviceHealth
-				}
-			}
-		}
+	// for serviceName, NewService := range ServiceFactoryMap {
+	// 	health := models.ServiceHealth{}
+	// 	if lastHealth, ok := serviceHealthMap[serviceName]; ok {
+	// 		health = lastHealth
+	// 	}
+	// 	services = append(services, NewService(&wg, health))
+	// }
+	//
+	// services = append(services, app.NewHealthService(healthcheck, &wg))
+	//
+	// healthcheck.SetServices(services)
 
-		services := []app.Service{}
-		var wg sync.WaitGroup
+	wg.Add(len(services))
 
-		for serviceName, NewService := range ServiceFactoryMap {
-			health := models.ServiceHealth{}
-			if lastHealth, ok := serviceHealthMap[serviceName]; ok {
-				health = lastHealth
-			}
-			services = append(services, NewService(&wg, health))
-		}
+	for _, service := range services {
+		go service.Start()
+	}
 
-		services = append(services, app.NewHealthService(healthcheck, &wg))
+	log.Info("[MAIN] Server started")
 
-		healthcheck.SetServices(services)
+	gracefulStop := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(gracefulStop, syscall.SIGINT, syscall.SIGTERM)
+	go waitForExitSignals(gracefulStop, done)
+	<-done
 
-		wg.Add(len(services))
+	log.Debug("[MAIN] Stopping server gracefully")
 
-		for _, service := range services {
-			go service.Start()
-		}
+	for _, service := range services {
+		service.Stop()
+	}
 
-		log.Info("[MAIN] Server started")
+	wg.Wait()
 
-		gracefulStop := make(chan os.Signal, 1)
-		done := make(chan bool, 1)
-		signal.Notify(gracefulStop, syscall.SIGINT, syscall.SIGTERM)
-		go waitForExitSignals(gracefulStop, done)
-		<-done
-
-		log.Debug("[MAIN] Stopping server gracefully")
-
-		for _, service := range services {
-			service.Stop()
-		}
-
-		wg.Wait()
-
-	*/
 	app.DB.Disconnect()
 	log.Info("[MAIN] Server stopped")
 }

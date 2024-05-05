@@ -100,7 +100,7 @@ func ValidateConfig(config models.Config) error {
 		if err := validateServiceConfig("EthereumNetworks[%d].MessageSigner", ethNetwork.MessageSigner); err != nil {
 			return err
 		}
-		if err := validateServiceConfig("EthereumNetworks[%d].MessageProcessor", ethNetwork.MessageProcessor); err != nil {
+		if err := validateServiceConfig("EthereumNetworks[%d].MessageRelayer", ethNetwork.MessageRelayer); err != nil {
 			return err
 		}
 	}
@@ -160,7 +160,7 @@ func ValidateConfig(config models.Config) error {
 		if err := validateServiceConfig("CosmosNetworks[%d].MessageSigner", cosmosNetwork.MessageSigner); err != nil {
 			return err
 		}
-		if err := validateServiceConfig("CosmosNetworks[%d].MessageProcessor", cosmosNetwork.MessageProcessor); err != nil {
+		if err := validateServiceConfig("CosmosNetworks[%d].MessageRelayer", cosmosNetwork.MessageRelayer); err != nil {
 			return err
 		}
 	}

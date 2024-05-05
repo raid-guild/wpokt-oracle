@@ -37,6 +37,10 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 		mergedConfig.MongoDB.TimeoutMS = envConfig.MongoDB.TimeoutMS
 	}
 
+	if envConfig.Mnemonic != "" {
+		mergedConfig.Mnemonic = envConfig.Mnemonic
+	}
+
 	// Merge EthereumNetworks
 	for i, envEthNet := range envConfig.EthereumNetworks {
 		if i < len(mergedConfig.EthereumNetworks) {
@@ -46,16 +50,13 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envEthNet.Confirmations != 0 {
 				mergedConfig.EthereumNetworks[i].Confirmations = envEthNet.Confirmations
 			}
-			if envEthNet.PrivateKey != "" {
-				mergedConfig.EthereumNetworks[i].PrivateKey = envEthNet.PrivateKey
-			}
 			if envEthNet.RPCURL != "" {
 				mergedConfig.EthereumNetworks[i].RPCURL = envEthNet.RPCURL
 			}
 			if envEthNet.RPCTimeoutMS != 0 {
 				mergedConfig.EthereumNetworks[i].RPCTimeoutMS = envEthNet.RPCTimeoutMS
 			}
-			if envEthNet.ChainId != "" {
+			if envEthNet.ChainId != 0 {
 				mergedConfig.EthereumNetworks[i].ChainId = envEthNet.ChainId
 			}
 			if envEthNet.MailboxAddress != "" {
@@ -91,14 +92,11 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 	// Merge CosmosNetworks
 	for i, envCosmosNet := range envConfig.CosmosNetworks {
 		if i < len(mergedConfig.CosmosNetworks) {
-			if envCosmosNet.StartHeight != 0 {
-				mergedConfig.CosmosNetworks[i].StartHeight = envCosmosNet.StartHeight
+			if envCosmosNet.StartBlockHeight != 0 {
+				mergedConfig.CosmosNetworks[i].StartBlockHeight = envCosmosNet.StartBlockHeight
 			}
 			if envCosmosNet.Confirmations != 0 {
 				mergedConfig.CosmosNetworks[i].Confirmations = envCosmosNet.Confirmations
-			}
-			if envCosmosNet.PrivateKey != "" {
-				mergedConfig.CosmosNetworks[i].PrivateKey = envCosmosNet.PrivateKey
 			}
 			if envCosmosNet.RPCURL != "" {
 				mergedConfig.CosmosNetworks[i].RPCURL = envCosmosNet.RPCURL

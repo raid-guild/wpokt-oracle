@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cosmos/go-bip39"
 	"github.com/dan13ram/wpokt-oracle/models"
-	"github.com/ethereum/go-ethereum/common"
 	log "github.com/sirupsen/logrus"
 )
 
-func has0xPrefix(str string) bool {
-	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
-}
-
+// ValidateConfig validates the config
 func ValidateConfig(config models.Config) error {
 	log.Debug("[CONFIG] Validating config")
 
@@ -28,19 +25,37 @@ func ValidateConfig(config models.Config) error {
 		return fmt.Errorf("MongoDB.TimeoutMS is required")
 	}
 
+	// Mnemonic for both Ethereum and Cosmos networks
+	if config.Mnemonic == "" {
+		return fmt.Errorf("Mnemonic is required")
+	}
+	if !bip39.IsMnemonicValid(config.Mnemonic) {
+		return fmt.Errorf("Mnemonic is invalid")
+	}
+
+	cosmosPubKey, err := CosmosPublicKeyFromMnemonic(config.Mnemonic)
+	if err != nil {
+		return fmt.Errorf("Failed to generate Cosmos public key from mnemonic: %s", err)
+	}
+	if !isValidCosmosPublicKey(cosmosPubKey) {
+		return fmt.Errorf("Cosmos public key is invalid")
+	}
+
+	ethAddress, err := EthereumAddressFromMnemonic(config.Mnemonic)
+	if err != nil {
+		return fmt.Errorf("Failed to generate Ethereum address from mnemonic: %s", err)
+	}
+	if !isValidEthereumAddress(ethAddress) {
+		return fmt.Errorf("Ethereum address is invalid")
+	}
+
 	// ethereum
 	for i, ethNetwork := range config.EthereumNetworks {
 		if ethNetwork.StartBlockNumber <= 0 {
 			return fmt.Errorf("EthereumNetworks[%d].StartBlockNumber is required", i)
 		}
 		if ethNetwork.Confirmations < 0 {
-			return fmt.Errorf("EthereumNetworks[%d].Confirmations is required", i)
-		}
-		if ethNetwork.PrivateKey == "" {
-			return fmt.Errorf("EthereumNetworks[%d].PrivateKey is required", i)
-		}
-		if has0xPrefix(ethNetwork.PrivateKey) {
-			ethNetwork.PrivateKey = ethNetwork.PrivateKey[2:]
+			return fmt.Errorf("EthereumNetworks[%d].Confirmations is invalid", i)
 		}
 		if ethNetwork.RPCURL == "" {
 			return fmt.Errorf("EthereumNetworks[%d].RPCURL is required", i)
@@ -48,23 +63,29 @@ func ValidateConfig(config models.Config) error {
 		if ethNetwork.RPCTimeoutMS <= 0 {
 			return fmt.Errorf("EthereumNetworks[%d].RPCTimeoutMS is required", i)
 		}
-		if ethNetwork.ChainId == "" {
+		if ethNetwork.ChainId <= 0 {
 			return fmt.Errorf("EthereumNetworks[%d].ChainId is required", i)
 		}
-		if !has0xPrefix(ethNetwork.MailboxAddress) || !common.IsHexAddress(ethNetwork.MailboxAddress) {
+		if !isValidEthereumAddress(ethNetwork.MailboxAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MailboxAddress is invalid", i)
 		}
-		if !has0xPrefix(ethNetwork.MintControllerAddress) || !common.IsHexAddress(ethNetwork.MintControllerAddress) {
+		if !isValidEthereumAddress(ethNetwork.MintControllerAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MintControllerAddress is invalid", i)
 		}
-		if ethNetwork.OracleAddresses == nil || len(ethNetwork.OracleAddresses) == 0 {
-			return fmt.Errorf("EthereumNetworks[%d].OracleAddresses is required", i)
+		if ethNetwork.OracleAddresses == nil || len(ethNetwork.OracleAddresses) <= 1 {
+			return fmt.Errorf("EthereumNetworks[%d].OracleAddresses is required and must have at least 2 addresses", i)
 		}
+		foundAddress := false
 		for j, oracleAddress := range ethNetwork.OracleAddresses {
-			if !has0xPrefix(oracleAddress) ||
-				!common.IsHexAddress(oracleAddress) {
+			if !isValidEthereumAddress(oracleAddress) {
 				return fmt.Errorf("EthereumNetworks[%d].OracleAddresses[%d] is invalid", i, j)
 			}
+			if strings.EqualFold(oracleAddress, ethAddress) {
+				foundAddress = true
+			}
+		}
+		if !foundAddress {
+			return fmt.Errorf("EthereumNetworks[%d].OracleAddresses must contain the address of this oracle", i)
 		}
 		if err := validateServiceConfig("EthereumNetworks[%d].MessageMonitor", ethNetwork.MessageMonitor); err != nil {
 			return err
@@ -83,13 +104,7 @@ func ValidateConfig(config models.Config) error {
 			return fmt.Errorf("CosmosNetworks[%d].StartBlockHeight is required", i)
 		}
 		if cosmosNetwork.Confirmations < 0 {
-			return fmt.Errorf("CosmosNetworks[%d].Confirmations is required", i)
-		}
-		if cosmosNetwork.PrivateKey == "" {
-			return fmt.Errorf("CosmosNetworks[%d].PrivateKey is required", i)
-		}
-		if strings.HasPrefix(cosmosNetwork.PrivateKey, "0x") {
-			cosmosNetwork.PrivateKey = cosmosNetwork.PrivateKey[2:]
+			return fmt.Errorf("CosmosNetworks[%d].Confirmations is invalid", i)
 		}
 		if cosmosNetwork.RPCURL == "" {
 			return fmt.Errorf("CosmosNetworks[%d].RPCURL is required", i)
@@ -101,24 +116,31 @@ func ValidateConfig(config models.Config) error {
 			return fmt.Errorf("CosmosNetworks[%d].ChainId is required", i)
 		}
 		if cosmosNetwork.TxFee < 0 {
-			return fmt.Errorf("CosmosNetworks[%d].TxFee is required", i)
+			return fmt.Errorf("CosmosNetworks[%d].TxFee is invalid", i)
 		}
-		if !common.IsHexAddress(cosmosNetwork.MailboxAddress) {
-			return fmt.Errorf("CosmosNetworks[%d].MailboxAddress is invalid", i)
+		if cosmosNetwork.Bech32Prefix == "" {
+			return fmt.Errorf("CosmosNetworks[%d].Bech32Prefix is required", i)
 		}
-		if cosmosNetwork.MintControllerAddress == "" {
-			return fmt.Errorf("CosmosNetworks[%d].MintControllerAddress is required", i)
+		if !isValidBech32Address(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress) {
+			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is invalid", i)
 		}
-		if !common.IsHexAddress(cosmosNetwork.MintControllerAddress) {
-			return fmt.Errorf("CosmosNetworks[%d].MintControllerAddress is invalid", i)
+		if cosmosNetwork.MultisigPublicKeys == nil || len(cosmosNetwork.MultisigPublicKeys) <= 1 {
+			return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys is required and must have at least 2 public keys", i)
 		}
-		if cosmosNetwork.OracleAddresses == nil || len(cosmosNetwork.OracleAddresses) == 0 {
-			return fmt.Errorf("CosmosNetworks[%d].OracleAddresses is required", i)
-		}
-		for j, oracleAddress := range cosmosNetwork.OracleAddresses {
-			if !common.IsHexAddress(oracleAddress) {
-				return fmt.Errorf("CosmosNetworks[%d].OracleAddresses[%d] is invalid", i, j)
+		foundPublicKey := false
+		for j, publicKey := range cosmosNetwork.MultisigPublicKeys {
+			if !isValidCosmosPublicKey(publicKey) {
+				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
 			}
+			if strings.EqualFold(publicKey, cosmosPubKey) {
+				foundPublicKey = true
+			}
+		}
+		if !foundPublicKey {
+			return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys must contain the public key of this oracle", i)
+		}
+		if cosmosNetwork.MultisigThreshold <= 0 || cosmosNetwork.MultisigThreshold > int64(len(cosmosNetwork.MultisigPublicKeys)) {
+			return fmt.Errorf("CosmosNetworks[%d].MultisigThreshold is invalid", i)
 		}
 		if err := validateServiceConfig("CosmosNetworks[%d].MessageMonitor", cosmosNetwork.MessageMonitor); err != nil {
 			return err
@@ -129,7 +151,6 @@ func ValidateConfig(config models.Config) error {
 		if err := validateServiceConfig("CosmosNetworks[%d].MessageProcessor", cosmosNetwork.MessageProcessor); err != nil {
 			return err
 		}
-
 	}
 
 	if config.HealthCheck.IntervalMS == 0 {
@@ -137,6 +158,7 @@ func ValidateConfig(config models.Config) error {
 	}
 
 	log.Debug("[CONFIG] config validated")
+	return nil
 }
 
 func validateServiceConfig(label string, config models.ServiceConfig) error {

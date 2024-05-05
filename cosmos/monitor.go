@@ -1,4 +1,4 @@
-package pokt
+package cosmos
 
 import (
 	"math/big"
@@ -9,8 +9,8 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/models"
-	pokt "github.com/dan13ram/wpokt-oracle/pokt/client"
-	"github.com/dan13ram/wpokt-oracle/pokt/util"
+	pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
+	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/pokt-network/pocket-core/crypto"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"

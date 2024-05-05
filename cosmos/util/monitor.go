@@ -8,7 +8,7 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/models"
-	pokt "github.com/dan13ram/wpokt-oracle/pokt/client"
+	pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/ethereum/go-ethereum/common"
 )
 

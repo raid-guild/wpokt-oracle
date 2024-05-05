@@ -1,7 +1,7 @@
-package pokt
+package cosmos
 
 import (
-	pokt "github.com/dan13ram/wpokt-oracle/pokt/client"
+	pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
 )
 
 func ValidateNetwork() {

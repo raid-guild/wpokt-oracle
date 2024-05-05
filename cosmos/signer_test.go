@@ -1,4 +1,4 @@
-package pokt
+package cosmos
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/eth/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/eth/client"
 	"github.com/dan13ram/wpokt-oracle/models"
-	pokt "github.com/dan13ram/wpokt-oracle/pokt/client"
+	pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pokt-network/pocket-core/crypto"

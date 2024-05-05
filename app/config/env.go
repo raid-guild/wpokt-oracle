@@ -36,6 +36,9 @@ func LoadConfigFromEnv(envFile string) models.Config {
 	config.MongoDB.Database = getStringEnv("MONGODB_DATABASE")
 	config.MongoDB.TimeoutMS = getInt64Env("MONGODB_TIMEOUT_MS")
 
+	// Mnemonic for both Ethereum and Cosmos networks
+	config.Mnemonic = getStringEnv("MNEMONIC")
+
 	// Ethereum Networks
 	numEthereumNetworks := getArrayLengthEnv("ETHEREUM_NETWORKS")
 	config.EthereumNetworks = make([]models.EthereumNetworkConfig, numEthereumNetworks)
@@ -43,10 +46,9 @@ func LoadConfigFromEnv(envFile string) models.Config {
 		config.EthereumNetworks[i] = models.EthereumNetworkConfig{
 			StartBlockNumber:      getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_NUMBER"),
 			Confirmations:         getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
-			PrivateKey:            getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_PRIVATE_KEY"),
 			RPCURL:                getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
 			RPCTimeoutMS:          getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_TIMEOUT_MS"),
-			ChainId:               getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
+			ChainId:               getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
 			MailboxAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MAILBOX_ADDRESS"),
 			MintControllerAddress: getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MINT_CONTROLLER_ADDRESS"),
 			OracleAddresses:       getStringArrayEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_ORACLE_ADDRESSES"),
@@ -70,13 +72,13 @@ func LoadConfigFromEnv(envFile string) models.Config {
 	config.CosmosNetworks = make([]models.CosmosNetworkConfig, numCosmosNetworks)
 	for i := 0; i < numCosmosNetworks; i++ {
 		config.CosmosNetworks[i] = models.CosmosNetworkConfig{
-			StartHeight:        getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
+			StartBlockHeight:   getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
 			Confirmations:      getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
-			PrivateKey:         getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_PRIVATE_KEY"),
 			RPCURL:             getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
 			RPCTimeoutMS:       getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_RPC_TIMEOUT_MS"),
 			ChainId:            getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
 			TxFee:              getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
+			Bech32Prefix:       getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_BECH32_PREFIX"),
 			MultisigAddress:    getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_ADDRESS"),
 			MultisigPublicKeys: getStringArrayEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_PUBLIC_KEYS"),
 			MultisigThreshold:  getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_THRESHOLD"),

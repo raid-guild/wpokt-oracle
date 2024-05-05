@@ -1,15 +1,15 @@
 package app
 
 import (
-	"fmt"
-	"os"
-	"strings"
+	// "fmt"
+	// "os"
+	// "strings"
 	"sync"
 	"time"
 
 	"github.com/dan13ram/wpokt-oracle/models"
-	ethCrypto "github.com/ethereum/go-ethereum/crypto"
-	poktCrypto "github.com/pokt-network/pocket-core/crypto"
+	// ethCrypto "github.com/ethereum/go-ethereum/crypto"
+	// poktCrypto "github.com/pokt-network/pocket-core/crypto"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -108,62 +108,55 @@ func (x *HealthCheckRunner) SetServices(services []Service) {
 func NewHealthCheck() *HealthCheckRunner {
 	log.Debug("[HEALTH] Initializing health")
 
-	pk, err := poktCrypto.NewPrivateKey(Config.Pocket.PrivateKey)
-	if err != nil {
-		log.Fatal("[HEALTH] Error initializing pokt signer: ", err)
-	}
-	log.Debug("[HEALTH] Initialized pokt signer private key")
-	log.Debug("[HEALTH] Pokt signer public key: ", pk.PublicKey().RawString())
-	log.Debug("[HEALTH] Pokt signer address: ", pk.PublicKey().Address().String())
+	/*
 
-	ethPK, err := ethCrypto.HexToECDSA(Config.Ethereum.PrivateKey)
-	log.Debug("[HEALTH] Initialized private key")
-	log.Debug("[HEALTH] ETH Address: ", ethCrypto.PubkeyToAddress(ethPK.PublicKey).Hex())
-
-	ethAddress := ethCrypto.PubkeyToAddress(ethPK.PublicKey).Hex()
-	poktAddress := pk.PublicKey().Address().String()
-
-	var pks []poktCrypto.PublicKey
-	signerIndex := -1
-	for _, pk := range Config.Pocket.MultisigPublicKeys {
-		p, err := poktCrypto.NewPublicKey(pk)
+		pk, err := poktCrypto.NewPrivateKey(Config.Pocket.PrivateKey)
 		if err != nil {
-			log.Fatal("[HEALTH] Error parsing multisig public key: ", err)
+			log.Fatal("[HEALTH] Error initializing pokt signer: ", err)
 		}
-		pks = append(pks, p)
-		if p.Address().String() == poktAddress {
-			signerIndex = len(pks)
+		log.Debug("[HEALTH] Initialized pokt signer private key")
+		log.Debug("[HEALTH] Pokt signer public key: ", pk.PublicKey().RawString())
+		log.Debug("[HEALTH] Pokt signer address: ", pk.PublicKey().Address().String())
+
+		ethPK, err := ethCrypto.HexToECDSA(Config.Ethereum.PrivateKey)
+		log.Debug("[HEALTH] Initialized private key")
+		log.Debug("[HEALTH] ETH Address: ", ethCrypto.PubkeyToAddress(ethPK.PublicKey).Hex())
+
+		ethAddress := ethCrypto.PubkeyToAddress(ethPK.PublicKey).Hex()
+		poktAddress := pk.PublicKey().Address().String()
+
+		var pks []poktCrypto.PublicKey
+		signerIndex := -1
+		for _, pk := range Config.Pocket.MultisigPublicKeys {
+			p, err := poktCrypto.NewPublicKey(pk)
+			if err != nil {
+				log.Fatal("[HEALTH] Error parsing multisig public key: ", err)
+			}
+			pks = append(pks, p)
+			if p.Address().String() == poktAddress {
+				signerIndex = len(pks)
+			}
 		}
-	}
 
-	if signerIndex == -1 {
-		log.Fatal("[HEALTH] Multisig public keys do not contain signer")
-	}
+		if signerIndex == -1 {
+			log.Fatal("[HEALTH] Multisig public keys do not contain signer")
+		}
 
-	validatorId := "wpokt-oracle-" + fmt.Sprintf("%02d", signerIndex)
+		validatorId := "wpokt-oracle-" + fmt.Sprintf("%02d", signerIndex)
 
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Fatal("[HEALTH] Error getting hostname: ", err)
-	}
+		hostname, err := os.Hostname()
+		if err != nil {
+			log.Fatal("[HEALTH] Error getting hostname: ", err)
+		}
 
-	multisigPkAddress := poktCrypto.PublicKeyMultiSignature{PublicKeys: pks}.Address().String()
-	log.Debug("[HEALTH] Multisig address: ", multisigPkAddress)
-	if strings.ToLower(multisigPkAddress) != strings.ToLower(Config.Pocket.VaultAddress) {
-		log.Fatal("[HEALTH] Multisig address does not match vault address")
-	}
+		multisigPkAddress := poktCrypto.PublicKeyMultiSignature{PublicKeys: pks}.Address().String()
+		log.Debug("[HEALTH] Multisig address: ", multisigPkAddress)
+		if strings.ToLower(multisigPkAddress) != strings.ToLower(Config.Pocket.VaultAddress) {
+			log.Fatal("[HEALTH] Multisig address does not match vault address")
+		}
+	*/
 
-	x := &HealthCheckRunner{
-		poktVaultAddress: strings.ToLower(multisigPkAddress),
-		poktSigners:      Config.Pocket.MultisigPublicKeys,
-		poktPublicKey:    pk.PublicKey().RawString(),
-		poktAddress:      strings.ToLower(poktAddress),
-		ethValidators:    Config.Ethereum.ValidatorAddresses,
-		ethAddress:       strings.ToLower(ethAddress),
-		wpoktAddress:     strings.ToLower(Config.Ethereum.WrappedPocketAddress),
-		hostname:         hostname,
-		validatorId:      validatorId,
-	}
+	x := &HealthCheckRunner{}
 
 	log.Info("[HEALTH] Initialized health")
 
@@ -171,6 +164,6 @@ func NewHealthCheck() *HealthCheckRunner {
 }
 
 func NewHealthService(x *HealthCheckRunner, wg *sync.WaitGroup) Service {
-	service := NewRunnerService(HealthCheckName, x, wg, time.Duration(Config.HealthCheck.IntervalMillis)*time.Millisecond)
+	service := NewRunnerService(HealthCheckName, x, wg, time.Duration(Config.HealthCheck.IntervalMS)*time.Millisecond)
 	return service
 }

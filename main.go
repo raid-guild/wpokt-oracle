@@ -3,29 +3,12 @@ package main
 import (
 	"flag"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync"
-	"syscall"
 
 	"github.com/dan13ram/wpokt-oracle/app"
-	pokt "github.com/dan13ram/wpokt-oracle/cosmos"
-	"github.com/dan13ram/wpokt-oracle/eth"
-	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
 )
-
-type ServiceFactory = func(*sync.WaitGroup, models.ServiceHealth) app.Service
-
-var ServiceFactoryMap map[string]ServiceFactory = map[string]ServiceFactory{
-	pokt.MintMonitorName:  pokt.NewMintMonitor,
-	pokt.BurnSignerName:   pokt.NewBurnSigner,
-	pokt.BurnExecutorName: pokt.NewBurnExecutor,
-	eth.BurnMonitorName:   eth.NewBurnMonitor,
-	eth.MintSignerName:    eth.NewMintSigner,
-	eth.MintExecutorName:  eth.NewMintExecutor,
-}
 
 func main() {
 	log.SetFormatter(&log.TextFormatter{
@@ -64,6 +47,10 @@ func main() {
 	app.InitConfig(absYamlPath, absEnvPath)
 	app.InitLogger()
 	app.InitDB()
+
+}
+
+/*
 
 	pokt.ValidateNetwork()
 	eth.ValidateNetwork()
@@ -120,6 +107,8 @@ func main() {
 	app.DB.Disconnect()
 	log.Info("[MAIN] Server stopped")
 }
+
+*/
 
 func waitForExitSignals(gracefulStop chan os.Signal, done chan bool) {
 	sig := <-gracefulStop

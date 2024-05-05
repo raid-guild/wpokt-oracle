@@ -1,4 +1,4 @@
-package pokt
+package cosmos
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/models"
-	pokt "github.com/dan13ram/wpokt-oracle/pokt/client"
+	pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/pokt-network/pocket-core/app/cmd/rpc"
 	"github.com/pokt-network/pocket-core/crypto"
 	log "github.com/sirupsen/logrus"

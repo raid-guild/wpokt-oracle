@@ -13,7 +13,6 @@ import (
 	"github.com/pokt-network/pocket-core/x/auth"
 	authTypes "github.com/pokt-network/pocket-core/x/auth/types"
 	nodeTypes "github.com/pokt-network/pocket-core/x/nodes/types"
-	"github.com/tendermint/tendermint/libs/rand"
 )
 
 var txEncoder sdk.TxEncoder = auth.DefaultTxEncoder(pokt.Codec())
@@ -45,7 +44,7 @@ func buildMultiSigTxAndSign(
 		Amount:      sdk.NewInt(amount),
 	}
 
-	entropy := rand.Int64()
+	entropy := 1
 	fee := sdk.NewCoins(sdk.NewCoin(sdk.DefaultStakeDenom, sdk.NewInt(fees)))
 
 	signBz, err := authTypes.StdSignBytes(chainID, entropy, fee, m, memo)

@@ -1,69 +1,52 @@
-mongodb:
-  uri: "mongodb+srv://<mongodb-user>:<mongodb-password>@<mongodb-host>:<mongodb-port>/<mongodb-database>"
-  database: "mongodb-database"
-  timeout_ms: 2000
-
-ethereum:
-  start_block_number: 0
-  confirmations: 0
-  private_key: "1234"
-  rpc_url: "https://<eth-node-host>:<eth-node-port>"
-  chain_id: "5"
-  rpc_timeout_ms: 2000
-  wrapped_pocket_address: "0x1234"
-  mint_controller_address: "0x1234"
-  validator_addresses:
-    - "0x1234"
-    - "0x1234"
-    - "0x1234"
-
-pocket:
-  start_height: 0
-  confirmations: 0
-  private_key: "1234"
-  rpc_url: "https://<pokt-node-host>:<pokt-node-port>"
-  chain_id: "testnet"
-  rpc_timeout_ms: 2000
-  tx_fee: 10000
-  vault_address: "1234"
-  multisig_public_keys:
-    - "1234"
-    - "1234"
-    - "1234"
-
-mint_monitor:
-  enabled: false
-  interval_ms: 5000
-
-mint_signer:
-  enabled: false
-  interval_ms: 5000
-
-mint_executor:
-  enabled: false
-  interval_ms: 5000
-
-burn_monitor:
-  enabled: false
-  interval_ms: 5000
-
-burn_signer:
-  enabled: false
-  interval_ms: 5000
-
-burn_executor:
-  enabled: false
-  interval_ms: 5000
-
+mnemonic: "example_mnemonic"
 health_check:
   interval_ms: 5000
-  read_last_health: false
-
+  read_last_health: true
 logger:
   level: "info"
-
-google_secret_manager:
-  enabled: false
-  mongo_secret_name: "projects/<project-id>/secrets/<secret-name>/versions/latest"
-  pokt_secret_name: "projects/<project-id>/secrets/<secret-name>/versions/latest"
-  eth_secret_name: "projects/<project-id>/secrets/<secret-name>/versions/latest"
+mongodb:
+  uri: "mongodb://localhost:27017"
+  database: "example_db"
+  timeout_ms: 10000
+ethereum_networks:
+  - start_block_number: 1000000
+    confirmations: 0
+    rpc_url: "http://localhost:8545"
+    rpc_timeout_ms: 5000
+    chain_id: 1
+    mailbox_address: "0x123456789abcdef"
+    mint_controller_address: "0xabcdef123456789"
+    oracle_addresses:
+      - "0xoracleAddress1"
+      - "0xoracleAddress2"
+    message_monitor:
+      enabled: true
+      interval_ms: 60000
+    message_signer:
+      enabled: true
+      interval_ms: 60000
+    message_processor:
+      enabled: true
+      interval_ms: 60000
+cosmos_networks:
+  - start_block_height: 500000
+    confirmations: 0
+    rpc_url: "http://localhost:26657"
+    rpc_timeout_ms: 5000
+    chain_id: "cosmoshub-4"
+    tx_fee: 0
+    bech32_prefix: "cosmos"
+    multisig_address: "cosmos1abcdefg"
+    multisig_public_keys:
+      - "pubKey1"
+      - "pubKey2"
+    multisig_threshold: 2
+    message_monitor:
+      enabled: true
+      interval_ms: 60000
+    message_signer:
+      enabled: true
+      interval_ms: 60000
+    message_processor:
+      enabled: true
+      interval_ms: 60000

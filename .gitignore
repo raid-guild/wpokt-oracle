@@ -33,3 +33,6 @@ credentials.json
 
 # mockery
 .mockery.yaml
+
+# build
+oracle

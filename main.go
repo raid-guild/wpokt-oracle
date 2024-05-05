@@ -4,8 +4,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-
-	// "strings"
+	"strings"
 
 	"github.com/dan13ram/wpokt-oracle/app"
 	log "github.com/sirupsen/logrus"
@@ -15,13 +14,12 @@ func main() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
-	// logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
-	// if logLevel == "debug" {
-	// 	log.SetLevel(log.DebugLevel)
-	// } else {
-	// 	log.SetLevel(log.InfoLevel)
-	// }
-	log.SetLevel(log.DebugLevel)
+	logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	if logLevel == "debug" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 
 	var yamlPath string
 	var envPath string
@@ -36,6 +34,7 @@ func main() {
 		if err != nil {
 			log.Fatal("[MAIN] Error getting absolute path for yaml file: ", err)
 		}
+		log.Debug("[MAIN] Yaml file: ", absYamlPath)
 	}
 
 	var absEnvPath string = ""
@@ -44,9 +43,9 @@ func main() {
 		if err != nil {
 			log.Fatal("[MAIN] Error getting absolute path for env file: ", err)
 		}
+		log.Debug("[MAIN] Env file: ", absEnvPath)
 	}
 
-	log.Debugf("[MAIN] Starting with yaml file: %s and env file: %s", absYamlPath, absEnvPath)
 	app.InitConfig(absYamlPath, absEnvPath)
 	app.InitLogger()
 	app.InitDB()

@@ -16,15 +16,15 @@ func LoadConfigFromEnv(envFile string) models.Config {
 	if envFile != "" {
 		err := godotenv.Load(envFile)
 		if err != nil {
-			log.Warn("[CONFIG] Error loading .env file: ", err.Error())
+			log.Warn("[CONFIG] Error loading env file: ", err.Error())
 		} else {
-			log.Debug("[CONFIG] .env file loaded from: ", envFile)
+			log.Debug("[CONFIG] Loading env file: ", envFile)
 		}
 	} else {
-		log.Debug("[CONFIG] No .env file provided")
+		log.Debug("[CONFIG] No env file provided")
 	}
 
-	log.Debug("[CONFIG] Loading config from ENV variables")
+	log.Debug("[CONFIG] Loading config from env")
 
 	var config models.Config
 
@@ -99,7 +99,7 @@ func LoadConfigFromEnv(envFile string) models.Config {
 		}
 	}
 
-	log.Debug("[CONFIG] Config loaded from env variables")
+	log.Debug("[CONFIG] Config loaded from env")
 
 	return config
 }

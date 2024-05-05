@@ -27,12 +27,10 @@ const EmptyServiceName = "empty"
 
 func (e *EmptyService) Health() models.ServiceHealth {
 	return models.ServiceHealth{
-		Name:           EmptyServiceName,
-		LastSyncTime:   time.Now(),
-		NextSyncTime:   time.Now(),
-		PoktHeight:     "",
-		EthBlockNumber: "",
-		Healthy:        true,
+		Name:         EmptyServiceName,
+		LastSyncTime: time.Now(),
+		NextSyncTime: time.Now(),
+		Healthy:      true,
 	}
 }
 

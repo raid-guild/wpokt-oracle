@@ -44,8 +44,8 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 	// Merge EthereumNetworks
 	for i, envEthNet := range envConfig.EthereumNetworks {
 		if i < len(mergedConfig.EthereumNetworks) {
-			if envEthNet.StartBlockNumber != 0 {
-				mergedConfig.EthereumNetworks[i].StartBlockNumber = envEthNet.StartBlockNumber
+			if envEthNet.StartBlockHeight != 0 {
+				mergedConfig.EthereumNetworks[i].StartBlockHeight = envEthNet.StartBlockHeight
 			}
 			if envEthNet.Confirmations != 0 {
 				mergedConfig.EthereumNetworks[i].Confirmations = envEthNet.Confirmations
@@ -58,6 +58,9 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			}
 			if envEthNet.ChainId != 0 {
 				mergedConfig.EthereumNetworks[i].ChainId = envEthNet.ChainId
+			}
+			if envEthNet.ChainName != "" {
+				mergedConfig.EthereumNetworks[i].ChainName = envEthNet.ChainName
 			}
 			if envEthNet.MailboxAddress != "" {
 				mergedConfig.EthereumNetworks[i].MailboxAddress = envEthNet.MailboxAddress
@@ -106,6 +109,9 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			}
 			if envCosmosNet.ChainId != "" {
 				mergedConfig.CosmosNetworks[i].ChainId = envCosmosNet.ChainId
+			}
+			if envCosmosNet.ChainName != "" {
+				mergedConfig.CosmosNetworks[i].ChainName = envCosmosNet.ChainName
 			}
 			if envCosmosNet.TxFee != 0 {
 				mergedConfig.CosmosNetworks[i].TxFee = envCosmosNet.TxFee

@@ -25,6 +25,8 @@ func ValidateConfig(config models.Config) error {
 		return fmt.Errorf("MongoDB.TimeoutMS is required")
 	}
 
+	log.Debug("[CONFIG] MongoDB validated")
+
 	// Mnemonic for both Ethereum and Cosmos networks
 	if config.Mnemonic == "" {
 		return fmt.Errorf("Mnemonic is required")
@@ -49,10 +51,12 @@ func ValidateConfig(config models.Config) error {
 		return fmt.Errorf("Ethereum address is invalid")
 	}
 
+	log.Debug("[CONFIG] Mnemonic validated")
+
 	// ethereum
 	for i, ethNetwork := range config.EthereumNetworks {
-		if ethNetwork.StartBlockNumber <= 0 {
-			return fmt.Errorf("EthereumNetworks[%d].StartBlockNumber is required", i)
+		if ethNetwork.StartBlockHeight < 0 {
+			return fmt.Errorf("EthereumNetworks[%d].StartBlockHeight is invalid", i)
 		}
 		if ethNetwork.Confirmations < 0 {
 			return fmt.Errorf("EthereumNetworks[%d].Confirmations is invalid", i)
@@ -65,6 +69,9 @@ func ValidateConfig(config models.Config) error {
 		}
 		if ethNetwork.ChainId <= 0 {
 			return fmt.Errorf("EthereumNetworks[%d].ChainId is required", i)
+		}
+		if ethNetwork.ChainName == "" {
+			return fmt.Errorf("EthereumNetworks[%d].ChainName is required", i)
 		}
 		if !isValidEthereumAddress(ethNetwork.MailboxAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MailboxAddress is invalid", i)
@@ -98,10 +105,12 @@ func ValidateConfig(config models.Config) error {
 		}
 	}
 
+	log.Debug("[CONFIG] Ethereum validated")
+
 	// cosmos
 	for i, cosmosNetwork := range config.CosmosNetworks {
-		if cosmosNetwork.StartBlockHeight <= 0 {
-			return fmt.Errorf("CosmosNetworks[%d].StartBlockHeight is required", i)
+		if cosmosNetwork.StartBlockHeight < 0 {
+			return fmt.Errorf("CosmosNetworks[%d].StartBlockHeight is invalid", i)
 		}
 		if cosmosNetwork.Confirmations < 0 {
 			return fmt.Errorf("CosmosNetworks[%d].Confirmations is invalid", i)
@@ -114,6 +123,9 @@ func ValidateConfig(config models.Config) error {
 		}
 		if cosmosNetwork.ChainId == "" {
 			return fmt.Errorf("CosmosNetworks[%d].ChainId is required", i)
+		}
+		if cosmosNetwork.ChainName == "" {
+			return fmt.Errorf("CosmosNetworks[%d].ChainName is required", i)
 		}
 		if cosmosNetwork.TxFee < 0 {
 			return fmt.Errorf("CosmosNetworks[%d].TxFee is invalid", i)
@@ -153,9 +165,13 @@ func ValidateConfig(config models.Config) error {
 		}
 	}
 
+	log.Debug("[CONFIG] Cosmos validated")
+
 	if config.HealthCheck.IntervalMS == 0 {
 		return fmt.Errorf("HealthCheck.Interval is required")
 	}
+
+	log.Debug("[CONFIG] HealthCheck validated")
 
 	log.Debug("[CONFIG] config validated")
 	return nil

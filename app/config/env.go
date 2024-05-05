@@ -44,11 +44,12 @@ func LoadConfigFromEnv(envFile string) models.Config {
 	config.EthereumNetworks = make([]models.EthereumNetworkConfig, numEthereumNetworks)
 	for i := 0; i < numEthereumNetworks; i++ {
 		config.EthereumNetworks[i] = models.EthereumNetworkConfig{
-			StartBlockNumber:      getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_NUMBER"),
+			StartBlockHeight:      getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
 			Confirmations:         getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
 			RPCURL:                getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
 			RPCTimeoutMS:          getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_TIMEOUT_MS"),
 			ChainId:               getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
+			ChainName:             getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			MailboxAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MAILBOX_ADDRESS"),
 			MintControllerAddress: getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MINT_CONTROLLER_ADDRESS"),
 			OracleAddresses:       getStringArrayEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_ORACLE_ADDRESSES"),
@@ -77,6 +78,7 @@ func LoadConfigFromEnv(envFile string) models.Config {
 			RPCURL:             getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
 			RPCTimeoutMS:       getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_RPC_TIMEOUT_MS"),
 			ChainId:            getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
+			ChainName:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			TxFee:              getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
 			Bech32Prefix:       getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_BECH32_PREFIX"),
 			MultisigAddress:    getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_ADDRESS"),

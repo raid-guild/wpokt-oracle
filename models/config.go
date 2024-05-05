@@ -25,11 +25,12 @@ type MongoConfig struct {
 }
 
 type EthereumNetworkConfig struct {
-	StartBlockNumber      int64         `yaml:"start_block_number" json:"start_block_number"`
+	StartBlockHeight      int64         `yaml:"start_block_height" json:"start_block_height"`
 	Confirmations         int64         `yaml:"confirmations" json:"confirmations"`
 	RPCURL                string        `yaml:"rpc_url" json:"rpcurl"`
 	RPCTimeoutMS          int64         `yaml:"rpc_timeout_ms" json:"rpc_time_out_ms"`
 	ChainId               int64         `yaml:"chain_id" json:"chain_id"`
+	ChainName             string        `yaml:"chain_name" json:"chain_name"`
 	MailboxAddress        string        `yaml:"mailbox_address" json:"mailbox_address"`
 	MintControllerAddress string        `yaml:"mint_controller_address" json:"mint_controller_address"`
 	OracleAddresses       []string      `yaml:"oracle_addresses" json:"oracle_addresses"`
@@ -44,6 +45,7 @@ type CosmosNetworkConfig struct {
 	RPCURL             string        `yaml:"rpc_url" json:"rpcurl"`
 	RPCTimeoutMS       int64         `yaml:"rpc_timeout_ms" json:"rpc_time_out_ms"`
 	ChainId            string        `yaml:"chain_id" json:"chain_id"`
+	ChainName          string        `yaml:"chain_name" json:"chain_name"`
 	TxFee              int64         `yaml:"tx_fee" json:"tx_fee"`
 	Bech32Prefix       string        `yaml:"bech32_prefix" json:"bech32_prefix"`
 	MultisigAddress    string        `yaml:"multisig_address" json:"multisig_address"`

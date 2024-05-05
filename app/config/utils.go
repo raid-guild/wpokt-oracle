@@ -49,8 +49,20 @@ func isHex(str string) bool {
 	return true
 }
 
+func isZeroHex(s string) bool {
+	if has0xPrefix(s) {
+		s = s[2:]
+	}
+	for _, c := range []byte(s) {
+		if c != '0' {
+			return false
+		}
+	}
+	return true
+}
+
 func isValidEthereumAddress(address string) bool {
-	return has0xPrefix(address) && isHexAddress(address)
+	return has0xPrefix(address) && isHexAddress(address) && !isZeroHex(address)
 }
 
 func isValidBech32Address(bech32Prefix string, address string) bool {
@@ -60,7 +72,7 @@ func isValidBech32Address(bech32Prefix string, address string) bool {
 }
 
 func isValidCosmosPublicKey(s string) bool {
-	return !has0xPrefix(s) && isHex(s) && len(s) == 2*CosmosPublicKeyLength
+	return !has0xPrefix(s) && isHex(s) && len(s) == 2*CosmosPublicKeyLength && !isZeroHex(s)
 }
 
 func CosmosPublicKeyFromMnemonic(mnemonic string) (string, error) {

@@ -22,7 +22,8 @@ go.work
 *.sw[a-z]
 
 # config
-config.local.yml
+*.yml
+!config.sample.yml
 
 # env
 .env*

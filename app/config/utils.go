@@ -61,17 +61,17 @@ func isZeroHex(s string) bool {
 	return true
 }
 
-func isValidEthereumAddress(address string) bool {
+func IsValidEthereumAddress(address string) bool {
 	return has0xPrefix(address) && isHexAddress(address) && !isZeroHex(address)
 }
 
-func isValidBech32Address(bech32Prefix string, address string) bool {
+func IsValidBech32Address(bech32Prefix string, address string) bool {
 	addrCdc := addresscodec.NewBech32Codec(bech32Prefix)
 	_, err := addrCdc.StringToBytes(address)
 	return err == nil
 }
 
-func isValidCosmosPublicKey(s string) bool {
+func IsValidCosmosPublicKey(s string) bool {
 	return !has0xPrefix(s) && isHex(s) && len(s) == 2*CosmosPublicKeyLength && !isZeroHex(s)
 }
 

@@ -61,7 +61,9 @@ func (d *MongoDatabase) Connect() error {
 
 // SetupLocker sets up the locker
 func (d *MongoDatabase) SetupLocker() error {
+	/* TODO: setup the locker
 	log.Debug("[DB] Setting up locker")
+
 	var locker *lock.Client
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
@@ -76,6 +78,7 @@ func (d *MongoDatabase) SetupLocker() error {
 	d.locker = locker
 
 	log.Info("[DB] Locker setup")
+	*/
 	return nil
 }
 
@@ -134,8 +137,8 @@ func (d *MongoDatabase) Unlock(lockId string) error {
 
 // Setup Indexes
 func (d *MongoDatabase) SetupIndexes() error {
-	log.Debug("[DB] Setting up indexes")
 	/* TODO: setup the right indexes
+	log.Debug("[DB] Setting up indexes")
 
 	// setup unique index for mints
 	log.Debug("[DB] Setting up indexes for mints")
@@ -185,8 +188,8 @@ func (d *MongoDatabase) SetupIndexes() error {
 		return err
 	}
 
-	*/
 	log.Info("[DB] Indexes setup")
+	*/
 
 	return nil
 }

@@ -39,7 +39,7 @@ func ValidateConfig(config models.Config) error {
 	if err != nil {
 		return fmt.Errorf("Failed to generate Cosmos public key from mnemonic: %s", err)
 	}
-	if !isValidCosmosPublicKey(cosmosPubKey) {
+	if !IsValidCosmosPublicKey(cosmosPubKey) {
 		return fmt.Errorf("Cosmos public key is invalid")
 	}
 
@@ -47,7 +47,7 @@ func ValidateConfig(config models.Config) error {
 	if err != nil {
 		return fmt.Errorf("Failed to generate Ethereum address from mnemonic: %s", err)
 	}
-	if !isValidEthereumAddress(ethAddress) {
+	if !IsValidEthereumAddress(ethAddress) {
 		return fmt.Errorf("Ethereum address is invalid")
 	}
 
@@ -73,10 +73,10 @@ func ValidateConfig(config models.Config) error {
 		if ethNetwork.ChainName == "" {
 			return fmt.Errorf("EthereumNetworks[%d].ChainName is required", i)
 		}
-		if !isValidEthereumAddress(ethNetwork.MailboxAddress) {
+		if !IsValidEthereumAddress(ethNetwork.MailboxAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MailboxAddress is invalid", i)
 		}
-		if !isValidEthereumAddress(ethNetwork.MintControllerAddress) {
+		if !IsValidEthereumAddress(ethNetwork.MintControllerAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MintControllerAddress is invalid", i)
 		}
 		if ethNetwork.OracleAddresses == nil || len(ethNetwork.OracleAddresses) <= 1 {
@@ -84,7 +84,7 @@ func ValidateConfig(config models.Config) error {
 		}
 		foundAddress := false
 		for j, oracleAddress := range ethNetwork.OracleAddresses {
-			if !isValidEthereumAddress(oracleAddress) {
+			if !IsValidEthereumAddress(oracleAddress) {
 				return fmt.Errorf("EthereumNetworks[%d].OracleAddresses[%d] is invalid", i, j)
 			}
 			if strings.EqualFold(oracleAddress, ethAddress) {
@@ -133,7 +133,7 @@ func ValidateConfig(config models.Config) error {
 		if cosmosNetwork.Bech32Prefix == "" {
 			return fmt.Errorf("CosmosNetworks[%d].Bech32Prefix is required", i)
 		}
-		if !isValidBech32Address(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress) {
+		if !IsValidBech32Address(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress) {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is invalid", i)
 		}
 		if cosmosNetwork.MultisigPublicKeys == nil || len(cosmosNetwork.MultisigPublicKeys) <= 1 {
@@ -141,7 +141,7 @@ func ValidateConfig(config models.Config) error {
 		}
 		foundPublicKey := false
 		for j, publicKey := range cosmosNetwork.MultisigPublicKeys {
-			if !isValidCosmosPublicKey(publicKey) {
+			if !IsValidCosmosPublicKey(publicKey) {
 				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
 			}
 			if strings.EqualFold(publicKey, cosmosPubKey) {

@@ -14,7 +14,7 @@ func main() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
-	logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	logLevel := strings.ToLower(os.Getenv("LOGGER_LEVEL"))
 	if logLevel == "debug" {
 		log.SetLevel(log.DebugLevel)
 	} else {
@@ -50,67 +50,66 @@ func main() {
 	app.InitLogger()
 	app.InitDB()
 
-}
+	log.Debug("[MAIN] Starting server")
 
-/*
+	/*
 
-	pokt.ValidateNetwork()
-	eth.ValidateNetwork()
+		pokt.ValidateNetwork()
+		eth.ValidateNetwork()
 
-	healthcheck := app.NewHealthCheck()
+		healthcheck := app.NewHealthCheck()
 
-	serviceHealthMap := make(map[string]models.ServiceHealth)
+		serviceHealthMap := make(map[string]models.ServiceHealth)
 
-	if app.Config.HealthCheck.ReadLastHealth {
-		if lastHealth, err := healthcheck.FindLastHealth(); err == nil {
-			for _, serviceHealth := range lastHealth.ServiceHealths {
-				serviceHealthMap[serviceHealth.Name] = serviceHealth
+		if app.Config.HealthCheck.ReadLastHealth {
+			if lastHealth, err := healthcheck.FindLastHealth(); err == nil {
+				for _, serviceHealth := range lastHealth.ServiceHealths {
+					serviceHealthMap[serviceHealth.Name] = serviceHealth
+				}
 			}
 		}
-	}
 
-	services := []app.Service{}
-	var wg sync.WaitGroup
+		services := []app.Service{}
+		var wg sync.WaitGroup
 
-	for serviceName, NewService := range ServiceFactoryMap {
-		health := models.ServiceHealth{}
-		if lastHealth, ok := serviceHealthMap[serviceName]; ok {
-			health = lastHealth
+		for serviceName, NewService := range ServiceFactoryMap {
+			health := models.ServiceHealth{}
+			if lastHealth, ok := serviceHealthMap[serviceName]; ok {
+				health = lastHealth
+			}
+			services = append(services, NewService(&wg, health))
 		}
-		services = append(services, NewService(&wg, health))
-	}
 
-	services = append(services, app.NewHealthService(healthcheck, &wg))
+		services = append(services, app.NewHealthService(healthcheck, &wg))
 
-	healthcheck.SetServices(services)
+		healthcheck.SetServices(services)
 
-	wg.Add(len(services))
+		wg.Add(len(services))
 
-	for _, service := range services {
-		go service.Start()
-	}
+		for _, service := range services {
+			go service.Start()
+		}
 
-	log.Info("[MAIN] Server started")
+		log.Info("[MAIN] Server started")
 
-	gracefulStop := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-	signal.Notify(gracefulStop, syscall.SIGINT, syscall.SIGTERM)
-	go waitForExitSignals(gracefulStop, done)
-	<-done
+		gracefulStop := make(chan os.Signal, 1)
+		done := make(chan bool, 1)
+		signal.Notify(gracefulStop, syscall.SIGINT, syscall.SIGTERM)
+		go waitForExitSignals(gracefulStop, done)
+		<-done
 
-	log.Debug("[MAIN] Stopping server gracefully")
+		log.Debug("[MAIN] Stopping server gracefully")
 
-	for _, service := range services {
-		service.Stop()
-	}
+		for _, service := range services {
+			service.Stop()
+		}
 
-	wg.Wait()
+		wg.Wait()
 
+	*/
 	app.DB.Disconnect()
 	log.Info("[MAIN] Server stopped")
 }
-
-*/
 
 func waitForExitSignals(gracefulStop chan os.Signal, done chan bool) {
 	sig := <-gracefulStop

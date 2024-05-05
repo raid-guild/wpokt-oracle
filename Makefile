@@ -1,10 +1,9 @@
 -include .env
 
-.PHONY: debug
+all: run
 
-all: debug
+debug :; LOGGER_LEVEL=debug go run . --yaml config.local.yml
 
-debug :; LOG_LEVEL=debug go run . --yaml config.test.yml
+run :; go run . --yaml config.local.yml
 
-
-build :; go build -o oracle .
+build :; go build -o wpokt-oracle .

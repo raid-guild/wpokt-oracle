@@ -35,4 +35,4 @@ credentials.json
 .mockery.yaml
 
 # build
-oracle
+./wpokt-oracle

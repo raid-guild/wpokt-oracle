@@ -66,4 +66,4 @@ services:
       HEALTH_CHECK_INTERVAL_SECS: ${HEALTH_CHECK_INTERVAL_SECS}
 
       # logging
-      LOG_LEVEL: ${LOG_LEVEL}
+      LOGGER_LEVEL: ${LOGGER_LEVEL}

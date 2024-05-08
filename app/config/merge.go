@@ -101,11 +101,14 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envCosmosNet.Confirmations != 0 {
 				mergedConfig.CosmosNetworks[i].Confirmations = envCosmosNet.Confirmations
 			}
-			if envCosmosNet.RPCURL != "" {
-				mergedConfig.CosmosNetworks[i].RPCURL = envCosmosNet.RPCURL
+			if envCosmosNet.GRPCHost != "" {
+				mergedConfig.CosmosNetworks[i].GRPCHost = envCosmosNet.GRPCHost
 			}
-			if envCosmosNet.RPCTimeoutMS != 0 {
-				mergedConfig.CosmosNetworks[i].RPCTimeoutMS = envCosmosNet.RPCTimeoutMS
+			if envCosmosNet.GRPCPort != 0 {
+				mergedConfig.CosmosNetworks[i].GRPCPort = envCosmosNet.GRPCPort
+			}
+			if envCosmosNet.GRPCTimeoutMS != 0 {
+				mergedConfig.CosmosNetworks[i].GRPCTimeoutMS = envCosmosNet.GRPCTimeoutMS
 			}
 			if envCosmosNet.ChainId != "" {
 				mergedConfig.CosmosNetworks[i].ChainId = envCosmosNet.ChainId

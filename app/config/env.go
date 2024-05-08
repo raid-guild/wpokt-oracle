@@ -75,8 +75,9 @@ func LoadConfigFromEnv(envFile string) models.Config {
 		config.CosmosNetworks[i] = models.CosmosNetworkConfig{
 			StartBlockHeight:   getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
 			Confirmations:      getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
-			RPCURL:             getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
-			RPCTimeoutMS:       getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_RPC_TIMEOUT_MS"),
+			GRPCHost:           getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_HOST"),
+			GRPCPort:           getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_PORT"),
+			GRPCTimeoutMS:      getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_TIMEOUT_MS"),
 			ChainId:            getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
 			ChainName:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			TxFee:              getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),

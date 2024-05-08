@@ -134,11 +134,14 @@ func ValidateConfig(config models.Config) error {
 		if cosmosNetwork.Confirmations < 0 {
 			return fmt.Errorf("CosmosNetworks[%d].Confirmations is invalid", i)
 		}
-		if cosmosNetwork.RPCURL == "" {
-			return fmt.Errorf("CosmosNetworks[%d].RPCURL is required", i)
+		if cosmosNetwork.GRPCHost == "" {
+			return fmt.Errorf("CosmosNetworks[%d].GRPCHost is required", i)
 		}
-		if cosmosNetwork.RPCTimeoutMS <= 0 {
-			return fmt.Errorf("CosmosNetworks[%d].RPCTimeoutMS is required", i)
+		if cosmosNetwork.GRPCPort == 0 {
+			return fmt.Errorf("CosmosNetworks[%d].GRPCPort is required", i)
+		}
+		if cosmosNetwork.GRPCTimeoutMS <= 0 {
+			return fmt.Errorf("CosmosNetworks[%d].GRPCTimeoutMS is required", i)
 		}
 		if cosmosNetwork.ChainId == "" {
 			return fmt.Errorf("CosmosNetworks[%d].ChainId is required", i)

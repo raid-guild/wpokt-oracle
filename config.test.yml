@@ -11,10 +11,10 @@ mongodb:
 ethereum_networks:
   - start_block_height: 1000000
     confirmations: 0
-    rpc_url: "https://1rpc.io/sepolia"
+    rpc_url: "http://127.0.0.1:8545"
     rpc_timeout_ms: 5000
-    chain_id: 11155111
-    chain_name: "sepolia"
+    chain_id: 31337 
+    chain_name: "anvil"
     mailbox_address: "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766"
     mint_controller_address: "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766"
     oracle_addresses:
@@ -33,10 +33,11 @@ ethereum_networks:
 cosmos_networks:
   - start_block_height: 500000
     confirmations: 0
-    rpc_url: "https://testnet-validated-validator-rpc.poktroll.com"
-    rpc_timeout_ms: 5000
+    grpc_host: 'localhost'
+    grpc_port: 36658
+    grpc_timeout_ms: 5000
     chain_id: "poktroll"
-    chain_name: "pokt_testnet"
+    chain_name: "pokt_localnet"
     tx_fee: 0
     bech32_prefix: "pokt"
     multisig_address: "pokt13tsl3aglfyzf02n7x28x2ajzw94muu6y57k2ar"

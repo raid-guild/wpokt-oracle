@@ -9,15 +9,15 @@ import (
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/dan13ram/wpokt-oracle/app/service"
 
-	// pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
+	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
 )
 
 type MessageMonitorRunner struct {
-	name string
-	// client        pokt.PocketClient
+	name   string
+	client cosmos.CosmosClient
 	// wpoktAddress  string
 	multisigPk    *multisig.LegacyAminoPubKey
 	startHeight   int64
@@ -35,12 +35,13 @@ func (x *MessageMonitorRunner) Status() models.RunnerStatus {
 }
 
 func (x *MessageMonitorRunner) UpdateCurrentHeight() {
-	// res, err := x.client.GetHeight()
-	// if err != nil {
-	// 	log.Error("[MINT MONITOR] Error getting current height: ", err)
-	// 	return
-	// }
-	// x.currentHeight = res.Height
+	res, err := x.client.GetLatestBlock()
+	if err != nil {
+		log.Error("[MINT MONITOR] Error getting current height: ", err)
+		return
+	}
+	x.currentHeight = res.Header.Height
+
 	log.Infof("[%s] Current height: %d", x.name, x.currentHeight)
 }
 
@@ -198,9 +199,13 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Serv
 		log.Fatalf("[%s] Error creating multisig address: %s", name, err)
 	}
 
-	log.Debugf("[%s] Multisig address: %s", name, multisigAddress)
 	if !strings.EqualFold(multisigAddress, config.MultisigAddress) {
 		log.Fatalf("[%s] Multisig address does not match config", name)
+	}
+
+	client, err := cosmos.NewClient(config)
+	if err != nil {
+		log.Fatalf("[%s] Error creating cosmos client: %s", name, err)
 	}
 
 	x := &MessageMonitorRunner{
@@ -209,7 +214,7 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Serv
 		// wpoktAddress:  strings.ToLower(app.Config.Ethereum.WrappedPocketAddress),
 		startHeight:   0,
 		currentHeight: 0,
-		// client:        pokt.NewClient(),
+		client:        client,
 		minimumAmount: big.NewInt(1),
 	}
 

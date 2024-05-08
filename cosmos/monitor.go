@@ -7,6 +7,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/dan13ram/wpokt-oracle/app/service"
 
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
@@ -19,10 +20,11 @@ type MessageMonitorRunner struct {
 	name   string
 	client cosmos.CosmosClient
 	// wpoktAddress  string
-	multisigPk    *multisig.LegacyAminoPubKey
-	startHeight   int64
-	currentHeight int64
-	minimumAmount *big.Int
+	multisigPk      *multisig.LegacyAminoPubKey
+	multisigAddress string
+	startHeight     int64
+	currentHeight   int64
+	minimumAmount   *big.Int
 }
 
 func (x *MessageMonitorRunner) Run() {
@@ -116,45 +118,58 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 
 func (x *MessageMonitorRunner) SyncTxs() bool {
 	log.Infof("[%s] Syncing txs", x.name)
-	return true
+	if x.currentHeight <= x.startHeight {
+		log.Infof("[%s] No new blocks to sync", x.name)
+		return true
+	}
 
-	// if x.currentHeight <= x.startHeight {
-	// 	log.Info("[MINT MONITOR] No new blocks to sync")
-	// 	return true
-	// }
-	//
-	// txs, err := x.client.GetAccountTxsByHeight(x.vaultAddress, x.startHeight)
-	// if err != nil {
-	// 	log.Error("[MINT MONITOR] Error getting txs: ", err)
-	// 	return false
-	// }
-	// log.Info("[MINT MONITOR] Found ", len(txs), " txs to sync")
-	// var success bool = true
-	// for i := range txs {
-	// 	tx := txs[i]
-	//
-	// 	amount, ok := new(big.Int).SetString(tx.StdTx.Msg.Value.Amount, 10)
-	// 	if tx.Tx == "" || tx.TxResult.Code != 0 || !strings.EqualFold(tx.TxResult.Recipient, x.vaultAddress) || tx.TxResult.MessageType != "send" || !ok || amount.Cmp(x.minimumAmount) != 1 {
-	// 		log.Info("[MINT MONITOR] Found failed mint tx: ", tx.Hash, " with code: ", tx.TxResult.Code)
-	// 		success = x.HandleFailedMint(tx) && success
-	// 		continue
-	// 	}
-	// 	memo, ok := util.ValidateMemo(tx.StdTx.Memo)
-	// 	if !ok {
-	// 		log.Info("[MINT MONITOR] Found invalid mint tx: ", tx.Hash, " with memo: ", "\""+tx.StdTx.Memo+"\"")
-	// 		success = x.HandleInvalidMint(tx) && success
-	// 		continue
-	// 	}
-	//
-	// 	log.Info("[MINT MONITOR] Found valid mint tx: ", tx.Hash, " with memo: ", tx.StdTx.Memo)
-	// 	success = x.HandleValidMint(tx, memo) && success
-	// }
-	//
-	// if success {
-	// 	x.startHeight = x.currentHeight
-	// }
-	//
-	// return success
+	txResponses, err := x.client.GetTxsSentToAddressAfterHeight(x.multisigAddress, x.startHeight)
+	if err != nil {
+		log.Errorf("[%s] Error getting txs: %s", x.name, err)
+		return false
+	}
+	log.Infof("[%s] Found %d txs to sync", x.name, len(txResponses))
+	var success bool = true
+	for _, txResponse := range txResponses {
+		if txResponse.Code != 0 {
+			log.Infof("[%s] Found tx with error: %s", x.name, txResponse.TxHash)
+			continue
+		}
+		log.Debugf("[%s] Found tx: %s", x.name, txResponse.TxHash)
+		tx := &tx.Tx{}
+		// err := txResponse.Tx.
+		err := tx.Unmarshal(txResponse.Tx.Value)
+		if err != nil {
+			log.Errorf("[%s] Error unmarshalling tx: %s", x.name, err)
+			continue
+		}
+
+		log.Infof("[%s] Found tx memo: %s", x.name, tx.Body.Memo)
+		// amount
+		// log.Infof("[%s] Found tx amount: %s", x.name, tx.Body.
+
+		// amount, ok := new(big.Int).SetString(tx.StdTx.Msg.Value.Amount, 10)
+		// if tx.Tx == "" || tx.TxResult.Code != 0 || !strings.EqualFold(tx.TxResult.Recipient, x.vaultAddress) || tx.TxResult.MessageType != "send" || !ok || amount.Cmp(x.minimumAmount) != 1 {
+		// 	log.Info("[MINT MONITOR] Found failed mint tx: ", tx.Hash, " with code: ", tx.TxResult.Code)
+		// 	success = x.HandleFailedMint(tx) && success
+		// 	continue
+		// }
+		// memo, ok := util.ValidateMemo(tx.StdTx.Memo)
+		// if !ok {
+		// 	log.Info("[MINT MONITOR] Found invalid mint tx: ", tx.Hash, " with memo: ", "\""+tx.StdTx.Memo+"\"")
+		// 	success = x.HandleInvalidMint(tx) && success
+		// 	continue
+		// }
+		//
+		// log.Info("[MINT MONITOR] Found valid mint tx: ", tx.Hash, " with memo: ", tx.StdTx.Memo)
+		// success = x.HandleValidMint(tx, memo) && success
+	}
+
+	if success {
+		x.startHeight = x.currentHeight
+	}
+
+	return success
 }
 
 func (x *MessageMonitorRunner) InitStartHeight(lastHealth models.ServiceHealth) {
@@ -212,10 +227,11 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Serv
 		name:       name,
 		multisigPk: multisigPk,
 		// wpoktAddress:  strings.ToLower(app.Config.Ethereum.WrappedPocketAddress),
-		startHeight:   0,
-		currentHeight: 0,
-		client:        client,
-		minimumAmount: big.NewInt(1),
+		multisigAddress: multisigAddress,
+		startHeight:     0,
+		currentHeight:   0,
+		client:          client,
+		minimumAmount:   big.NewInt(1),
 	}
 
 	x.UpdateCurrentHeight()

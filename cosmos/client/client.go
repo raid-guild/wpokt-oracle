@@ -64,7 +64,7 @@ func (c *pocketClient) GetLatestBlock() (*cmtservice.Block, error) {
 }
 
 // get transactions sent from address
-func (c *pocketClient) GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error) {
+func (c *pocketClient) GetTxsSentToAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error) {
 	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)
@@ -76,7 +76,7 @@ func (c *pocketClient) GetTxsSentFromAddressAfterHeight(address string, height i
 }
 
 // get transactions sent to address
-func (c *pocketClient) GetTxsSentToAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error) {
+func (c *pocketClient) GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error) {
 	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)

@@ -31,7 +31,7 @@ ethereum_networks:
       enabled: false
       interval_ms: 60000
 cosmos_networks:
-  - start_block_height: 500000
+  - start_block_height: 13600
     confirmations: 0
     grpc_host: 'localhost'
     grpc_port: 36658

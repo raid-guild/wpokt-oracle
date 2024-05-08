@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/dan13ram/wpokt-oracle/app"
+	// "github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/pokt-network/pocket-core/crypto"
 	"github.com/pokt-network/pocket-core/types"
@@ -123,7 +123,7 @@ func TestUpdateStatusAndConfirmationsForInvalidMint(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			app.Config.Pocket.Confirmations = tc.requiredConfirmations
+			// app.Config.Pocket.Confirmations = tc.requiredConfirmations
 
 			result, err := UpdateStatusAndConfirmationsForInvalidMint(&tc.doc, tc.currentHeight)
 
@@ -247,7 +247,7 @@ func TestUpdateStatusAndConfirmationsForBurn(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			app.Config.Ethereum.Confirmations = tc.requiredConfirmations
+			// app.Config.Ethereum.Confirmations = tc.requiredConfirmations
 
 			result, err := UpdateStatusAndConfirmationsForBurn(&tc.doc, tc.blockNumber)
 
@@ -419,8 +419,8 @@ func TestSignBurn(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			app.Config.Pocket.ChainId = "testnet"
-			app.Config.Pocket.TxFee = 10000
+			// app.Config.Pocket.ChainId = "testnet"
+			// app.Config.Pocket.TxFee = 10000
 			pubKeys := []crypto.PublicKey{}
 			for i := 0; i < tc.numSigners; i++ {
 				pubKeys = append(pubKeys, privateKeys[i].PublicKey())
@@ -436,12 +436,12 @@ func TestSignBurn(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotEqual(t, "", result.ReturnTx)
 
-				tx, bytesToSign, err := decodeTx(result.ReturnTx, app.Config.Pocket.ChainId)
+				tx, bytesToSign, err := decodeTx(result.ReturnTx, "1")
 				assert.NoError(t, err)
 				assert.NotNil(t, tx)
 				assert.NotNil(t, bytesToSign)
 
-				fee := types.NewCoins(types.NewCoin(types.DefaultStakeDenom, types.NewInt(app.Config.Pocket.TxFee)))
+				fee := types.NewCoins(types.NewCoin(types.DefaultStakeDenom, types.NewInt(0)))
 				assert.Equal(t, fee, tx.GetFee())
 
 				assert.Equal(t, tc.doc.TransactionHash, tx.GetMemo())
@@ -452,7 +452,7 @@ func TestSignBurn(t *testing.T) {
 				assert.Equal(t, fa, tx.GetMsg().(*nodeTypes.MsgSend).FromAddress)
 
 				amountInt, _ := strconv.ParseInt(tc.doc.Amount, 10, 64)
-				finalAmount := amountInt - app.Config.Pocket.TxFee
+				finalAmount := amountInt - 0
 				amount := strconv.FormatInt(finalAmount, 10)
 				assert.Equal(t, amount, tx.GetMsg().(*nodeTypes.MsgSend).Amount.String())
 
@@ -654,8 +654,8 @@ func TestSignInvalidMint(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			app.Config.Pocket.ChainId = "testnet"
-			app.Config.Pocket.TxFee = 10000
+			// app.Config.Pocket.ChainId = "testnet"
+			// app.Config.Pocket.TxFee = 10000
 			pubKeys := []crypto.PublicKey{}
 			for i := 0; i < tc.numSigners; i++ {
 				pubKeys = append(pubKeys, privateKeys[i].PublicKey())
@@ -671,12 +671,12 @@ func TestSignInvalidMint(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotEqual(t, "", result.ReturnTx)
 
-				tx, bytesToSign, err := decodeTx(result.ReturnTx, app.Config.Pocket.ChainId)
+				tx, bytesToSign, err := decodeTx(result.ReturnTx, 0)
 				assert.NoError(t, err)
 				assert.NotNil(t, tx)
 				assert.NotNil(t, bytesToSign)
 
-				fee := types.NewCoins(types.NewCoin(types.DefaultStakeDenom, types.NewInt(app.Config.Pocket.TxFee)))
+				fee := types.NewCoins(types.NewCoin(types.DefaultStakeDenom, types.NewInt(0)))
 				assert.Equal(t, fee, tx.GetFee())
 
 				assert.Equal(t, tc.doc.TransactionHash, tx.GetMemo())
@@ -687,7 +687,7 @@ func TestSignInvalidMint(t *testing.T) {
 				assert.Equal(t, fa, tx.GetMsg().(*nodeTypes.MsgSend).FromAddress)
 
 				amountInt, _ := strconv.ParseInt(tc.doc.Amount, 10, 64)
-				finalAmount := amountInt - app.Config.Pocket.TxFee
+				finalAmount := amountInt - 0
 				amount := strconv.FormatInt(finalAmount, 10)
 				assert.Equal(t, amount, tx.GetMsg().(*nodeTypes.MsgSend).Amount.String())
 

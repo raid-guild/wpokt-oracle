@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/pokt-network/pocket-core/app/cmd/rpc"
 )
 
@@ -129,7 +128,9 @@ func init() {
 }
 
 func queryRPC(path string, jsonArgs []byte) (string, error) {
-	cliURL := app.Config.Pocket.RPCURL + path
+
+	// cliURL := app.Config.Pocket.RPCURL + path
+	cliURL := ""
 	log.Debugln("[POKT] Querying RPC", cliURL)
 
 	req, err := http.NewRequest("POST", cliURL, bytes.NewBuffer(jsonArgs))
@@ -139,7 +140,8 @@ func queryRPC(path string, jsonArgs []byte) (string, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{
-		Timeout: time.Millisecond * time.Duration(app.Config.Pocket.RPCTimeoutMillis),
+		// Timeout: time.Millisecond * time.Duration(app.Config.Pocket.RPCTimeoutMillis),
+		Timeout: time.Millisecond * time.Duration(5000),
 	}
 
 	resp, err := client.Do(req)
@@ -273,7 +275,7 @@ func (c *pocketClient) GetAccountTxsByHeight(address string, height int64) ([]*T
 
 func (c *pocketClient) ValidateNetwork() {
 	log.Debugln("[POKT] Validating network")
-	log.Debugln("[POKT] uri", app.Config.Pocket.RPCURL)
+	// log.Debugln("[POKT] uri", app.Config.Pocket.RPCURL)
 	res, err := c.GetBlock()
 	if err != nil {
 		log.Fatalln("[POKT] Error getting block", err)
@@ -282,9 +284,9 @@ func (c *pocketClient) ValidateNetwork() {
 	if err != nil {
 		log.Fatalln("[POKT] Error getting height", err)
 	}
-	if res.Block.Header.ChainID != app.Config.Pocket.ChainId {
-		log.Fatalln("[POKT] Chain ID mismatch", "expected", app.Config.Pocket.ChainId, "got", res.Block.Header.ChainID)
-	}
+	// if res.Block.Header.ChainID != app.Config.Pocket.ChainId {
+	// 	log.Fatalln("[POKT] Chain ID mismatch", "expected", app.Config.Pocket.ChainId, "got", res.Block.Header.ChainID)
+	// }
 	log.Debugln("[POKT]", "chainId", res.Block.Header.ChainID)
 
 	blockHeight, err := strconv.Atoi(res.Block.Header.Height)

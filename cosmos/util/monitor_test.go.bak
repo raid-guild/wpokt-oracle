@@ -9,13 +9,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/dan13ram/wpokt-oracle/app"
-	"github.com/dan13ram/wpokt-oracle/models"
+	// "github.com/dan13ram/wpokt-oracle/app"
 	pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
+	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 func TestCreateMint(t *testing.T) {
-	app.Config.Pocket.ChainId = "0001"
+	// app.Config.Pocket.ChainId = "0001"
 	testCases := []struct {
 		name            string
 		tx              *pokt.TxResponse
@@ -47,11 +47,11 @@ func TestCreateMint(t *testing.T) {
 			wpoktAddress: "0x9876543210",
 			vaultAddress: "0xabc123def",
 			expectedMint: models.Mint{
-				Height:           "12345",
-				Confirmations:    "0",
-				TransactionHash:  "0x1234567890abcdef",
-				SenderAddress:    "0xabcdef",
-				SenderChainId:    app.Config.Pocket.ChainId,
+				Height:          "12345",
+				Confirmations:   "0",
+				TransactionHash: "0x1234567890abcdef",
+				SenderAddress:   "0xabcdef",
+				// SenderChainId:    app.Config.Pocket.ChainId,
 				RecipientAddress: "0x1234567890",
 				RecipientChainId: "0001",
 				WPOKTAddress:     "0x9876543210",
@@ -120,16 +120,16 @@ func TestCreateInvalidMint(t *testing.T) {
 				Confirmations:   "0",
 				TransactionHash: "0x1234567890abcdef",
 				SenderAddress:   "0xabcdef",
-				SenderChainId:   app.Config.Pocket.ChainId,
-				Memo:            "Invalid mint memo",
-				Amount:          "100",
-				VaultAddress:    "0xabc123def",
-				CreatedAt:       time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
-				UpdatedAt:       time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
-				Status:          models.StatusPending,
-				Signers:         []string{},
-				ReturnTx:        "",
-				ReturnTxHash:    "",
+				// SenderChainId:   app.Config.Pocket.ChainId,
+				Memo:         "Invalid mint memo",
+				Amount:       "100",
+				VaultAddress: "0xabc123def",
+				CreatedAt:    time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
+				UpdatedAt:    time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
+				Status:       models.StatusPending,
+				Signers:      []string{},
+				ReturnTx:     "",
+				ReturnTxHash: "",
 			},
 			expectedErr:     false,
 			expectedUpdated: 2 * time.Second,
@@ -138,7 +138,7 @@ func TestCreateInvalidMint(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			app.Config.Pocket.ChainId = "0001"
+			// app.Config.Pocket.ChainId = "0001"
 
 			result := CreateInvalidMint(tc.tx, tc.vaultAddress)
 
@@ -183,16 +183,16 @@ func TestCreateFailedMint(t *testing.T) {
 				Confirmations:   "0",
 				TransactionHash: "0x1234567890abcdef",
 				SenderAddress:   "0xabcdef",
-				SenderChainId:   app.Config.Pocket.ChainId,
-				Memo:            "Invalid mint memo",
-				Amount:          "100",
-				VaultAddress:    "0xabc123def",
-				CreatedAt:       time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
-				UpdatedAt:       time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
-				Status:          models.StatusFailed,
-				Signers:         []string{},
-				ReturnTx:        "",
-				ReturnTxHash:    "",
+				// SenderChainId:   app.Config.Pocket.ChainId,
+				Memo:         "Invalid mint memo",
+				Amount:       "100",
+				VaultAddress: "0xabc123def",
+				CreatedAt:    time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
+				UpdatedAt:    time.Time{}, // We'll use assert.WithinDuration to check if within an acceptable range
+				Status:       models.StatusFailed,
+				Signers:      []string{},
+				ReturnTx:     "",
+				ReturnTxHash: "",
 			},
 			expectedErr:     false,
 			expectedUpdated: 2 * time.Second,
@@ -201,7 +201,7 @@ func TestCreateFailedMint(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			app.Config.Pocket.ChainId = "0001"
+			// app.Config.Pocket.ChainId = "0001"
 
 			result := CreateFailedMint(tc.tx, tc.vaultAddress)
 
@@ -301,7 +301,7 @@ func TestValidateMemo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			app.Config.Ethereum.ChainId = tc.chainId
+			// app.Config.Ethereum.ChainId = tc.chainId
 
 			result, valid := ValidateMemo(tc.txMemo)
 			assert.Equal(t, tc.expectedValid, valid)

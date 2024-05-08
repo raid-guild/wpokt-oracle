@@ -1,15 +1,14 @@
 package config
 
 import (
-	"encoding/hex"
 	"fmt"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/go-bip39"
+	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -169,12 +168,7 @@ func ValidateConfig(config models.Config) error {
 			if strings.EqualFold(publicKey, cosmosPubKey) {
 				foundPublicKey = true
 			}
-			pKey := &secp256k1.PubKey{}
-			pKeyBytes, err := hex.DecodeString(publicKey)
-			if err != nil {
-				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
-			}
-			err = pKey.UnmarshalAmino(pKeyBytes)
+			pKey, err := cosmosUtil.PubKeyFromHex(publicKey)
 			if err != nil {
 				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
 			}

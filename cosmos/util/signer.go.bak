@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dan13ram/wpokt-oracle/app"
+	// "github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/models"
 	pokt "github.com/pokt-network/pocket-core/app"
 	"github.com/pokt-network/pocket-core/crypto"
@@ -44,7 +44,7 @@ func buildMultiSigTxAndSign(
 		Amount:      sdk.NewInt(amount),
 	}
 
-	entropy := 1
+	entropy := int64(1)
 	fee := sdk.NewCoins(sdk.NewCoin(sdk.DefaultStakeDenom, sdk.NewInt(fees)))
 
 	signBz, err := authTypes.StdSignBytes(chainID, entropy, fee, m, memo)
@@ -159,18 +159,18 @@ func UpdateStatusAndConfirmationsForInvalidMint(doc *models.InvalidMint, current
 
 	if status == models.StatusPending || confirmations == 0 {
 		status = models.StatusPending
-		if app.Config.Pocket.Confirmations == 0 {
-			status = models.StatusConfirmed
-		} else {
-			mintHeight, err := strconv.ParseInt(doc.Height, 10, 64)
-			if err != nil {
-				return doc, err
-			}
-			confirmations = currentHeight - mintHeight
-			if confirmations >= app.Config.Pocket.Confirmations {
-				status = models.StatusConfirmed
-			}
-		}
+		// if app.Config.Pocket.Confirmations == 0 {
+		// 	status = models.StatusConfirmed
+		// } else {
+		// 	mintHeight, err := strconv.ParseInt(doc.Height, 10, 64)
+		// 	if err != nil {
+		// 		return doc, err
+		// 	}
+		// 	confirmations = currentHeight - mintHeight
+		// 	if confirmations >= app.Config.Pocket.Confirmations {
+		// 		status = models.StatusConfirmed
+		// 	}
+		// }
 	}
 
 	doc.Status = status
@@ -193,39 +193,39 @@ func SignInvalidMint(
 		returnTx = ""
 	}
 
-	if returnTx == "" {
-		amountWithTxFee, err := strconv.ParseInt(doc.Amount, 10, 64)
-		if err != nil {
-			return doc, err
-		}
-		amount := amountWithTxFee - app.Config.Pocket.TxFee
-		memo := doc.TransactionHash
-
-		returnTxBytes, err := buildMultiSigTxAndSign(
-			doc.SenderAddress,
-			memo,
-			app.Config.Pocket.ChainId,
-			amount,
-			app.Config.Pocket.TxFee,
-			privateKey,
-			multisigPubKey,
-		)
-		if err != nil {
-			return doc, err
-		}
-		returnTx = hex.EncodeToString(returnTxBytes)
-	} else {
+	// if returnTx == "" {
+		// amountWithTxFee, err := strconv.ParseInt(doc.Amount, 10, 64)
+		// if err != nil {
+		// 	return doc, err
+		// }
+		// // amount := amountWithTxFee - app.Config.Pocket.TxFee
+		// memo := doc.TransactionHash
+		//
+		// returnTxBytes, err := buildMultiSigTxAndSign(
+		// 	doc.SenderAddress,
+		// 	memo,
+		// 	app.Config.Pocket.ChainId,
+		// 	amount,
+		// 	app.Config.Pocket.TxFee,
+		// 	privateKey,
+		// 	multisigPubKey,
+		// )
+		// if err != nil {
+		// 	return doc, err
+		// }
+		// returnTx = hex.EncodeToString(returnTxBytes)
+	// } else {
 		returnTxBytes, err := signMultisigTx(
-			returnTx,
-			app.Config.Pocket.ChainId,
-			privateKey,
-			multisigPubKey,
-		)
-		if err != nil {
-			return doc, err
-		}
-		returnTx = hex.EncodeToString(returnTxBytes)
-	}
+	// 		returnTx,
+	// 		app.Config.Pocket.ChainId,
+	// 		privateKey,
+	// 		multisigPubKey,
+	// 	)
+	// 	if err != nil {
+	// 		return doc, err
+	// 	}
+	// 	returnTx = hex.EncodeToString(returnTxBytes)
+	// }
 
 	signers = append(signers, strings.ToLower(privateKey.PublicKey().RawString()))
 
@@ -248,19 +248,19 @@ func UpdateStatusAndConfirmationsForBurn(doc *models.Burn, blockNumber int64) (*
 
 	if status == models.StatusPending || confirmations == 0 {
 		status = models.StatusPending
-		if app.Config.Ethereum.Confirmations == 0 {
-			status = models.StatusConfirmed
-		} else {
-			burnBlockNumber, err := strconv.ParseInt(doc.BlockNumber, 10, 64)
-			if err != nil {
-				return doc, err
-			}
-
-			confirmations = blockNumber - burnBlockNumber
-			if confirmations >= app.Config.Ethereum.Confirmations {
-				status = models.StatusConfirmed
-			}
-		}
+		// if app.Config.Ethereum.Confirmations == 0 {
+		// 	status = models.StatusConfirmed
+		// } else {
+		// 	burnBlockNumber, err := strconv.ParseInt(doc.BlockNumber, 10, 64)
+		// 	if err != nil {
+		// 		return doc, err
+		// 	}
+		//
+		// 	confirmations = blockNumber - burnBlockNumber
+		// 	if confirmations >= app.Config.Ethereum.Confirmations {
+		// 		status = models.StatusConfirmed
+		// 	}
+		// }
 	}
 
 	doc.Status = status
@@ -283,40 +283,40 @@ func SignBurn(
 		returnTx = ""
 	}
 
-	if returnTx == "" {
-		amountWithTxFee, err := strconv.ParseInt(doc.Amount, 10, 64)
-		if err != nil {
-			return doc, err
-		}
-		amount := amountWithTxFee - app.Config.Pocket.TxFee
-		memo := doc.TransactionHash
-
-		returnTxBytes, err := buildMultiSigTxAndSign(
-			doc.RecipientAddress,
-			memo,
-			app.Config.Pocket.ChainId,
-			amount,
-			app.Config.Pocket.TxFee,
-			privateKey,
-			multisigPubKey,
-		)
-		if err != nil {
-			return doc, err
-		}
-		returnTx = hex.EncodeToString(returnTxBytes)
-	} else {
-		returnTxBytes, err := signMultisigTx(
-			returnTx,
-			app.Config.Pocket.ChainId,
-			privateKey,
-			multisigPubKey,
-		)
-		if err != nil {
-			return doc, err
-		}
-		returnTx = hex.EncodeToString(returnTxBytes)
-
-	}
+	// if returnTx == "" {
+	// 	amountWithTxFee, err := strconv.ParseInt(doc.Amount, 10, 64)
+	// 	if err != nil {
+	// 		return doc, err
+	// 	}
+	// 	amount := amountWithTxFee - app.Config.Pocket.TxFee
+	// 	memo := doc.TransactionHash
+	//
+	// 	returnTxBytes, err := buildMultiSigTxAndSign(
+	// 		doc.RecipientAddress,
+	// 		memo,
+	// 		app.Config.Pocket.ChainId,
+	// 		amount,
+	// 		app.Config.Pocket.TxFee,
+	// 		privateKey,
+	// 		multisigPubKey,
+	// 	)
+	// 	if err != nil {
+	// 		return doc, err
+	// 	}
+	// 	returnTx = hex.EncodeToString(returnTxBytes)
+	// } else {
+	// 	returnTxBytes, err := signMultisigTx(
+	// 		returnTx,
+	// 		app.Config.Pocket.ChainId,
+	// 		privateKey,
+	// 		multisigPubKey,
+	// 	)
+	// 	if err != nil {
+	// 		return doc, err
+	// 	}
+	// 	returnTx = hex.EncodeToString(returnTxBytes)
+	//
+	// }
 
 	signers = append(signers, strings.ToLower(privateKey.PublicKey().RawString()))
 

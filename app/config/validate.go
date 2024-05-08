@@ -1,9 +1,14 @@
 package config
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/go-bip39"
 	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
@@ -53,6 +58,10 @@ func ValidateConfig(config models.Config) error {
 
 	log.Debug("[CONFIG] Mnemonic validated")
 
+	if len(config.EthereumNetworks) == 0 {
+		return fmt.Errorf("At least one Ethereum network must be configured")
+	}
+
 	// ethereum
 	for i, ethNetwork := range config.EthereumNetworks {
 		if ethNetwork.StartBlockHeight < 0 {
@@ -83,6 +92,7 @@ func ValidateConfig(config models.Config) error {
 			return fmt.Errorf("EthereumNetworks[%d].OracleAddresses is required and must have at least 2 addresses", i)
 		}
 		foundAddress := false
+		seen := make(map[string]bool)
 		for j, oracleAddress := range ethNetwork.OracleAddresses {
 			if !IsValidEthereumAddress(oracleAddress) {
 				return fmt.Errorf("EthereumNetworks[%d].OracleAddresses[%d] is invalid", i, j)
@@ -90,6 +100,10 @@ func ValidateConfig(config models.Config) error {
 			if strings.EqualFold(oracleAddress, ethAddress) {
 				foundAddress = true
 			}
+			if seen[oracleAddress] {
+				return fmt.Errorf("EthereumNetworks[%d].OracleAddresses[%d] is duplicated", i, j)
+			}
+			seen[oracleAddress] = true
 		}
 		if !foundAddress {
 			return fmt.Errorf("EthereumNetworks[%d].OracleAddresses must contain the address of this oracle", i)
@@ -106,6 +120,12 @@ func ValidateConfig(config models.Config) error {
 	}
 
 	log.Debug("[CONFIG] Ethereum validated")
+	if len(config.CosmosNetworks) == 0 {
+		return fmt.Errorf("At least one Cosmos network must be configured")
+	}
+	if len(config.CosmosNetworks) > 1 {
+		return fmt.Errorf("Only one Cosmos network is supported")
+	}
 
 	// cosmos
 	for i, cosmosNetwork := range config.CosmosNetworks {
@@ -140,6 +160,8 @@ func ValidateConfig(config models.Config) error {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys is required and must have at least 2 public keys", i)
 		}
 		foundPublicKey := false
+		seen := make(map[string]bool)
+		var pKeys []crypto.PubKey
 		for j, publicKey := range cosmosNetwork.MultisigPublicKeys {
 			if !IsValidCosmosPublicKey(publicKey) {
 				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
@@ -147,12 +169,36 @@ func ValidateConfig(config models.Config) error {
 			if strings.EqualFold(publicKey, cosmosPubKey) {
 				foundPublicKey = true
 			}
+			pKey := &secp256k1.PubKey{}
+			pKeyBytes, err := hex.DecodeString(publicKey)
+			if err != nil {
+				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
+			}
+			err = pKey.UnmarshalAmino(pKeyBytes)
+			if err != nil {
+				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
+			}
+			pKeys = append(pKeys, pKey)
+			if seen[publicKey] {
+				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is duplicated", i, j)
+			}
+			seen[publicKey] = true
 		}
 		if !foundPublicKey {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys must contain the public key of this oracle", i)
 		}
 		if cosmosNetwork.MultisigThreshold <= 0 || cosmosNetwork.MultisigThreshold > int64(len(cosmosNetwork.MultisigPublicKeys)) {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigThreshold is invalid", i)
+		}
+		multisigPk := multisig.NewLegacyAminoPubKey(int(cosmosNetwork.MultisigThreshold), pKeys)
+		multisigBech32, err := bech32.ConvertAndEncode(cosmosNetwork.Bech32Prefix, multisigPk.Address().Bytes())
+		if err != nil {
+			log.Fatalf("CosmosNetworks[%d].MultisigAddress could not be converted to bech32: %s", i, err)
+		}
+		log.Debugf("Multisig address: %s", multisigBech32)
+		log.Debugf("CosmosNetworks[%d].MultisigAddress: %s", i, cosmosNetwork.MultisigAddress)
+		if !strings.EqualFold(cosmosNetwork.MultisigAddress, multisigBech32) {
+			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is not valid for the given public keys and threshold", i)
 		}
 		if err := validateServiceConfig("CosmosNetworks[%d].MessageMonitor", cosmosNetwork.MessageMonitor); err != nil {
 			return err

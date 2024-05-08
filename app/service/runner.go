@@ -16,6 +16,7 @@ type Runner interface {
 
 type RunnerServiceInterface interface {
 	Start(wg *sync.WaitGroup)
+	Enabled() bool
 	Status() models.RunnerStatus
 	Stop()
 }
@@ -23,6 +24,7 @@ type RunnerServiceInterface interface {
 type RunnerService struct {
 	name string
 
+	enabled  bool
 	runner   Runner
 	interval time.Duration
 
@@ -32,7 +34,20 @@ type RunnerService struct {
 	status   models.RunnerStatus
 }
 
+func (x *RunnerService) Enabled() bool {
+	return x.enabled
+}
+
 func (x *RunnerService) Start(wg *sync.WaitGroup) {
+	if x.enabled == false {
+		log.Debugf("[%s] RunnerService is disabled", x.name)
+		return
+	}
+	if x.runner == nil {
+		log.Debugf("[%s] RunnerService not started, runner is nil", x.name)
+		return
+	}
+
 	log.Infof("[%s] RunnerService started", x.name)
 	stop := false
 	for !stop {
@@ -84,6 +99,7 @@ func (x *RunnerService) Stop() {
 func NewRunnerService(
 	name string,
 	runner Runner,
+	enabled bool,
 	interval time.Duration,
 ) RunnerServiceInterface {
 	if (runner == nil) || (interval == 0) {
@@ -94,6 +110,7 @@ func NewRunnerService(
 	return &RunnerService{
 		name:     strings.ToUpper(name),
 		runner:   runner,
+		enabled:  enabled,
 		interval: interval,
 		stop:     make(chan bool, 1),
 		status:   models.RunnerStatus{},

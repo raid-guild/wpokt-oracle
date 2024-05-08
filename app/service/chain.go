@@ -15,9 +15,9 @@ type ChainService struct {
 
 	chain models.Chain
 
-	monitorRunner RunnerServiceInterface
-	signerRunner  RunnerServiceInterface
-	relayerRunner RunnerServiceInterface
+	monitorService RunnerServiceInterface
+	signerService  RunnerServiceInterface
+	relayerService RunnerServiceInterface
 
 	stop chan bool
 }
@@ -33,21 +33,43 @@ func (x *ChainService) Name() string {
 }
 
 func (x *ChainService) Start() {
+	if !x.monitorService.Enabled() && !x.signerService.Enabled() && !x.relayerService.Enabled() {
+		log.Debugf("[%s] ChainService not enabled", x.Name())
+		x.wg.Done()
+		return
+	}
 	log.Infof("[%s] ChainService started", x.Name())
 
 	var wg sync.WaitGroup
-	wg.Add(3)
 
-	go x.monitorRunner.Start(&wg)
-	go x.signerRunner.Start(&wg)
-	go x.relayerRunner.Start(&wg)
+	if x.monitorService.Enabled() {
+		wg.Add(1)
+		go x.monitorService.Start(&wg)
+	}
+
+	if x.signerService.Enabled() {
+		wg.Add(1)
+		go x.signerService.Start(&wg)
+	}
+
+	if x.relayerService.Enabled() {
+		wg.Add(1)
+		go x.relayerService.Start(&wg)
+	}
 
 	<-x.stop
 
 	log.Debugf("[%s] ChainService stopping", x.Name())
-	x.monitorRunner.Stop()
-	x.signerRunner.Stop()
-	x.relayerRunner.Stop()
+
+	if x.monitorService.Enabled() {
+		x.monitorService.Stop()
+	}
+	if x.signerService.Enabled() {
+		x.signerService.Stop()
+	}
+	if x.relayerService.Enabled() {
+		x.relayerService.Stop()
+	}
 
 	wg.Wait()
 	log.Infof("[%s] ChainService stopped", x.Name())
@@ -58,9 +80,9 @@ func (x *ChainService) Start() {
 func (x *ChainService) Health() models.ServiceHealth {
 	return models.ServiceHealth{
 		Chain:          x.chain,
-		MessageMonitor: x.monitorRunner.Status(),
-		MessageSigner:  x.signerRunner.Status(),
-		MessageRelayer: x.relayerRunner.Status(),
+		MessageMonitor: x.monitorService.Status(),
+		MessageSigner:  x.signerService.Status(),
+		MessageRelayer: x.relayerService.Status(),
 	}
 
 }
@@ -72,23 +94,23 @@ func (x *ChainService) Stop() {
 
 func NewChainService(
 	chain models.Chain,
-	monitorRunner RunnerServiceInterface,
-	signerRunner RunnerServiceInterface,
-	relayerRunner RunnerServiceInterface,
+	monitorService RunnerServiceInterface,
+	signerService RunnerServiceInterface,
+	relayerService RunnerServiceInterface,
 	wg *sync.WaitGroup,
 ) ChainServiceInterface {
-	if chain.ChainName == "" || monitorRunner == nil || signerRunner == nil || relayerRunner == nil || wg == nil {
+	if chain.ChainName == "" || monitorService == nil || signerService == nil || relayerService == nil || wg == nil {
 		log.Debug("[RUNNER] Invalid parameters")
 		return nil
 	}
 
 	return &ChainService{
-		chain:         chain,
-		monitorRunner: monitorRunner,
-		signerRunner:  signerRunner,
-		relayerRunner: relayerRunner,
-		wg:            wg,
-		stop:          make(chan bool, 1),
+		chain:          chain,
+		monitorService: monitorService,
+		signerService:  signerService,
+		relayerService: relayerService,
+		wg:             wg,
+		stop:           make(chan bool, 1),
 	}
 }
 
@@ -96,19 +118,22 @@ func NewEthereumChainService(
 	config models.EthereumNetworkConfig,
 	wg *sync.WaitGroup,
 ) ChainServiceInterface {
-	monitorRunner := NewRunnerService(
+	monitorRunnerService := NewRunnerService(
 		fmt.Sprintf("%s_Monitor", config.ChainName),
 		&EmptyRunner{},
+		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
 	)
-	signerRunner := NewRunnerService(
+	signerRunnerService := NewRunnerService(
 		fmt.Sprintf("%s_Signer", config.ChainName),
 		&EmptyRunner{},
+		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
 	)
-	relayerRunner := NewRunnerService(
+	relayerRunnerService := NewRunnerService(
 		fmt.Sprintf("%s_Relayer", config.ChainName),
 		&EmptyRunner{},
+		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
 	)
 
@@ -118,42 +143,9 @@ func NewEthereumChainService(
 			ChainId:   fmt.Sprintf("%d", config.ChainId),
 			ChainType: models.ChainTypeEthereum,
 		},
-		monitorRunner,
-		signerRunner,
-		relayerRunner,
-		wg,
-	)
-}
-
-func NewCosmosChainService(
-	config models.CosmosNetworkConfig,
-	wg *sync.WaitGroup,
-) ChainServiceInterface {
-	monitorRunner := NewRunnerService(
-		fmt.Sprintf("%s_Monitor", config.ChainName),
-		&EmptyRunner{},
-		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
-	)
-	signerRunner := NewRunnerService(
-		fmt.Sprintf("%s_Signer", config.ChainName),
-		&EmptyRunner{},
-		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
-	)
-	relayerRunner := NewRunnerService(
-		fmt.Sprintf("%s_Relayer", config.ChainName),
-		&EmptyRunner{},
-		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
-	)
-
-	return NewChainService(
-		models.Chain{
-			ChainName: config.ChainName,
-			ChainId:   config.ChainId,
-			ChainType: models.ChainTypeCosmos,
-		},
-		monitorRunner,
-		signerRunner,
-		relayerRunner,
+		monitorRunnerService,
+		signerRunnerService,
+		relayerRunnerService,
 		wg,
 	)
 }

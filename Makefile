@@ -2,8 +2,8 @@
 
 all: run
 
-debug :; LOGGER_LEVEL=debug go run . --yaml config.local.yml
+debug :; LOGGER_LEVEL=debug go run . --yaml config.test.yml
 
-run :; go run . --yaml config.local.yml
+run :; go run . --yaml config.test.yml
 
 build :; go build -o wpokt-oracle .

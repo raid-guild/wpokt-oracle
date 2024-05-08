@@ -1,0 +1,56 @@
+mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+health_check:
+  interval_ms: 10000
+  read_last_health: true
+logger:
+  level: "info"
+mongodb:
+  uri: "mongodb+srv://admin:qOF8UHTYg6fTGE9z@test.78ceh8r.mongodb.net/test?retryWrites=true&w=majority"
+  database: "test"
+  timeout_ms: 10000
+ethereum_networks:
+  - start_block_height: 1000000
+    confirmations: 0
+    rpc_url: "https://1rpc.io/sepolia"
+    rpc_timeout_ms: 5000
+    chain_id: 11155111
+    chain_name: "sepolia"
+    mailbox_address: "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766"
+    mint_controller_address: "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766"
+    oracle_addresses:
+      - "0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb"
+      - "0x958d1F55E14Cba24a077b9634F16f83565fc9411"
+      - "0x4c672Edd2ec8eac8f0F1709f33de9A2E786e6912"
+    message_monitor:
+      enabled: false
+      interval_ms: 60000
+    message_signer:
+      enabled: false
+      interval_ms: 60000
+    message_relayer:
+      enabled: false
+      interval_ms: 60000
+cosmos_networks:
+  - start_block_height: 500000
+    confirmations: 0
+    rpc_url: "https://testnet-validated-validator-rpc.poktroll.com"
+    rpc_timeout_ms: 5000
+    chain_id: "poktroll"
+    chain_name: "pokt_testnet"
+    tx_fee: 0
+    bech32_prefix: "pokt"
+    multisig_address: "pokt13tsl3aglfyzf02n7x28x2ajzw94muu6y57k2ar"
+    multisig_public_keys:
+      - "026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d9"
+      - "02faaaf0f385bb17381f36dcd86ab2486e8ff8d93440436496665ac007953076c2"
+      - "02cae233806460db75a941a269490ca5165a620b43241edb8bc72e169f4143a6df"
+    multisig_threshold: 2
+    message_monitor:
+      enabled: true
+      interval_ms: 60000
+    message_signer:
+      enabled: false
+      interval_ms: 60000
+    message_relayer:
+      enabled: false
+      interval_ms: 60000

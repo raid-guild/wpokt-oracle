@@ -189,8 +189,6 @@ func ValidateConfig(config models.Config) error {
 		if err != nil {
 			log.Fatalf("CosmosNetworks[%d].MultisigAddress could not be converted to bech32: %s", i, err)
 		}
-		log.Debugf("Multisig address: %s", multisigBech32)
-		log.Debugf("CosmosNetworks[%d].MultisigAddress: %s", i, cosmosNetwork.MultisigAddress)
 		if !strings.EqualFold(cosmosNetwork.MultisigAddress, multisigBech32) {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is not valid for the given public keys and threshold", i)
 		}

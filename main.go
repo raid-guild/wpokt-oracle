@@ -11,6 +11,7 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/app/service"
+	"github.com/dan13ram/wpokt-oracle/cosmos"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -77,7 +78,7 @@ func main() {
 	}
 
 	for _, cosmosNetwork := range app.Config.CosmosNetworks {
-		chainService := service.NewCosmosChainService(cosmosNetwork, &wg)
+		chainService := cosmos.NewCosmosChainService(cosmosNetwork, &wg)
 		services = append(services, chainService)
 	}
 

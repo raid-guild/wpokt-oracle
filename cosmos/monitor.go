@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
-	"github.com/dan13ram/wpokt-oracle/app"
+	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/dan13ram/wpokt-oracle/app/service"
+
 	// pokt "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
@@ -16,10 +16,10 @@ import (
 )
 
 type MessageMonitorRunner struct {
-	name          string
+	name string
 	// client        pokt.PocketClient
-	wpoktAddress  string
-	vaultAddress  string
+	// wpoktAddress  string
+	multisigPk    *multisig.LegacyAminoPubKey
 	startHeight   int64
 	currentHeight int64
 	minimumAmount *big.Int
@@ -41,79 +41,80 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 	// 	return
 	// }
 	// x.currentHeight = res.Height
-	// log.Info("[MINT MONITOR] Current height: ", x.currentHeight)
+	log.Infof("[%s] Current height: %d", x.name, x.currentHeight)
 }
 
 // func (x *MessageMonitorRunner) HandleFailedMint(tx *pokt.TxResponse) bool {
-	// if tx == nil {
-	// 	log.Debug("[MINT MONITOR] Invalid tx response")
-	// 	return false
-	// }
-	//
-	// doc := util.CreateFailedMint(tx, x.vaultAddress)
-	//
-	// log.Debug("[MINT MONITOR] Storing failed mint tx")
-	// err := app.DB.InsertOne(models.CollectionInvalidMints, doc)
-	// if err != nil {
-	// 	if mongo.IsDuplicateKeyError(err) {
-	// 		log.Info("[MINT MONITOR] Found duplicate failed mint tx")
-	// 		return true
-	// 	}
-	// 	log.Error("[MINT MONITOR] Error storing failed mint tx: ", err)
-	// 	return false
-	// }
-	//
-	// log.Info("[MINT MONITOR] Stored failed mint tx")
+// if tx == nil {
+// 	log.Debug("[MINT MONITOR] Invalid tx response")
+// 	return false
+// }
+//
+// doc := util.CreateFailedMint(tx, x.vaultAddress)
+//
+// log.Debug("[MINT MONITOR] Storing failed mint tx")
+// err := app.DB.InsertOne(models.CollectionInvalidMints, doc)
+// if err != nil {
+// 	if mongo.IsDuplicateKeyError(err) {
+// 		log.Info("[MINT MONITOR] Found duplicate failed mint tx")
+// 		return true
+// 	}
+// 	log.Error("[MINT MONITOR] Error storing failed mint tx: ", err)
+// 	return false
+// }
+//
+// log.Info("[MINT MONITOR] Stored failed mint tx")
 // 	return true
 // }
 
 // func (x *MessageMonitorRunner) HandleInvalidMint(tx *pokt.TxResponse) bool {
-	// if tx == nil {
-	// 	log.Debug("[MINT MONITOR] Invalid tx response")
-	// 	return false
-	// }
-	//
-	// doc := util.CreateInvalidMint(tx, x.vaultAddress)
-	//
-	// log.Debug("[MINT MONITOR] Storing invalid mint tx")
-	// err := app.DB.InsertOne(models.CollectionInvalidMints, doc)
-	// if err != nil {
-	// 	if mongo.IsDuplicateKeyError(err) {
-	// 		log.Info("[MINT MONITOR] Found duplicate invalid mint tx")
-	// 		return true
-	// 	}
-	// 	log.Error("[MINT MONITOR] Error storing invalid mint tx: ", err)
-	// 	return false
-	// }
-	//
-	// log.Info("[MINT MONITOR] Stored invalid mint tx")
+// if tx == nil {
+// 	log.Debug("[MINT MONITOR] Invalid tx response")
+// 	return false
+// }
+//
+// doc := util.CreateInvalidMint(tx, x.vaultAddress)
+//
+// log.Debug("[MINT MONITOR] Storing invalid mint tx")
+// err := app.DB.InsertOne(models.CollectionInvalidMints, doc)
+// if err != nil {
+// 	if mongo.IsDuplicateKeyError(err) {
+// 		log.Info("[MINT MONITOR] Found duplicate invalid mint tx")
+// 		return true
+// 	}
+// 	log.Error("[MINT MONITOR] Error storing invalid mint tx: ", err)
+// 	return false
+// }
+//
+// log.Info("[MINT MONITOR] Stored invalid mint tx")
 // 	return true
 // }
 
 // func (x *MessageMonitorRunner) HandleValidMint(tx *pokt.TxResponse, memo models.MintMemo) bool {
-	// if tx == nil {
-	// 	log.Debug("[MINT MONITOR] Invalid tx response")
-	// 	return false
-	// }
-	//
-	// doc := util.CreateMint(tx, memo, x.wpoktAddress, x.vaultAddress)
-	//
-	// log.Debug("[MINT MONITOR] Storing mint tx")
-	// err := app.DB.InsertOne(models.CollectionMints, doc)
-	// if err != nil {
-	// 	if mongo.IsDuplicateKeyError(err) {
-	// 		log.Info("[MINT MONITOR] Found duplicate mint tx")
-	// 		return true
-	// 	}
-	// 	log.Error("[MINT MONITOR] Error storing mint tx: ", err)
-	// 	return false
-	// }
-	//
-	// log.Info("[MINT MONITOR] Stored mint tx")
+// if tx == nil {
+// 	log.Debug("[MINT MONITOR] Invalid tx response")
+// 	return false
+// }
+//
+// doc := util.CreateMint(tx, memo, x.wpoktAddress, x.vaultAddress)
+//
+// log.Debug("[MINT MONITOR] Storing mint tx")
+// err := app.DB.InsertOne(models.CollectionMints, doc)
+// if err != nil {
+// 	if mongo.IsDuplicateKeyError(err) {
+// 		log.Info("[MINT MONITOR] Found duplicate mint tx")
+// 		return true
+// 	}
+// 	log.Error("[MINT MONITOR] Error storing mint tx: ", err)
+// 	return false
+// }
+//
+// log.Info("[MINT MONITOR] Stored mint tx")
 // 	return true
 // }
 
 func (x *MessageMonitorRunner) SyncTxs() bool {
+	log.Infof("[%s] Syncing txs", x.name)
 	return true
 
 	// if x.currentHeight <= x.startHeight {
@@ -172,11 +173,9 @@ func (x *MessageMonitorRunner) InitStartHeight(lastHealth models.ServiceHealth) 
 	// log.Info("[MINT MONITOR] Start height: ", x.startHeight)
 }
 
-func NewMessageMonitor(
-	config models.CosmosNetworkConfig,
-	lastHealth models.ServiceHealth) service.Runner {
+func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.ServiceHealth) service.Runner {
 
-	name := fmt.Sprintf("%s_Monitor", config.ChainName)
+	name := strings.ToUpper(fmt.Sprintf("%s_Monitor", config.ChainName))
 
 	if !config.MessageMonitor.Enabled {
 		log.Fatalf("[%s] Message monitor is not enabled", name)
@@ -189,31 +188,36 @@ func NewMessageMonitor(
 		pKey, err := util.PubKeyFromHex(pk)
 		if err != nil {
 			log.Fatalf("[%s] Error parsing public key: %s", name, err)
+		}
 		pks = append(pks, pKey)
 	}
 
-	vaultPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
+	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
+	multisigAddress, err := util.Bech32FromAddressBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
+	if err != nil {
+		log.Fatalf("[%s] Error creating multisig address: %s", name, err)
+	}
 
-	vaultAddress := vaultPk.Address().String()
-	log.Debug("[MINT MONITOR] Vault address: ", vaultAddress)
-	if !strings.EqualFold(vaultAddress, app.Config.Pocket.VaultAddress) {
-		log.Fatal("[MINT MONITOR] Multisig address does not match vault address")
+	log.Debugf("[%s] Multisig address: %s", name, multisigAddress)
+	if !strings.EqualFold(multisigAddress, config.MultisigAddress) {
+		log.Fatalf("[%s] Multisig address does not match config", name)
 	}
 
 	x := &MessageMonitorRunner{
-		vaultAddress:  strings.ToLower(vaultAddress),
-		wpoktAddress:  strings.ToLower(app.Config.Ethereum.WrappedPocketAddress),
+		name:       name,
+		multisigPk: multisigPk,
+		// wpoktAddress:  strings.ToLower(app.Config.Ethereum.WrappedPocketAddress),
 		startHeight:   0,
 		currentHeight: 0,
 		// client:        pokt.NewClient(),
-		minimumAmount: big.NewInt(app.Config.Pocket.TxFee),
+		minimumAmount: big.NewInt(1),
 	}
 
 	x.UpdateCurrentHeight()
 
 	// x.InitStartHeight(lastHealth)
 
-	log.Info("[MINT MONITOR] Initialized")
+	log.Infof("[%s] Initialized", name)
 
 	return x
 }

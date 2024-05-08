@@ -24,6 +24,7 @@ go.work
 # config
 *.yml
 !config.sample.yml
+!config.test.yml
 
 # env
 .env*

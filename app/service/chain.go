@@ -140,7 +140,7 @@ func NewEthereumChainService(
 	return NewChainService(
 		models.Chain{
 			ChainName: config.ChainName,
-			ChainId:   fmt.Sprintf("%d", config.ChainId),
+			ChainId:   fmt.Sprintf("%d", config.ChainID),
 			ChainType: models.ChainTypeEthereum,
 		},
 		monitorRunnerService,

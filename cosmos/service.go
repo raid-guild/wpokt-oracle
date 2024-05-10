@@ -40,7 +40,7 @@ func NewCosmosChainService(
 	return service.NewChainService(
 		models.Chain{
 			ChainName: config.ChainName,
-			ChainId:   config.ChainId,
+			ChainId:   config.ChainID,
 			ChainType: models.ChainTypeCosmos,
 		},
 		monitorRunnerService,

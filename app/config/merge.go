@@ -56,8 +56,8 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envEthNet.RPCTimeoutMS != 0 {
 				mergedConfig.EthereumNetworks[i].RPCTimeoutMS = envEthNet.RPCTimeoutMS
 			}
-			if envEthNet.ChainId != 0 {
-				mergedConfig.EthereumNetworks[i].ChainId = envEthNet.ChainId
+			if envEthNet.ChainID != 0 {
+				mergedConfig.EthereumNetworks[i].ChainID = envEthNet.ChainID
 			}
 			if envEthNet.ChainName != "" {
 				mergedConfig.EthereumNetworks[i].ChainName = envEthNet.ChainName
@@ -110,8 +110,8 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envCosmosNet.GRPCTimeoutMS != 0 {
 				mergedConfig.CosmosNetworks[i].GRPCTimeoutMS = envCosmosNet.GRPCTimeoutMS
 			}
-			if envCosmosNet.ChainId != "" {
-				mergedConfig.CosmosNetworks[i].ChainId = envCosmosNet.ChainId
+			if envCosmosNet.ChainID != "" {
+				mergedConfig.CosmosNetworks[i].ChainID = envCosmosNet.ChainID
 			}
 			if envCosmosNet.ChainName != "" {
 				mergedConfig.CosmosNetworks[i].ChainName = envCosmosNet.ChainName

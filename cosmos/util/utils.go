@@ -3,12 +3,20 @@ package util
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"math/big"
+	"strings"
 
 	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
+
+	abci "github.com/cometbft/cometbft/abci/types"
+
+	"cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -71,4 +79,76 @@ func PubKeyFromHex(pubKeyHex string) (crypto.PubKey, error) {
 	err = pubKey.UnmarshalAmino(pubKeyBytes)
 
 	return pubKey, err
+}
+
+// CoinsToBigInt converts sdk.Coins to big.Int
+func CoinsToBigInt(coins sdk.Coins) (*big.Int, error) {
+	// For simplicity, assume coins contain only one type of coin
+	if coins.Len() == 0 {
+		return big.NewInt(0), nil
+	}
+
+	if coins.Len() > 1 {
+		return big.NewInt(0), fmt.Errorf("coins contain more than one type of coin")
+	}
+
+	coin := coins[0] // Get the first coin in the Coins array
+	amountStr := coin.Amount.String()
+	bigIntAmount := new(big.Int)
+	bigIntAmount, ok := bigIntAmount.SetString(amountStr, 10)
+	if !ok {
+		return big.NewInt(0), fmt.Errorf("unable to convert coin amount to big.Int")
+	}
+
+	return bigIntAmount, nil
+}
+
+func ParseCoinsReceivedEvents(receiver string, events []abci.Event) (sdk.Coin, error) {
+	total := sdk.NewCoin("upokt", math.NewInt(0))
+	for _, event := range events {
+		if strings.EqualFold(event.Type, "coin_received") {
+			for _, attr := range event.Attributes {
+				if strings.EqualFold(string(attr.Key), "receiver") && strings.EqualFold(string(attr.Value), receiver) {
+					for _, attr := range event.Attributes {
+						if strings.EqualFold(string(attr.Key), "amount") {
+							amountStr := string(attr.Value)
+							amount, err := sdk.ParseCoinNormalized(amountStr)
+							if err != nil {
+								return total, fmt.Errorf("unable to parse coin amount: %v", err)
+							}
+							total = total.Add(amount)
+						}
+					}
+				}
+			}
+		}
+	}
+	return total, nil
+}
+
+func ParseCoinsSpentEvents(events []abci.Event) (string, sdk.Coin, error) {
+	total := sdk.NewCoin("upokt", math.NewInt(0))
+	sender := ""
+	for _, event := range events {
+		if strings.EqualFold(event.Type, "coin_spent") {
+			for _, attr := range event.Attributes {
+				if strings.EqualFold(string(attr.Key), "sender") {
+					newSender := string(attr.Value)
+					if sender != "" && !strings.EqualFold(sender, newSender) {
+						return sender, total, fmt.Errorf("multiple senders found in coin spent events")
+					}
+					sender = newSender
+				}
+				if strings.EqualFold(string(attr.Key), "amount") && strings.EqualFold(sender, "upokt") {
+					amountStr := string(attr.Value)
+					amount, err := sdk.ParseCoinNormalized(amountStr)
+					if err != nil {
+						return sender, total, err
+					}
+					total = total.Add(amount)
+				}
+			}
+		}
+	}
+	return sender, total, nil
 }

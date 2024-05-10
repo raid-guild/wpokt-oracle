@@ -238,7 +238,7 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 		GRPCHost:      config.GRPCHost,
 		GRPCPort:      config.GRPCPort,
 		GRPCTimeoutMS: config.GRPCTimeoutMS,
-		ChainId:       config.ChainId,
+		ChainId:       config.ChainID,
 		ChainName:     config.ChainName,
 		Bech32Prefix:  config.Bech32Prefix,
 

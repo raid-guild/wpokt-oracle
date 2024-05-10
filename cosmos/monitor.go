@@ -2,29 +2,33 @@ package cosmos
 
 import (
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/tx"
-	"github.com/dan13ram/wpokt-oracle/app/service"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/dan13ram/wpokt-oracle/app/service"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
-	log "github.com/sirupsen/logrus"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"cosmossdk.io/math"
 )
 
 type MessageMonitorRunner struct {
-	name   string
-	client cosmos.CosmosClient
-	// wpoktAddress  string
-	multisigPk      *multisig.LegacyAminoPubKey
-	multisigAddress string
 	startHeight     int64
 	currentHeight   int64
-	minimumAmount   *big.Int
+	name            string
+	multisigAddress string
+
+	client        cosmos.CosmosClient
+	multisigPk    *multisig.LegacyAminoPubKey
+	minimumAmount sdk.Coin
 }
 
 func (x *MessageMonitorRunner) Run() {
@@ -46,29 +50,6 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 
 	log.Infof("[%s] Current height: %d", x.name, x.currentHeight)
 }
-
-// func (x *MessageMonitorRunner) HandleFailedMint(tx *pokt.TxResponse) bool {
-// if tx == nil {
-// 	log.Debug("[MINT MONITOR] Invalid tx response")
-// 	return false
-// }
-//
-// doc := util.CreateFailedMint(tx, x.vaultAddress)
-//
-// log.Debug("[MINT MONITOR] Storing failed mint tx")
-// err := app.DB.InsertOne(models.CollectionInvalidMints, doc)
-// if err != nil {
-// 	if mongo.IsDuplicateKeyError(err) {
-// 		log.Info("[MINT MONITOR] Found duplicate failed mint tx")
-// 		return true
-// 	}
-// 	log.Error("[MINT MONITOR] Error storing failed mint tx: ", err)
-// 	return false
-// }
-//
-// log.Info("[MINT MONITOR] Stored failed mint tx")
-// 	return true
-// }
 
 // func (x *MessageMonitorRunner) HandleInvalidMint(tx *pokt.TxResponse) bool {
 // if tx == nil {
@@ -129,15 +110,15 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 		return false
 	}
 	log.Infof("[%s] Found %d txs to sync", x.name, len(txResponses))
-	var success bool = true
+	success := true
 	for _, txResponse := range txResponses {
 		if txResponse.Code != 0 {
 			log.Infof("[%s] Found tx with error: %s", x.name, txResponse.TxHash)
 			continue
 		}
 		log.Debugf("[%s] Found tx: %s", x.name, txResponse.TxHash)
+
 		tx := &tx.Tx{}
-		// err := txResponse.Tx.
 		err := tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			log.Errorf("[%s] Error unmarshalling tx: %s", x.name, err)
@@ -145,8 +126,38 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 		}
 
 		log.Infof("[%s] Found tx memo: %s", x.name, tx.Body.Memo)
-		// amount
-		// log.Infof("[%s] Found tx amount: %s", x.name, tx.Body.
+
+		coinsReceived, err := util.ParseCoinsReceivedEvents(x.multisigAddress, txResponse.Events)
+		if err != nil {
+			log.Errorf("[%s] Error parsing coins received events: %s", x.name, err)
+			continue
+		}
+
+		log.Infof("[%s] Found tx coins received: %v", x.name, coinsReceived)
+
+		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(txResponse.Events)
+		if err != nil {
+			log.Errorf("[%s] Error parsing coins spent events: %s", x.name, err)
+			continue
+		}
+
+		log.Infof("[%s] Found tx coins spent: %v", x.name, coinsSpent)
+		log.Infof("[%s] Found tx coins spent sender: %s", x.name, coinsSpentSender)
+
+		if coinsReceived.IsZero() || coinsSpent.IsZero() {
+			log.Infof("[%s] Found tx with zero coins: %s", x.name, txResponse.TxHash)
+			continue
+		}
+
+		if coinsReceived.IsLTE(x.minimumAmount) {
+			log.Infof("[%s] Found tx with too low amount: %s", x.name, txResponse.TxHash)
+			continue
+		}
+
+		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
+			// return coins to sender
+			log.Infof("[%s] Found tx with invalid coins: %s", x.name, txResponse.TxHash)
+		}
 
 		// amount, ok := new(big.Int).SetString(tx.StdTx.Msg.Value.Amount, 10)
 		// if tx.Tx == "" || tx.TxResult.Code != 0 || !strings.EqualFold(tx.TxResult.Recipient, x.vaultAddress) || tx.TxResult.MessageType != "send" || !ok || amount.Cmp(x.minimumAmount) != 1 {
@@ -223,6 +234,8 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Serv
 		log.Fatalf("[%s] Error creating cosmos client: %s", name, err)
 	}
 
+	feeAmount := sdk.NewCoin("upokt", math.NewInt(config.TxFee))
+
 	x := &MessageMonitorRunner{
 		name:       name,
 		multisigPk: multisigPk,
@@ -231,7 +244,7 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Serv
 		startHeight:     0,
 		currentHeight:   0,
 		client:          client,
-		minimumAmount:   big.NewInt(1),
+		minimumAmount:   feeAmount,
 	}
 
 	x.UpdateCurrentHeight()

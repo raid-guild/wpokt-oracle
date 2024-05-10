@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 func LoadConfigFromEnv(envFile string) models.Config {
@@ -48,7 +49,7 @@ func LoadConfigFromEnv(envFile string) models.Config {
 			Confirmations:         getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
 			RPCURL:                getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
 			RPCTimeoutMS:          getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_TIMEOUT_MS"),
-			ChainId:               getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
+			ChainID:               getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
 			ChainName:             getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			MailboxAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MAILBOX_ADDRESS"),
 			MintControllerAddress: getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MINT_CONTROLLER_ADDRESS"),
@@ -78,7 +79,7 @@ func LoadConfigFromEnv(envFile string) models.Config {
 			GRPCHost:           getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_HOST"),
 			GRPCPort:           getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_PORT"),
 			GRPCTimeoutMS:      getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_TIMEOUT_MS"),
-			ChainId:            getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
+			ChainID:            getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
 			ChainName:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			TxFee:              getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
 			Bech32Prefix:       getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_BECH32_PREFIX"),

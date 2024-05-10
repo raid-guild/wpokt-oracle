@@ -75,7 +75,7 @@ func ValidateConfig(config models.Config) error {
 		if ethNetwork.RPCTimeoutMS <= 0 {
 			return fmt.Errorf("EthereumNetworks[%d].RPCTimeoutMS is required", i)
 		}
-		if ethNetwork.ChainId <= 0 {
+		if ethNetwork.ChainID <= 0 {
 			return fmt.Errorf("EthereumNetworks[%d].ChainId is required", i)
 		}
 		if ethNetwork.ChainName == "" {
@@ -143,7 +143,7 @@ func ValidateConfig(config models.Config) error {
 		if cosmosNetwork.GRPCTimeoutMS <= 0 {
 			return fmt.Errorf("CosmosNetworks[%d].GRPCTimeoutMS is required", i)
 		}
-		if cosmosNetwork.ChainId == "" {
+		if cosmosNetwork.ChainID == "" {
 			return fmt.Errorf("CosmosNetworks[%d].ChainId is required", i)
 		}
 		if cosmosNetwork.ChainName == "" {

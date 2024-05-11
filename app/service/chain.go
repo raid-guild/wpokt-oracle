@@ -25,7 +25,7 @@ type ChainService struct {
 type ChainServiceInterface interface {
 	Start()
 	Stop()
-	Health() models.ServiceHealth
+	Health() models.ChainServiceHealth
 }
 
 func (x *ChainService) Name() string {
@@ -77,8 +77,8 @@ func (x *ChainService) Start() {
 	x.wg.Done()
 }
 
-func (x *ChainService) Health() models.ServiceHealth {
-	return models.ServiceHealth{
+func (x *ChainService) Health() models.ChainServiceHealth {
+	return models.ChainServiceHealth{
 		Chain:          x.chain,
 		MessageMonitor: x.monitorService.Status(),
 		MessageSigner:  x.signerService.Status(),
@@ -140,7 +140,7 @@ func NewEthereumChainService(
 	return NewChainService(
 		models.Chain{
 			ChainName: config.ChainName,
-			ChainId:   fmt.Sprintf("%d", config.ChainID),
+			ChainID:   fmt.Sprintf("%d", config.ChainID),
 			ChainType: models.ChainTypeEthereum,
 		},
 		monitorRunnerService,

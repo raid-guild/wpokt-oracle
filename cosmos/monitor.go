@@ -36,14 +36,14 @@ func (x *MessageMonitorRunner) Run() {
 	x.SyncTxs()
 }
 
-func (x *MessageMonitorRunner) Status() models.RunnerStatus {
-	return models.RunnerStatus{}
+func (x *MessageMonitorRunner) Status() models.RunnerServiceStatus {
+	return models.RunnerServiceStatus{}
 }
 
 func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 	res, err := x.client.GetLatestBlock()
 	if err != nil {
-		log.Error("[MINT MONITOR] Error getting current height: ", err)
+		log.Errorf("[%s] Error getting latest block: %s", x.name, err)
 		return
 	}
 	x.currentHeight = res.Header.Height
@@ -155,7 +155,6 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 		}
 
 		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
-			// return coins to sender
 			log.Infof("[%s] Found tx with invalid coins: %s", x.name, txResponse.TxHash)
 		}
 
@@ -183,7 +182,7 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) InitStartHeight(lastHealth models.ServiceHealth) {
+func (x *MessageMonitorRunner) InitStartHeight(lastHealth models.ChainServiceHealth) {
 	// startHeight := (app.Config.Pocket.StartHeight)
 	//
 	// if (lastHealth.PoktHeight) != "" {
@@ -200,7 +199,7 @@ func (x *MessageMonitorRunner) InitStartHeight(lastHealth models.ServiceHealth) 
 	// log.Info("[MINT MONITOR] Start height: ", x.startHeight)
 }
 
-func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.ServiceHealth) service.Runner {
+func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.ChainServiceHealth) service.Runner {
 
 	name := strings.ToUpper(fmt.Sprintf("%s_Monitor", config.ChainName))
 

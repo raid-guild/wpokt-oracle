@@ -142,7 +142,7 @@ func TestBurnMonitorInitStartBlockNumber(t *testing.T) {
 		app.DB = mockDB
 		x := NewTestBurnMonitor(t, mockContract, mockClient)
 
-		lastHealth := models.ServiceHealth{
+		lastHealth := models.ChainServiceHealth{
 			EthBlockNumber: "10",
 		}
 
@@ -158,7 +158,7 @@ func TestBurnMonitorInitStartBlockNumber(t *testing.T) {
 		app.DB = mockDB
 		x := NewTestBurnMonitor(t, mockContract, mockClient)
 
-		lastHealth := models.ServiceHealth{
+		lastHealth := models.ChainServiceHealth{
 			EthBlockNumber: "invalid",
 		}
 
@@ -449,7 +449,7 @@ func TestNewBurnMonitor(t *testing.T) {
 
 		app.Config.BurnMonitor.Enabled = false
 
-		service := NewBurnMonitor(&sync.WaitGroup{}, models.ServiceHealth{})
+		service := NewBurnMonitor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 
 		health := service.Health()
 
@@ -467,7 +467,7 @@ func TestNewBurnMonitor(t *testing.T) {
 		log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 		assert.Panics(t, func() {
-			NewBurnMonitor(&sync.WaitGroup{}, models.ServiceHealth{})
+			NewBurnMonitor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 		})
 
 	})
@@ -477,7 +477,7 @@ func TestNewBurnMonitor(t *testing.T) {
 		app.Config.BurnMonitor.Enabled = true
 		app.Config.Ethereum.RPCURL = "https://eth.llamarpc.com"
 
-		service := NewBurnMonitor(&sync.WaitGroup{}, models.ServiceHealth{})
+		service := NewBurnMonitor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 
 		assert.Nil(t, service)
 	})
@@ -488,7 +488,7 @@ func TestNewBurnMonitor(t *testing.T) {
 		app.Config.BurnMonitor.IntervalMillis = 1
 		app.Config.Ethereum.RPCURL = "https://eth.llamarpc.com"
 
-		service := NewBurnMonitor(&sync.WaitGroup{}, models.ServiceHealth{})
+		service := NewBurnMonitor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 
 		health := service.Health()
 

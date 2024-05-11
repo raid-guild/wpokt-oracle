@@ -87,8 +87,8 @@ func (e *MockService) Stop() {
 
 const MockServiceName = "mock"
 
-func (e *MockService) Health() models.ServiceHealth {
-	return models.ServiceHealth{
+func (e *MockService) Health() models.ChainServiceHealth {
+	return models.ChainServiceHealth{
 		Name:           MockServiceName,
 		LastSyncTime:   time.Now(),
 		NextSyncTime:   time.Now(),
@@ -168,7 +168,7 @@ func TestPostHealth(t *testing.T) {
 
 		onUpdate := bson.M{
 			"healthy":         true,
-			"service_healths": []models.ServiceHealth{},
+			"service_healths": []models.ChainServiceHealth{},
 			"updated_at":      nil,
 		}
 
@@ -181,7 +181,7 @@ func TestPostHealth(t *testing.T) {
 
 			updateArg["$setOnInsert"].(bson.M)["created_at"] = nil
 			updateArg["$set"].(bson.M)["updated_at"] = nil
-			updateArg["$set"].(bson.M)["service_healths"] = []models.ServiceHealth{}
+			updateArg["$set"].(bson.M)["service_healths"] = []models.ChainServiceHealth{}
 
 			assert.Equal(t, updateArg, update)
 		})

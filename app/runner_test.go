@@ -18,8 +18,8 @@ func (m *MockRunner) Run() {
 	m.runs += 1
 }
 
-func (m *MockRunner) Status() models.RunnerStatus {
-	return models.RunnerStatus{
+func (m *MockRunner) Status() models.RunnerServiceStatus {
+	return models.RunnerServiceStatus{
 		PoktHeight:     strconv.Itoa(m.runs),
 		EthBlockNumber: "456",
 	}

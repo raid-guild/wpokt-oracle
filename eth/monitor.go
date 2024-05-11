@@ -35,8 +35,8 @@ func (x *BurnMonitorRunner) Run() {
 	x.SyncTxs()
 }
 
-func (x *BurnMonitorRunner) Status() models.RunnerStatus {
-	return models.RunnerStatus{
+func (x *BurnMonitorRunner) Status() models.RunnerServiceStatus {
+	return models.RunnerServiceStatus{
 		EthBlockNumber: strconv.FormatInt(x.startBlockNumber, 10),
 	}
 }
@@ -150,7 +150,7 @@ func (x *BurnMonitorRunner) SyncTxs() bool {
 	return success
 }
 
-func (x *BurnMonitorRunner) InitStartBlockNumber(lastHealth models.ServiceHealth) {
+func (x *BurnMonitorRunner) InitStartBlockNumber(lastHealth models.ChainServiceHealth) {
 	startBlockNumber := int64(app.Config.Ethereum.StartBlockNumber)
 
 	if lastBlockNumber, err := strconv.ParseInt(lastHealth.EthBlockNumber, 10, 64); err == nil {
@@ -167,7 +167,7 @@ func (x *BurnMonitorRunner) InitStartBlockNumber(lastHealth models.ServiceHealth
 	log.Info("[BURN MONITOR] Start block number: ", x.startBlockNumber)
 }
 
-func NewBurnMonitor(wg *sync.WaitGroup, lastHealth models.ServiceHealth) app.Service {
+func NewBurnMonitor(wg *sync.WaitGroup, lastHealth models.ChainServiceHealth) app.Service {
 	if !app.Config.BurnMonitor.Enabled {
 		log.Debug("[BURM MONITOR] Disabled")
 		return app.NewEmptyService(wg)

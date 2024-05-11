@@ -39,8 +39,8 @@ func (x *MintExecutorRunner) Run() {
 	x.SyncTxs()
 }
 
-func (x *MintExecutorRunner) Status() models.RunnerStatus {
-	return models.RunnerStatus{
+func (x *MintExecutorRunner) Status() models.RunnerServiceStatus {
+	return models.RunnerServiceStatus{
 		EthBlockNumber: strconv.FormatInt(x.startBlockNumber, 10),
 	}
 }
@@ -190,7 +190,7 @@ func (x *MintExecutorRunner) SyncTxs() bool {
 	return success
 }
 
-func (x *MintExecutorRunner) InitStartBlockNumber(lastHealth models.ServiceHealth) {
+func (x *MintExecutorRunner) InitStartBlockNumber(lastHealth models.ChainServiceHealth) {
 	startBlockNumber := int64(app.Config.Ethereum.StartBlockNumber)
 
 	if lastBlockNumber, err := strconv.ParseInt(lastHealth.EthBlockNumber, 10, 64); err == nil {
@@ -207,7 +207,7 @@ func (x *MintExecutorRunner) InitStartBlockNumber(lastHealth models.ServiceHealt
 	log.Info("[MINT EXECUTOR] Start block number: ", x.startBlockNumber)
 }
 
-func NewMintExecutor(wg *sync.WaitGroup, lastHealth models.ServiceHealth) app.Service {
+func NewMintExecutor(wg *sync.WaitGroup, lastHealth models.ChainServiceHealth) app.Service {
 	if !app.Config.MintExecutor.Enabled {
 		log.Debug("[MINT EXECUTOR] Disabled")
 		return app.NewEmptyService(wg)

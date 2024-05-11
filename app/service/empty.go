@@ -9,8 +9,8 @@ type EmptyRunner struct{}
 func (e *EmptyRunner) Run() {
 }
 
-func (e *EmptyRunner) Status() models.RunnerStatus {
-	return models.RunnerStatus{
+func (e *EmptyRunner) Status() models.RunnerServiceStatus {
+	return models.RunnerServiceStatus{
 		Enabled:     false,
 		BlockHeight: 0,
 	}

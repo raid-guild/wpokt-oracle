@@ -158,7 +158,7 @@ func TestMintExecutorInitStartBlockNumber(t *testing.T) {
 		app.DB = mockDB
 		x := NewTestMintExecutor(t, mockContract, mockClient)
 
-		lastHealth := models.ServiceHealth{
+		lastHealth := models.ChainServiceHealth{
 			EthBlockNumber: "10",
 		}
 
@@ -174,7 +174,7 @@ func TestMintExecutorInitStartBlockNumber(t *testing.T) {
 		app.DB = mockDB
 		x := NewTestMintExecutor(t, mockContract, mockClient)
 
-		lastHealth := models.ServiceHealth{
+		lastHealth := models.ChainServiceHealth{
 			EthBlockNumber: "invalid",
 		}
 
@@ -493,7 +493,7 @@ func TestNewMintExecutor(t *testing.T) {
 
 		app.Config.MintExecutor.Enabled = false
 
-		service := NewMintExecutor(&sync.WaitGroup{}, models.ServiceHealth{})
+		service := NewMintExecutor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 
 		health := service.Health()
 
@@ -511,7 +511,7 @@ func TestNewMintExecutor(t *testing.T) {
 		log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 		assert.Panics(t, func() {
-			NewMintExecutor(&sync.WaitGroup{}, models.ServiceHealth{})
+			NewMintExecutor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 		})
 
 	})
@@ -521,7 +521,7 @@ func TestNewMintExecutor(t *testing.T) {
 		app.Config.MintExecutor.Enabled = true
 		app.Config.Ethereum.RPCURL = "https://eth.llamarpc.com"
 
-		service := NewMintExecutor(&sync.WaitGroup{}, models.ServiceHealth{})
+		service := NewMintExecutor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 
 		assert.Nil(t, service)
 	})
@@ -532,7 +532,7 @@ func TestNewMintExecutor(t *testing.T) {
 		app.Config.MintExecutor.IntervalMillis = 1
 		app.Config.Ethereum.RPCURL = "https://eth.llamarpc.com"
 
-		service := NewMintExecutor(&sync.WaitGroup{}, models.ServiceHealth{})
+		service := NewMintExecutor(&sync.WaitGroup{}, models.ChainServiceHealth{})
 
 		health := service.Health()
 

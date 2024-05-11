@@ -16,7 +16,7 @@ func NewCosmosChainService(
 	var monitorRunner service.Runner
 	monitorRunner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
-		monitorRunner = NewMessageMonitor(config, models.ServiceHealth{})
+		monitorRunner = NewMessageMonitor(config, models.ChainServiceHealth{})
 	}
 	monitorRunnerService := service.NewRunnerService(
 		fmt.Sprintf("%s_Monitor", config.ChainName),
@@ -40,7 +40,7 @@ func NewCosmosChainService(
 	return service.NewChainService(
 		models.Chain{
 			ChainName: config.ChainName,
-			ChainId:   config.ChainID,
+			ChainID:   config.ChainID,
 			ChainType: models.ChainTypeCosmos,
 		},
 		monitorRunnerService,

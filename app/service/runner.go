@@ -11,13 +11,13 @@ import (
 
 type Runner interface {
 	Run()
-	Status() models.RunnerStatus
+	Status() models.RunnerServiceStatus
 }
 
 type RunnerServiceInterface interface {
 	Start(wg *sync.WaitGroup)
 	Enabled() bool
-	Status() models.RunnerStatus
+	Status() models.RunnerServiceStatus
 	Stop()
 }
 
@@ -31,7 +31,7 @@ type RunnerService struct {
 	stop chan bool
 
 	statusMu sync.RWMutex
-	status   models.RunnerStatus
+	status   models.RunnerServiceStatus
 }
 
 func (x *RunnerService) Enabled() bool {
@@ -69,20 +69,20 @@ func (x *RunnerService) Start(wg *sync.WaitGroup) {
 	}
 }
 
-func (x *RunnerService) Status() models.RunnerStatus {
+func (x *RunnerService) Status() models.RunnerServiceStatus {
 	x.statusMu.RLock()
 	defer x.statusMu.RUnlock()
 
 	return x.status
 }
 
-func (x *RunnerService) updateStatus(status models.RunnerStatus) {
+func (x *RunnerService) updateStatus(status models.RunnerServiceStatus) {
 	x.statusMu.Lock()
 	defer x.statusMu.Unlock()
 
 	lastRunAt := time.Now()
 
-	x.status = models.RunnerStatus{
+	x.status = models.RunnerServiceStatus{
 		Name:        x.name,
 		LastRunAt:   lastRunAt,
 		NextRunAt:   lastRunAt.Add(x.interval),
@@ -113,6 +113,6 @@ func NewRunnerService(
 		enabled:  enabled,
 		interval: interval,
 		stop:     make(chan bool, 1),
-		status:   models.RunnerStatus{},
+		status:   models.RunnerServiceStatus{},
 	}
 }

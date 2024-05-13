@@ -4,10 +4,12 @@ import (
 	// "fmt"
 	// "os"
 	// "strings"
-	"sync"
+
 	"time"
 
+	"github.com/dan13ram/wpokt-oracle/app/service"
 	"github.com/dan13ram/wpokt-oracle/models"
+
 	// ethCrypto "github.com/ethereum/go-ethereum/crypto"
 	// poktCrypto "github.com/pokt-network/pocket-core/crypto"
 	log "github.com/sirupsen/logrus"
@@ -28,11 +30,7 @@ type HealthCheckRunner struct {
 	wpoktAddress     string
 	hostname         string
 	validatorId      string
-	services         []Service
-}
-
-func (x *HealthCheckRunner) Status() models.RunnerStatus {
-	return models.RunnerStatus{}
+	services         []service.ChainService
 }
 
 func (x *HealthCheckRunner) Run() {
@@ -90,7 +88,7 @@ func (x *HealthCheckRunner) PostHealth() bool {
 
 	update := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
 
-	err := DB.UpsertOne(models.CollectionHealthChecks, filter, update)
+	err := DB.UpsertOne(CollectionNodes, filter, update)
 
 	if err != nil {
 		log.Error("[HEALTH] Error posting health: ", err)
@@ -161,9 +159,4 @@ func NewHealthCheck() *HealthCheckRunner {
 	log.Info("[HEALTH] Initialized health")
 
 	return x
-}
-
-func NewHealthService(x *HealthCheckRunner, wg *sync.WaitGroup) Service {
-	service := NewRunnerService(HealthCheckName, x, wg, time.Duration(Config.HealthCheck.IntervalMS)*time.Millisecond)
-	return service
 }

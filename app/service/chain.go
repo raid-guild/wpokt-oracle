@@ -78,6 +78,7 @@ func (x *ChainService) Start() {
 }
 
 func (x *ChainService) Health() models.ChainServiceHealth {
+
 	return models.ChainServiceHealth{
 		Chain:          x.chain,
 		MessageMonitor: x.monitorService.Status(),

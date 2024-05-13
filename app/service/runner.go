@@ -39,12 +39,14 @@ func (x *RunnerService) Enabled() bool {
 }
 
 func (x *RunnerService) Start(wg *sync.WaitGroup) {
-	if x.enabled == false {
+	if !x.enabled {
 		log.Debugf("[%s] RunnerService is disabled", x.name)
+		wg.Done()
 		return
 	}
 	if x.runner == nil {
 		log.Debugf("[%s] RunnerService not started, runner is nil", x.name)
+		wg.Done()
 		return
 	}
 

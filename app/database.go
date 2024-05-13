@@ -14,6 +14,13 @@ import (
 	lock "github.com/square/mongo-lock"
 )
 
+const (
+	CollectionLocks        = "locks"
+	CollectionTransactions = "transactions"
+	CollectionMessages     = "messages"
+	CollectionNodes        = "nodes"
+)
+
 type Database interface {
 	Connect() error
 	Disconnect() error
@@ -44,7 +51,7 @@ var (
 // Connect connects to the database
 func (d *MongoDatabase) Connect() error {
 	log.Debug("[DB] Connecting to database")
-	wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond))
+	wcMajority := writeconcern.Majority()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
 	defer cancel()

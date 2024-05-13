@@ -28,7 +28,7 @@ func (x *HealthService) Start() {
 
 		x.runner.Run()
 
-		log.Infof("[HEALTH] Run complete, next run in HEALTH", x.interval)
+		log.Infof("[HEALTH] Run complete, next run in %s", x.interval)
 
 		select {
 		case <-x.stop:

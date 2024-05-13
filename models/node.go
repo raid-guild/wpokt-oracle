@@ -32,10 +32,10 @@ type Chain struct {
 }
 
 type ChainServiceHealth struct {
-	Chain          Chain               `bson:"chain" json:"chain"`
-	MessageMonitor RunnerServiceStatus `bson:"message_monitor" json:"message_monitor"`
-	MessageSigner  RunnerServiceStatus `bson:"message_signer" json:"message_signer"`
-	MessageRelayer RunnerServiceStatus `bson:"message_relayer" json:"message_relayer"`
+	Chain          Chain                `bson:"chain" json:"chain"`
+	MessageMonitor *RunnerServiceStatus `bson:"message_monitor" json:"message_monitor"`
+	MessageSigner  *RunnerServiceStatus `bson:"message_signer" json:"message_signer"`
+	MessageRelayer *RunnerServiceStatus `bson:"message_relayer" json:"message_relayer"`
 }
 
 type RunnerServiceStatus struct {

@@ -28,7 +28,7 @@ type EthereumNetworkConfig struct {
 	StartBlockHeight      int64         `yaml:"start_block_height" json:"start_block_height"`
 	Confirmations         int64         `yaml:"confirmations" json:"confirmations"`
 	RPCURL                string        `yaml:"rpc_url" json:"rpcurl"`
-	RPCTimeoutMS          int64         `yaml:"rpc_timeout_ms" json:"rpc_time_out_ms"`
+	TimeoutMS             int64         `yaml:"timeout_ms" json:"timeout_ms"`
 	ChainID               int64         `yaml:"chain_id" json:"chain_id"`
 	ChainName             string        `yaml:"chain_name" json:"chain_name"`
 	MailboxAddress        string        `yaml:"mailbox_address" json:"mailbox_address"`
@@ -42,9 +42,11 @@ type EthereumNetworkConfig struct {
 type CosmosNetworkConfig struct {
 	StartBlockHeight   int64         `yaml:"start_block_height" json:"start_block_height"`
 	Confirmations      int64         `yaml:"confirmations" json:"confirmations"`
+	RPCURL             string        `yaml:"rpc_url" json:"rpcurl"`
+	GRPCEnabled        bool          `yaml:"grpc_enabled" json:"grpc_enabled"`
 	GRPCHost           string        `yaml:"grpc_host" json:"grpc_host"`
 	GRPCPort           int64         `yaml:"grpc_port" json:"grpc_port"`
-	GRPCTimeoutMS      int64         `yaml:"grpc_timeout_ms" json:"grpc_time_out_ms"`
+	TimeoutMS          int64         `yaml:"timeout_ms" json:"time_out_ms"`
 	ChainID            string        `yaml:"chain_id" json:"chain_id"`
 	ChainName          string        `yaml:"chain_name" json:"chain_name"`
 	TxFee              int64         `yaml:"tx_fee" json:"tx_fee"`

@@ -92,7 +92,7 @@ func newHealthCheck(services []service.ChainServiceInterface) *HealthCheckRunner
 
 	ethAddressHex, _ := config.EthereumAddressFromMnemonic(Config.Mnemonic)
 
-	ethAddress, _ := hex.DecodeString(ethAddressHex)
+	ethAddress, _ := hex.DecodeString(ethAddressHex[2:])
 
 	log.Debugf("[HEALTH] ETH Address: %s", ethAddressHex)
 
@@ -102,7 +102,9 @@ func newHealthCheck(services []service.ChainServiceInterface) *HealthCheckRunner
 
 	cosmosAddress := cosmosPubKey.Address().Bytes()
 
-	log.Debugf("[HEALTH] Cosmos Address: %s", cosmosPubKeyHex)
+	cosmosAddressHex := hex.EncodeToString(cosmosAddress)
+
+	log.Debugf("[HEALTH] Cosmos Address: 0x%s", cosmosAddressHex)
 
 	signerIndex := -1
 	for i, pk := range Config.CosmosNetworks[0].MultisigPublicKeys {

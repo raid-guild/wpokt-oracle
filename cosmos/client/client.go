@@ -1,10 +1,14 @@
 package client
 
 import (
+	"encoding/hex"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
-	"github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
+	rpctypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
@@ -25,36 +29,39 @@ const (
 )
 
 type CosmosClient interface {
-	GetLatestBlock() (*cmtservice.Block, error)
-	GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error)
-	GetTxsSentToAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error)
+	GetLatestBlockHeight() (int64, error)
+	GetChainID() (string, error)
+	GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error)
+	GetTxsSentToAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error)
 	// SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error)
-	GetTx(hash string) (*types.TxResponse, error)
+	GetTx(hash string) (*sdk.TxResponse, error)
 	ValidateNetwork() error
 }
 
-type pocketClient struct {
-	GRPCHost      string
-	GRPCPort      int64
-	GRPCTimeoutMS int64
-	ChainId       string
-	ChainName     string
-	Bech32Prefix  string
+type cosmosClient struct {
+	GRPCEnabled  bool
+	TimeoutMS    int64
+	ChainID      string
+	ChainName    string
+	Bech32Prefix string
 
-	name       string
-	connection *grpc.ClientConn
+	name      string
+	grpcConn  *grpc.ClientConn
+	rpcClient *rpchttp.HTTP
 }
 
-func (c *pocketClient) GetLatestBlock() (*cmtservice.Block, error) {
-	// Create a new service client
-	client := cmtservice.NewServiceClient(c.connection)
+func (c *cosmosClient) getLatestBlockGRPC() (*cmtservice.Block, error) {
+	if !c.GRPCEnabled {
+		return nil, fmt.Errorf("grpc disabled")
+	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.GRPCTimeoutMS)*time.Millisecond)
+	client := cmtservice.NewServiceClient(c.grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
 	defer cancel()
 
 	req := &cmtservice.GetLatestBlockRequest{}
 
-	// Query the latest block
 	resp, err := client.GetLatestBlock(ctx, req)
 	if err != nil {
 		return nil, err
@@ -63,8 +70,40 @@ func (c *pocketClient) GetLatestBlock() (*cmtservice.Block, error) {
 	return resp.SdkBlock, nil
 }
 
-// get transactions sent from address
-func (c *pocketClient) GetTxsSentToAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error) {
+func (c *cosmosClient) getStatusRPC() (*rpctypes.ResultStatus, error) {
+	if c.GRPCEnabled {
+		return nil, fmt.Errorf("grpc enabled")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	defer cancel()
+
+	res, err := c.rpcClient.Status(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (c *cosmosClient) GetLatestBlockHeight() (int64, error) {
+	if c.GRPCEnabled {
+		block, err := c.getLatestBlockGRPC()
+		if err != nil {
+			return 0, err
+		}
+		return block.Header.Height, nil
+	}
+
+	status, err := c.getStatusRPC()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return status.SyncInfo.LatestBlockHeight, nil
+
+}
+
+func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error) {
 	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)
@@ -75,8 +114,7 @@ func (c *pocketClient) GetTxsSentToAddressAfterHeight(address string, height int
 	return c.getTxsByEvents(query)
 }
 
-// get transactions sent to address
-func (c *pocketClient) GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*types.TxResponse, error) {
+func (c *cosmosClient) GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error) {
 	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)
@@ -87,30 +125,79 @@ func (c *pocketClient) GetTxsSentFromAddressAfterHeight(address string, height i
 	return c.getTxsByEvents(query)
 }
 
-func (c *pocketClient) getTxsByEvents(query string) ([]*types.TxResponse, error) {
+func (c *cosmosClient) getTxsByEventsPerPageGRPC(query string, page uint64) ([]*sdk.TxResponse, uint64, error) {
+	if !c.GRPCEnabled {
+		return nil, 0, fmt.Errorf("grpc disabled")
+	}
+	client := tx.NewServiceClient(c.grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	defer cancel()
+
+	req := &tx.GetTxsEventRequest{
+		Query:   query,
+		OrderBy: tx.OrderBy_ORDER_BY_ASC,
+		Page:    page,
+		Limit:   50,
+	}
+
+	resp, err := client.GetTxsEvent(ctx, req)
+	if err != nil {
+		return nil, 0, err
+	}
+	return resp.TxResponses, resp.Total, nil
+}
+
+func (c *cosmosClient) getTxsByEventsPerPageRPC(query string, page uint64) ([]*sdk.TxResponse, uint64, error) {
+	if c.GRPCEnabled {
+		return nil, 0, fmt.Errorf("grpc enabled")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	defer cancel()
+
+	limit := 50
+	pageint := int(page)
+
+	resTxs, err := c.rpcClient.TxSearch(ctx, query, false, &pageint, &limit, "asc")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	resBlocks, err := getBlocksForTxResults(c.rpcClient, resTxs.Txs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	txs, err := formatTxResults(resTxs.Txs, resBlocks)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return txs, uint64(resTxs.TotalCount), err
+}
+
+func (c *cosmosClient) getTxsByEvents(query string) ([]*sdk.TxResponse, error) {
 	var page uint64 = 1
-	var txs []*types.TxResponse
+	var txs []*sdk.TxResponse
 	for {
-		client := tx.NewServiceClient(c.connection)
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.GRPCTimeoutMS)*time.Millisecond)
-		defer cancel()
+		var respTxs []*sdk.TxResponse
+		var err error
+		var total uint64
 
-		req := &tx.GetTxsEventRequest{
-			Query:   query,
-			OrderBy: tx.OrderBy_ORDER_BY_ASC,
-			Page:    page,
-			Limit:   50,
+		if c.GRPCEnabled {
+			respTxs, total, err = c.getTxsByEventsPerPageGRPC(query, page)
+		} else {
+			respTxs, total, err = c.getTxsByEventsPerPageRPC(query, page)
 		}
 
-		resp, err := client.GetTxsEvent(ctx, req)
 		if err != nil {
 			return nil, err
 		}
 
-		txs = append(txs, resp.TxResponses...)
+		txs = append(txs, respTxs...)
 
-		if len(resp.Txs) == 0 || len(txs) >= int(resp.Total) || page >= maxPageDepth {
+		if len(respTxs) == 0 || len(txs) >= int(total) || page >= maxPageDepth {
 			break
 		}
 		page++
@@ -119,10 +206,13 @@ func (c *pocketClient) getTxsByEvents(query string) ([]*types.TxResponse, error)
 	return txs, nil
 }
 
-func (c *pocketClient) GetTx(hash string) (*types.TxResponse, error) {
-	client := tx.NewServiceClient(c.connection)
+func (c *cosmosClient) getTxGRPC(hash string) (*sdk.TxResponse, error) {
+	if !c.GRPCEnabled {
+		return nil, fmt.Errorf("grpc disabled")
+	}
+	client := tx.NewServiceClient(c.grpcConn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.GRPCTimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
 	defer cancel()
 
 	req := &tx.GetTxRequest{
@@ -137,23 +227,43 @@ func (c *pocketClient) GetTx(hash string) (*types.TxResponse, error) {
 	return resp.TxResponse, nil
 }
 
-/*
-	func (c *pocketClient) GetTx(hash string) (*TxResponse, error) {
-		params := rpc.HashAndProveParams{Hash: hash, Prove: false}
-		j, err := json.Marshal(params)
-		if err != nil {
-			return nil, err
-		}
-		res, err := queryRPC(getTxPath, j)
-		if err != nil {
-			return nil, err
-		}
-		var obj TxResponse
-		err = json.Unmarshal([]byte(res), &obj)
-		return &obj, err
+func (c *cosmosClient) getTxRPC(hash string) (*sdk.TxResponse, error) {
+	if c.GRPCEnabled {
+		return nil, fmt.Errorf("grpc enabled")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	defer cancel()
+
+	hashBytes, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode hash: %s", err)
 	}
 
-	func (c *pocketClient) SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error) {
+	resTx, err := c.rpcClient.Tx(ctx, hashBytes, true)
+	if err != nil {
+		return nil, err
+	}
+
+	resBlocks, err := getBlocksForTxResults(c.rpcClient, []*rpctypes.ResultTx{resTx})
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := mkTxResult(resTx, resBlocks[resTx.Height])
+
+	return out, nil
+}
+
+func (c *cosmosClient) GetTx(hash string) (*sdk.TxResponse, error) {
+	if c.GRPCEnabled {
+		return c.getTxGRPC(hash)
+	}
+	return c.getTxRPC(hash)
+}
+
+/*
+
+	func (c *cosmosClient) SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error) {
 		j, err := json.Marshal(params)
 		if err != nil {
 			return nil, err
@@ -167,89 +277,75 @@ func (c *pocketClient) GetTx(hash string) (*types.TxResponse, error) {
 		return &obj, err
 	}
 
-	func (c *pocketClient) getAccountTxsPerPage(address string, page uint32) (*AccountTxsResponse, error) {
-		// filter by received transactions
-		params := rpc.PaginateAddrParams{
-			Address:  address,
-			Page:     int(page),
-			PerPage:  50,
-			Received: true,
-			Prove:    false,
-			Sort:     "asc",
-		}
-		j, err := json.Marshal(params)
-		if err != nil {
-			return nil, err
-		}
-		res, err := queryRPC(getAccountTxsPath, j)
-		if err != nil {
-
-			return nil, err
-		}
-		var obj AccountTxsResponse
-		err = json.Unmarshal([]byte(res), &obj)
-		return &obj, err
-	}
-
-	func (c *pocketClient) GetAccountTxsByHeight(address string, height int64) ([]*TxResponse, error) {
-		var txs []*TxResponse
-		var page uint32 = 1
-		for {
-			res, err := c.getAccountTxsPerPage(address, page)
-			if err != nil {
-				return nil, err
-			}
-			// filter only type pos/Send
-			for _, tx := range res.Txs {
-				if tx.StdTx.Msg.Type == "pos/Send" && tx.Height >= height {
-					txs = append(txs, tx)
-				}
-			}
-			if len(res.Txs) == 0 || len(txs) >= int(res.TotalTxs) || res.Txs[len(res.Txs)-1].Height < height {
-				break
-			}
-			page++
-		}
-
-		return txs, nil
-	}
 */
-func (c *pocketClient) ValidateNetwork() error {
-	log.Debugf("[%s] Validating network", c.name)
-	res, err := c.GetLatestBlock()
-	if err != nil {
-		return fmt.Errorf("failed to get latest block: %s", err)
+
+func (c *cosmosClient) GetChainID() (string, error) {
+	var chainID string
+	if c.GRPCEnabled {
+		res, err := c.getLatestBlockGRPC()
+		if err != nil {
+			return "", fmt.Errorf("failed to get latest block: %s", err)
+		}
+		chainID = res.Header.ChainID
+	} else {
+		status, err := c.getStatusRPC()
+		if err != nil {
+			return "", fmt.Errorf("failed to get status: %s", err)
+		}
+		chainID = status.NodeInfo.Network
 	}
-	if res.Header.ChainID != c.ChainId {
-		return fmt.Errorf("failed to validate network: expected chain id %s, got %s", c.ChainId, res.Header.ChainID)
+
+	return chainID, nil
+}
+
+func (c *cosmosClient) ValidateNetwork() error {
+	log.Debugf("[%s] Validating network", c.name)
+	chainID, err := c.GetChainID()
+	if err != nil {
+		return fmt.Errorf("failed to validate network: %s", err)
+	}
+	if chainID != c.ChainID {
+		return fmt.Errorf("failed to validate network: expected chain id %s, got %s", c.ChainID, chainID)
 	}
 	log.Debugf("[%s] Network validated", c.name)
 	return nil
 }
 
 func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
-	grpcUrl := fmt.Sprintf("%s:%d", config.GRPCHost, config.GRPCPort)
-	conn, err := grpc.Dial(grpcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %s: %s", grpcUrl, err)
+	var connection *grpc.ClientConn
+	var client *rpchttp.HTTP
+
+	if config.GRPCEnabled {
+		grpcUrl := fmt.Sprintf("%s:%d", config.GRPCHost, config.GRPCPort)
+		conn, err := grpc.Dial(grpcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to grpc: %s", err)
+		}
+		connection = conn
+	} else {
+		c, err := rpchttp.New(config.RPCURL, "/websocket")
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to rpc: %s", err)
+		}
+		client = c
 	}
 
-	client := &pocketClient{
-		GRPCHost:      config.GRPCHost,
-		GRPCPort:      config.GRPCPort,
-		GRPCTimeoutMS: config.GRPCTimeoutMS,
-		ChainId:       config.ChainID,
-		ChainName:     config.ChainName,
-		Bech32Prefix:  config.Bech32Prefix,
+	c := &cosmosClient{
+		GRPCEnabled:  config.GRPCEnabled,
+		TimeoutMS:    config.TimeoutMS,
+		ChainID:      config.ChainID,
+		ChainName:    config.ChainName,
+		Bech32Prefix: config.Bech32Prefix,
 
-		name:       strings.ToUpper(fmt.Sprintf("%s_CLIENT", config.ChainName)),
-		connection: conn,
+		name:      strings.ToUpper(fmt.Sprintf("%s_CLIENT", config.ChainName)),
+		grpcConn:  connection,
+		rpcClient: client,
 	}
 
-	err = client.ValidateNetwork()
+	err := c.ValidateNetwork()
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate network: %s", err)
 	}
 
-	return client, nil
+	return c, nil
 }

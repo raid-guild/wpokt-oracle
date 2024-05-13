@@ -36,17 +36,17 @@ func (x *MessageMonitorRunner) Run() {
 	x.SyncTxs()
 }
 
-func (x *MessageMonitorRunner) Status() models.RunnerServiceStatus {
-	return models.RunnerServiceStatus{}
+func (x *MessageMonitorRunner) Height() uint64 {
+	return uint64(x.currentHeight)
 }
 
 func (x *MessageMonitorRunner) UpdateCurrentHeight() {
-	res, err := x.client.GetLatestBlock()
+	height, err := x.client.GetLatestBlockHeight()
 	if err != nil {
 		log.Errorf("[%s] Error getting latest block: %s", x.name, err)
 		return
 	}
-	x.currentHeight = res.Header.Height
+	x.currentHeight = height
 
 	log.Infof("[%s] Current height: %d", x.name, x.currentHeight)
 }

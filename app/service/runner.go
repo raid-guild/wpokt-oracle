@@ -11,13 +11,13 @@ import (
 
 type Runner interface {
 	Run()
-	Status() models.RunnerServiceStatus
+	Height() uint64
 }
 
 type RunnerServiceInterface interface {
 	Start(wg *sync.WaitGroup)
 	Enabled() bool
-	Status() models.RunnerServiceStatus
+	Status() *models.RunnerServiceStatus
 	Stop()
 }
 
@@ -57,7 +57,7 @@ func (x *RunnerService) Start(wg *sync.WaitGroup) {
 
 		x.runner.Run()
 
-		x.updateStatus(x.runner.Status())
+		x.updateStatus(x.runner.Height())
 
 		log.Infof("[%s] Run complete, next run in %s", x.name, x.interval)
 
@@ -71,14 +71,20 @@ func (x *RunnerService) Start(wg *sync.WaitGroup) {
 	}
 }
 
-func (x *RunnerService) Status() models.RunnerServiceStatus {
+func (x *RunnerService) Status() *models.RunnerServiceStatus {
 	x.statusMu.RLock()
 	defer x.statusMu.RUnlock()
 
-	return x.status
+	if !x.enabled {
+		return nil
+	}
+
+	statusCopy := x.status
+
+	return &statusCopy
 }
 
-func (x *RunnerService) updateStatus(status models.RunnerServiceStatus) {
+func (x *RunnerService) updateStatus(blockHeight uint64) {
 	x.statusMu.Lock()
 	defer x.statusMu.Unlock()
 
@@ -88,8 +94,8 @@ func (x *RunnerService) updateStatus(status models.RunnerServiceStatus) {
 		Name:        x.name,
 		LastRunAt:   lastRunAt,
 		NextRunAt:   lastRunAt.Add(x.interval),
-		Enabled:     status.Enabled,
-		BlockHeight: status.BlockHeight,
+		Enabled:     x.enabled,
+		BlockHeight: blockHeight,
 	}
 }
 

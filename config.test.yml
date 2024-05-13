@@ -5,14 +5,14 @@ health_check:
 logger:
   level: "info"
 mongodb:
-  uri: "mongodb+srv://admin:qOF8UHTYg6fTGE9z@test.78ceh8r.mongodb.net/test?retryWrites=true&w=majority"
+  uri: "mongodb://localhost:27017/test?retryWrites=true&w=majority"
   database: "test"
   timeout_ms: 10000
 ethereum_networks:
   - start_block_height: 1000000
     confirmations: 0
     rpc_url: "http://127.0.0.1:8545"
-    rpc_timeout_ms: 5000
+    timeout_ms: 5000
     chain_id: 31337 
     chain_name: "anvil"
     mailbox_address: "0xfFAEF09B3cd11D9b20d1a19bECca54EEC2884766"
@@ -33,9 +33,11 @@ ethereum_networks:
 cosmos_networks:
   - start_block_height: 13600
     confirmations: 0
+    rpc_url: "https://testnet-validated-validator-rpc.poktroll.com"
+    grpc_enabled: false
     grpc_host: 'localhost'
     grpc_port: 36658
-    grpc_timeout_ms: 5000
+    timeout_ms: 5000
     chain_id: "poktroll"
     chain_name: "pokt_localnet"
     tx_fee: 0

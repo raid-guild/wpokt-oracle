@@ -72,13 +72,13 @@ func main() {
 
 	wg.Add(len(services) + 1)
 
-	healthCheck := app.NewHealthService(services, &wg)
+	healthService := app.NewHealthService(services, &wg)
 
 	for _, service := range services {
 		go service.Start()
 	}
 
-	go healthCheck.Start()
+	go healthService.Start()
 
 	log.Info("[MAIN] Server started")
 
@@ -88,11 +88,13 @@ func main() {
 	go waitForExitSignals(gracefulStop, done)
 	<-done
 
-	log.Debug("[MAIN] Stopping server gracefully")
+	log.Debug("[MAIN] Server stopping")
 
 	for _, service := range services {
 		service.Stop()
 	}
+
+	healthService.Stop()
 
 	wg.Wait()
 

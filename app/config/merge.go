@@ -53,8 +53,8 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envEthNet.RPCURL != "" {
 				mergedConfig.EthereumNetworks[i].RPCURL = envEthNet.RPCURL
 			}
-			if envEthNet.RPCTimeoutMS != 0 {
-				mergedConfig.EthereumNetworks[i].RPCTimeoutMS = envEthNet.RPCTimeoutMS
+			if envEthNet.TimeoutMS != 0 {
+				mergedConfig.EthereumNetworks[i].TimeoutMS = envEthNet.TimeoutMS
 			}
 			if envEthNet.ChainID != 0 {
 				mergedConfig.EthereumNetworks[i].ChainID = envEthNet.ChainID
@@ -101,14 +101,20 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envCosmosNet.Confirmations != 0 {
 				mergedConfig.CosmosNetworks[i].Confirmations = envCosmosNet.Confirmations
 			}
+			if envCosmosNet.RPCURL != "" {
+				mergedConfig.CosmosNetworks[i].RPCURL = envCosmosNet.RPCURL
+			}
+			if envCosmosNet.GRPCEnabled {
+				mergedConfig.CosmosNetworks[i].GRPCEnabled = envCosmosNet.GRPCEnabled
+			}
 			if envCosmosNet.GRPCHost != "" {
 				mergedConfig.CosmosNetworks[i].GRPCHost = envCosmosNet.GRPCHost
 			}
 			if envCosmosNet.GRPCPort != 0 {
 				mergedConfig.CosmosNetworks[i].GRPCPort = envCosmosNet.GRPCPort
 			}
-			if envCosmosNet.GRPCTimeoutMS != 0 {
-				mergedConfig.CosmosNetworks[i].GRPCTimeoutMS = envCosmosNet.GRPCTimeoutMS
+			if envCosmosNet.TimeoutMS != 0 {
+				mergedConfig.CosmosNetworks[i].TimeoutMS = envCosmosNet.TimeoutMS
 			}
 			if envCosmosNet.ChainID != "" {
 				mergedConfig.CosmosNetworks[i].ChainID = envCosmosNet.ChainID

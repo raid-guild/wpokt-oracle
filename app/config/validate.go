@@ -72,8 +72,8 @@ func ValidateConfig(config models.Config) error {
 		if ethNetwork.RPCURL == "" {
 			return fmt.Errorf("EthereumNetworks[%d].RPCURL is required", i)
 		}
-		if ethNetwork.RPCTimeoutMS <= 0 {
-			return fmt.Errorf("EthereumNetworks[%d].RPCTimeoutMS is required", i)
+		if ethNetwork.TimeoutMS <= 0 {
+			return fmt.Errorf("EthereumNetworks[%d].TimeoutMS is required", i)
 		}
 		if ethNetwork.ChainID <= 0 {
 			return fmt.Errorf("EthereumNetworks[%d].ChainId is required", i)
@@ -134,14 +134,20 @@ func ValidateConfig(config models.Config) error {
 		if cosmosNetwork.Confirmations < 0 {
 			return fmt.Errorf("CosmosNetworks[%d].Confirmations is invalid", i)
 		}
-		if cosmosNetwork.GRPCHost == "" {
-			return fmt.Errorf("CosmosNetworks[%d].GRPCHost is required", i)
+		if cosmosNetwork.GRPCEnabled {
+			if cosmosNetwork.GRPCHost == "" {
+				return fmt.Errorf("CosmosNetworks[%d].GRPCHost is required when GRPCEnabled is true", i)
+			}
+			if cosmosNetwork.GRPCPort == 0 {
+				return fmt.Errorf("CosmosNetworks[%d].GRPCPort is required when GRPCEnabled is true", i)
+			}
+		} else {
+			if cosmosNetwork.RPCURL == "" {
+				return fmt.Errorf("CosmosNetworks[%d].RPCURL is required when GRPCEnabled is false", i)
+			}
 		}
-		if cosmosNetwork.GRPCPort == 0 {
-			return fmt.Errorf("CosmosNetworks[%d].GRPCPort is required", i)
-		}
-		if cosmosNetwork.GRPCTimeoutMS <= 0 {
-			return fmt.Errorf("CosmosNetworks[%d].GRPCTimeoutMS is required", i)
+		if cosmosNetwork.TimeoutMS <= 0 {
+			return fmt.Errorf("CosmosNetworks[%d].TimeoutMS is required", i)
 		}
 		if cosmosNetwork.ChainID == "" {
 			return fmt.Errorf("CosmosNetworks[%d].ChainId is required", i)

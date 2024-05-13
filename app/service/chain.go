@@ -101,7 +101,7 @@ func NewChainService(
 	wg *sync.WaitGroup,
 ) ChainServiceInterface {
 	if chain.ChainName == "" || monitorService == nil || signerService == nil || relayerService == nil || wg == nil {
-		log.Debug("[RUNNER] Invalid parameters")
+		log.Debug("[CHAIN_SERVICE] Invalid parameters")
 		return nil
 	}
 

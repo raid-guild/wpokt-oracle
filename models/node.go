@@ -8,9 +8,10 @@ import (
 
 type Node struct {
 	ID              primitive.ObjectID   `bson:"_id,omitempty" json:"_id"`
-	CosmosAddress   []byte                 `bson:"cosmos_address" json:"cosmos_address"`
-	EthAddress      []byte                 `bson:"eth_address" json:"eth_address"`
+	CosmosAddress   []byte               `bson:"cosmos_address" json:"cosmos_address"`
+	EthAddress      []byte               `bson:"eth_address" json:"eth_address"`
 	Hostname        string               `bson:"hostname" json:"hostname"`
+	OracleID        string               `bson:"oracle_id" json:"oracle_id"`
 	SupportedChains []Chain              `bson:"supported_chains" json:"supported_chains"`
 	Health          []ChainServiceHealth `bson:"service_healths" json:"service_healths"`
 	CreatedAt       time.Time            `bson:"created_at" json:"created_at"`
@@ -40,7 +41,7 @@ type ChainServiceHealth struct {
 type RunnerServiceStatus struct {
 	Name        string    `bson:"name" json:"name"`
 	Enabled     bool      `bson:"enabled" json:"enabled"`
-	BlockHeight uint64   `bson:"block_height" json:"block_height"`
+	BlockHeight uint64    `bson:"block_height" json:"block_height"`
 	LastRunAt   time.Time `bson:"last_run_at" json:"last_run_at"`
 	NextRunAt   time.Time `bson:"next_run_at" json:"next_run_at"`
 }

@@ -105,7 +105,7 @@ func NewRunnerService(
 	interval time.Duration,
 ) RunnerServiceInterface {
 	if (runner == nil) || (interval == 0) {
-		log.Debug("[RUNNER] Invalid parameters")
+		log.Debug("[RUNNER_SERVICE] Invalid parameters")
 		return nil
 	}
 

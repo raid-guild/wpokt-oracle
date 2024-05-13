@@ -57,18 +57,6 @@ func main() {
 
 	log.Debug("[MAIN] Starting server")
 
-	// healthcheck := app.NewHealthCheck()
-	//
-	// serviceHealthMap := make(map[string]models.ServiceHealth)
-	//
-	// if app.Config.HealthCheck.ReadLastHealth {
-	// 	if lastHealth, err := healthcheck.FindLastHealth(); err == nil {
-	// 		for _, serviceHealth := range lastHealth.ServiceHealths {
-	// 			serviceHealthMap[serviceHealth.Name] = serviceHealth
-	// 		}
-	// 	}
-	// }
-
 	services := []service.ChainServiceInterface{}
 	var wg sync.WaitGroup
 
@@ -82,23 +70,15 @@ func main() {
 		services = append(services, chainService)
 	}
 
-	// for serviceName, NewService := range ServiceFactoryMap {
-	// 	health := models.ServiceHealth{}
-	// 	if lastHealth, ok := serviceHealthMap[serviceName]; ok {
-	// 		health = lastHealth
-	// 	}
-	// 	services = append(services, NewService(&wg, health))
-	// }
-	//
-	// services = append(services, app.NewHealthService(healthcheck, &wg))
-	//
-	// healthcheck.SetServices(services)
+	wg.Add(len(services) + 1)
 
-	wg.Add(len(services))
+	healthCheck := app.NewHealthService(services, &wg)
 
 	for _, service := range services {
 		go service.Start()
 	}
+
+	go healthCheck.Start()
 
 	log.Info("[MAIN] Server started")
 

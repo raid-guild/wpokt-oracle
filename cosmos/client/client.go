@@ -42,7 +42,7 @@ type CosmosClient interface {
 type cosmosClient struct {
 	GRPCEnabled bool
 
-	TimeoutMS    int64
+	Timeout       time.Duration
 	ChainID      string
 	ChainName    string
 	Bech32Prefix string
@@ -60,7 +60,7 @@ func (c *cosmosClient) getLatestBlockGRPC() (*cmtservice.Block, error) {
 
 	client := cmtservice.NewServiceClient(c.grpcConn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	req := &cmtservice.GetLatestBlockRequest{}
@@ -77,7 +77,7 @@ func (c *cosmosClient) getStatusRPC() (*rpctypes.ResultStatus, error) {
 	if c.GRPCEnabled {
 		return nil, fmt.Errorf("grpc enabled")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	res, err := c.rpcClient.Status(ctx)
@@ -134,7 +134,7 @@ func (c *cosmosClient) getTxsByEventsPerPageGRPC(query string, page uint64) ([]*
 	}
 	client := tx.NewServiceClient(c.grpcConn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	req := &tx.GetTxsEventRequest{
@@ -155,7 +155,7 @@ func (c *cosmosClient) getTxsByEventsPerPageRPC(query string, page uint64) ([]*s
 	if c.GRPCEnabled {
 		return nil, 0, fmt.Errorf("grpc enabled")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	limit := 50
@@ -215,7 +215,7 @@ func (c *cosmosClient) getTxGRPC(hash string) (*sdk.TxResponse, error) {
 	}
 	client := tx.NewServiceClient(c.grpcConn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	req := &tx.GetTxRequest{
@@ -234,7 +234,7 @@ func (c *cosmosClient) getTxRPC(hash string) (*sdk.TxResponse, error) {
 	if c.GRPCEnabled {
 		return nil, fmt.Errorf("grpc enabled")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	hashBytes, err := hex.DecodeString(hash)
@@ -341,7 +341,7 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 	c := &cosmosClient{
 		GRPCEnabled: config.GRPCEnabled,
 
-		TimeoutMS:    config.TimeoutMS,
+		Timeout:        time.Duration(config.TimeoutMS) * time.Millisecond,
 		ChainID:      config.ChainID,
 		ChainName:    config.ChainName,
 		Bech32Prefix: config.Bech32Prefix,

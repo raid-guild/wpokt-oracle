@@ -21,12 +21,12 @@ import (
 )
 
 type MessageMonitorRunner struct {
-	startHeight     int64
-	currentHeight   int64
-	name            string
-	multisigAddress string
+	startBlockHeight   int64
+	currentBlockHeight int64
+	name               string
+	multisigAddress    string
 	bech32Prefix       string
-	coinDenom             string
+	coinDenom          string
 
 	client        cosmos.CosmosClient
 	multisigPk    *multisig.LegacyAminoPubKey
@@ -39,7 +39,7 @@ func (x *MessageMonitorRunner) Run() {
 }
 
 func (x *MessageMonitorRunner) Height() uint64 {
-	return uint64(x.currentHeight)
+	return uint64(x.currentBlockHeight)
 }
 
 func (x *MessageMonitorRunner) UpdateCurrentHeight() {
@@ -48,9 +48,9 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 		log.Errorf("[%s] Error getting latest block: %s", x.name, err)
 		return
 	}
-	x.currentHeight = height
+	x.currentBlockHeight = height
 
-	log.Infof("[%s] Current height: %d", x.name, x.currentHeight)
+	log.Infof("[%s] Current height: %d", x.name, x.currentBlockHeight)
 }
 
 // func (x *MessageMonitorRunner) HandleInvalidMint(tx *pokt.TxResponse) bool {
@@ -101,12 +101,12 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 
 func (x *MessageMonitorRunner) SyncTxs() bool {
 	log.Infof("[%s] Syncing txs", x.name)
-	if x.currentHeight <= x.startHeight {
+	if x.currentBlockHeight <= x.startBlockHeight {
 		log.Infof("[%s] No new blocks to sync", x.name)
 		return true
 	}
 
-	txResponses, err := x.client.GetTxsSentToAddressAfterHeight(x.multisigAddress, x.startHeight)
+	txResponses, err := x.client.GetTxsSentToAddressAfterHeight(x.multisigAddress, x.startBlockHeight)
 	if err != nil {
 		log.Errorf("[%s] Error getting txs: %s", x.name, err)
 		return false
@@ -178,7 +178,7 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 	}
 
 	if success {
-		x.startHeight = x.currentHeight
+		x.startBlockHeight = x.currentBlockHeight
 	}
 
 	return success
@@ -241,14 +241,14 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Chai
 		name:       name,
 		multisigPk: multisigPk,
 		// wpoktAddress:  strings.ToLower(app.Config.Ethereum.WrappedPocketAddress),
-		multisigAddress: multisigAddress,
-		startHeight:     0,
-		currentHeight:   0,
-		client:          client,
-		minimumAmount:   feeAmount,
+		multisigAddress:    multisigAddress,
+		startBlockHeight:   0,
+		currentBlockHeight: 0,
+		client:             client,
+		minimumAmount:      feeAmount,
 
 		bech32Prefix: config.Bech32Prefix,
-		coinDenom:       config.CoinDenom,
+		coinDenom:    config.CoinDenom,
 	}
 
 	x.UpdateCurrentHeight()

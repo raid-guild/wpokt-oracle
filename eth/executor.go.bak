@@ -165,11 +165,11 @@ func (x *MintExecutorRunner) SyncTxs() bool {
 
 	var success bool = true
 
-	if (x.currentBlockNumber - x.startBlockNumber) > eth.MAX_QUERY_BLOCKS {
+	if (x.currentBlockNumber - x.startBlockNumber) > eth.MaxQueryBlocks {
 		log.Debug("[MINT EXECUTOR] Syncing mint txs in chunks")
 
-		for i := x.startBlockNumber; i < x.currentBlockNumber; i += eth.MAX_QUERY_BLOCKS {
-			endBlockNumber := i + eth.MAX_QUERY_BLOCKS
+		for i := x.startBlockNumber; i < x.currentBlockNumber; i += eth.MaxQueryBlocks {
+			endBlockNumber := i + eth.MaxQueryBlocks
 			if endBlockNumber > x.currentBlockNumber {
 				endBlockNumber = x.currentBlockNumber
 			}

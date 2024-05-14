@@ -1,13 +1,12 @@
 package service
 
 import (
-	"fmt"
 	"strings"
 	"sync"
-	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dan13ram/wpokt-oracle/models"
-	log "github.com/sirupsen/logrus"
 )
 
 type ChainService struct {
@@ -113,40 +112,4 @@ func NewChainService(
 		wg:             wg,
 		stop:           make(chan bool, 1),
 	}
-}
-
-func NewEthereumChainService(
-	config models.EthereumNetworkConfig,
-	wg *sync.WaitGroup,
-) ChainServiceInterface {
-	monitorRunnerService := NewRunnerService(
-		fmt.Sprintf("%s_Monitor", config.ChainName),
-		&EmptyRunner{},
-		config.MessageMonitor.Enabled,
-		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
-	)
-	signerRunnerService := NewRunnerService(
-		fmt.Sprintf("%s_Signer", config.ChainName),
-		&EmptyRunner{},
-		config.MessageSigner.Enabled,
-		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
-	)
-	relayerRunnerService := NewRunnerService(
-		fmt.Sprintf("%s_Relayer", config.ChainName),
-		&EmptyRunner{},
-		config.MessageRelayer.Enabled,
-		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
-	)
-
-	return NewChainService(
-		models.Chain{
-			ChainName: config.ChainName,
-			ChainID:   fmt.Sprintf("%d", config.ChainID),
-			ChainType: models.ChainTypeEthereum,
-		},
-		monitorRunnerService,
-		signerRunnerService,
-		relayerRunnerService,
-		wg,
-	)
 }

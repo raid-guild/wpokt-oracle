@@ -2,11 +2,13 @@ package client
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"math/big"
 
-	"github.com/dan13ram/wpokt-oracle/app"
+	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -15,29 +17,33 @@ import (
 )
 
 const (
-	MAX_QUERY_BLOCKS int64 = 100000
+	MaxQueryBlocks int64 = 100000
 )
 
 type EthereumClient interface {
-	ValidateNetwork()
-	GetBlockNumber() (uint64, error)
-	GetChainId() (*big.Int, error)
+	ValidateNetwork() error
+	GetBlockHeight() (uint64, error)
+	GetChainID() (*big.Int, error)
 	GetClient() *ethclient.Client
 	GetTransactionByHash(txHash string) (*types.Transaction, bool, error)
 	GetTransactionReceipt(txHash string) (*types.Receipt, error)
 }
 
 type ethereumClient struct {
+	Timeout   time.Duration
+	ChainID   int64
+	ChainName string
+
+	name   string
 	client *ethclient.Client
 }
-
-var Client EthereumClient = &ethereumClient{}
 
 func (c *ethereumClient) GetClient() *ethclient.Client {
 	return c.client
 }
-func (c *ethereumClient) GetBlockNumber() (uint64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(app.Config.Ethereum.RPCTimeoutMillis)*time.Millisecond)
+
+func (c *ethereumClient) GetBlockHeight() (uint64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	blockNumber, err := c.client.BlockNumber(ctx)
@@ -48,8 +54,8 @@ func (c *ethereumClient) GetBlockNumber() (uint64, error) {
 	return blockNumber, nil
 }
 
-func (c *ethereumClient) GetChainId() (*big.Int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(app.Config.Ethereum.RPCTimeoutMillis)*time.Millisecond)
+func (c *ethereumClient) GetChainID() (*big.Int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	chainId, err := c.client.ChainID(ctx)
@@ -60,37 +66,23 @@ func (c *ethereumClient) GetChainId() (*big.Int, error) {
 	return chainId, nil
 }
 
-func (c *ethereumClient) ValidateNetwork() {
-	log.Debugln("[ETH]", "Validating network")
-	log.Debugln("[ETH]", "uri", app.Config.Ethereum.RPCURL)
-	client, err := ethclient.Dial(app.Config.Ethereum.RPCURL)
+func (c *ethereumClient) ValidateNetwork() error {
+	log.Debugf("[%s] Validating network", c.name)
+
+	chainID, err := c.GetChainID()
 	if err != nil {
-		log.Fatalln("[ETH]", "Failed to connect to Ethereum node:", err)
+		return fmt.Errorf("failed to validate network: %s", err)
 	}
-	c.client = client
-
-	chainId, err := c.GetChainId()
-	if err != nil {
-		log.Fatalln("[ETH]", "Failed to get chain ID:", err)
-	}
-	blockNumber, err := c.GetBlockNumber()
-	if err != nil {
-		log.Fatalln("[ETH]", "Failed to get block number:", err)
+	if chainID.Cmp(big.NewInt(c.ChainID)) != 0 {
+		return fmt.Errorf("failed to validate network: expected chain id %d, got %s", c.ChainID, chainID)
 	}
 
-	log.Debugln("[ETH]", "chainId", chainId.Uint64())
-
-	if chainId.String() != app.Config.Ethereum.ChainId {
-		log.Fatalln("[ETH]", "Chain ID Mismatch", "expected", app.Config.Ethereum.ChainId, "got", chainId.Uint64())
-	}
-
-	log.Debugln("[ETH]", "blockNumber", blockNumber)
-
-	log.Infoln("[ETH]", "Validated network")
+	log.Debugf("[%s] Network validated", c.name)
+	return nil
 }
 
 func (c *ethereumClient) GetTransactionByHash(txHash string) (*types.Transaction, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(app.Config.Ethereum.RPCTimeoutMillis)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	tx, isPending, err := c.client.TransactionByHash(ctx, common.HexToHash(txHash))
@@ -98,16 +90,32 @@ func (c *ethereumClient) GetTransactionByHash(txHash string) (*types.Transaction
 }
 
 func (c *ethereumClient) GetTransactionReceipt(txHash string) (*types.Receipt, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(app.Config.Ethereum.RPCTimeoutMillis)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
 	receipt, err := c.client.TransactionReceipt(ctx, common.HexToHash(txHash))
 	return receipt, err
 }
 
-func NewClient() (EthereumClient, error) {
-	client, err := ethclient.Dial(app.Config.Ethereum.RPCURL)
-	return &ethereumClient{
+func NewClient(config models.EthereumNetworkConfig) (EthereumClient, error) {
+	client, err := ethclient.Dial(config.RPCURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to rpc: %s", err)
+	}
+
+	ethclient := &ethereumClient{
+		Timeout:   time.Duration(config.TimeoutMS) * time.Millisecond,
+		ChainID:   config.ChainID,
+		ChainName: config.ChainName,
+
+		name:   strings.ToUpper(fmt.Sprintf("%s_CLIENT", config.ChainName)),
 		client: client,
-	}, err
+	}
+
+	err = ethclient.ValidateNetwork()
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate network: %s", err)
+	}
+
+	return ethclient, err
 }

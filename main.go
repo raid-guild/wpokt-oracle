@@ -9,10 +9,12 @@ import (
 	"sync"
 	"syscall"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/app/service"
 	"github.com/dan13ram/wpokt-oracle/cosmos"
-	log "github.com/sirupsen/logrus"
+	"github.com/dan13ram/wpokt-oracle/eth"
 )
 
 func main() {
@@ -32,7 +34,7 @@ func main() {
 	flag.StringVar(&envPath, "env", "", "path to env file")
 	flag.Parse()
 
-	var absYamlPath string = ""
+	var absYamlPath string
 	var err error
 	if yamlPath != "" {
 		absYamlPath, err = filepath.Abs(yamlPath)
@@ -42,7 +44,7 @@ func main() {
 		log.Debug("[MAIN] Yaml file: ", absYamlPath)
 	}
 
-	var absEnvPath string = ""
+	var absEnvPath string
 	if envPath != "" {
 		absEnvPath, err = filepath.Abs(envPath)
 		if err != nil {
@@ -61,7 +63,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	for _, ethNetwork := range app.Config.EthereumNetworks {
-		chainService := service.NewEthereumChainService(ethNetwork, &wg)
+		chainService := eth.NewEthereumChainService(ethNetwork, &wg)
 		services = append(services, chainService)
 	}
 

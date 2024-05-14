@@ -85,6 +85,7 @@ func LoadConfigFromEnv(envFile string) models.Config {
 			ChainName:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			TxFee:              getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
 			Bech32Prefix:       getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_BECH32_PREFIX"),
+			CoinDenom:               getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_COIN_DENOM"),
 			MultisigAddress:    getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_ADDRESS"),
 			MultisigPublicKeys: getStringArrayEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_PUBLIC_KEYS"),
 			MultisigThreshold:  getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_THRESHOLD"),

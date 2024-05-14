@@ -161,6 +161,9 @@ func ValidateConfig(config models.Config) error {
 		if cosmosNetwork.Bech32Prefix == "" {
 			return fmt.Errorf("CosmosNetworks[%d].Bech32Prefix is required", i)
 		}
+		if cosmosNetwork.CoinDenom == "" {
+			return fmt.Errorf("CosmosNetworks[%d].CoinDenom is required", i)
+		}
 		if !IsValidBech32Address(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress) {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is invalid", i)
 		}

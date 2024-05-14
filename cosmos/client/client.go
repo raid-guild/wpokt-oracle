@@ -11,6 +11,7 @@ import (
 	rpctypes "github.com/cometbft/cometbft/rpc/core/types"
 
 	"github.com/cosmos/cosmos-sdk/types/tx"
+
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 
@@ -39,11 +40,13 @@ type CosmosClient interface {
 }
 
 type cosmosClient struct {
-	GRPCEnabled  bool
+	GRPCEnabled bool
+
 	TimeoutMS    int64
 	ChainID      string
 	ChainName    string
 	Bech32Prefix string
+	CoinDenom    string
 
 	name      string
 	grpcConn  *grpc.ClientConn
@@ -160,17 +163,17 @@ func (c *cosmosClient) getTxsByEventsPerPageRPC(query string, page uint64) ([]*s
 
 	resTxs, err := c.rpcClient.TxSearch(ctx, query, false, &pageint, &limit, "asc")
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("failed to get txs: %s", err)
 	}
 
 	resBlocks, err := getBlocksForTxResults(c.rpcClient, resTxs.Txs)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("failed to get blocks for txs: %s", err)
 	}
 
-	txs, err := formatTxResults(resTxs.Txs, resBlocks)
+	txs, err := formatTxResults(c.Bech32Prefix, resTxs.Txs, resBlocks)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("failed to format tx results: %s", err)
 	}
 
 	return txs, uint64(resTxs.TotalCount), err
@@ -221,7 +224,7 @@ func (c *cosmosClient) getTxGRPC(hash string) (*sdk.TxResponse, error) {
 
 	resp, err := client.GetTx(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get tx: %s", err)
 	}
 
 	return resp.TxResponse, nil
@@ -241,15 +244,18 @@ func (c *cosmosClient) getTxRPC(hash string) (*sdk.TxResponse, error) {
 
 	resTx, err := c.rpcClient.Tx(ctx, hashBytes, true)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get tx: %s", err)
 	}
 
 	resBlocks, err := getBlocksForTxResults(c.rpcClient, []*rpctypes.ResultTx{resTx})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get blocks for tx: %s", err)
 	}
 
-	out, err := mkTxResult(resTx, resBlocks[resTx.Height])
+	out, err := mkTxResult(c.Bech32Prefix, resTx, resBlocks[resTx.Height])
+	if err != nil {
+		return nil, fmt.Errorf("failed to format tx result: %s", err)
+	}
 
 	return out, nil
 }
@@ -316,26 +322,30 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 	var client *rpchttp.HTTP
 
 	if config.GRPCEnabled {
-		grpcUrl := fmt.Sprintf("%s:%d", config.GRPCHost, config.GRPCPort)
-		conn, err := grpc.Dial(grpcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		grpcURL := fmt.Sprintf("%s:%d", config.GRPCHost, config.GRPCPort)
+		conn, err := grpc.Dial(grpcURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to grpc: %s", err)
 		}
 		connection = conn
+		client = nil
 	} else {
 		c, err := rpchttp.New(config.RPCURL, "/websocket")
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to rpc: %s", err)
 		}
 		client = c
+		connection = nil
 	}
 
 	c := &cosmosClient{
-		GRPCEnabled:  config.GRPCEnabled,
+		GRPCEnabled: config.GRPCEnabled,
+
 		TimeoutMS:    config.TimeoutMS,
 		ChainID:      config.ChainID,
 		ChainName:    config.ChainName,
 		Bech32Prefix: config.Bech32Prefix,
+		CoinDenom:    config.CoinDenom,
 
 		name:      strings.ToUpper(fmt.Sprintf("%s_CLIENT", config.ChainName)),
 		grpcConn:  connection,

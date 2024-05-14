@@ -25,6 +25,8 @@ type MessageMonitorRunner struct {
 	currentHeight   int64
 	name            string
 	multisigAddress string
+	bech32Prefix       string
+	coinDenom             string
 
 	client        cosmos.CosmosClient
 	multisigPk    *multisig.LegacyAminoPubKey
@@ -127,7 +129,7 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 
 		log.Infof("[%s] Found tx memo: %s", x.name, tx.Body.Memo)
 
-		coinsReceived, err := util.ParseCoinsReceivedEvents(x.multisigAddress, txResponse.Events)
+		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
 			log.Errorf("[%s] Error parsing coins received events: %s", x.name, err)
 			continue
@@ -135,7 +137,7 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 
 		log.Infof("[%s] Found tx coins received: %v", x.name, coinsReceived)
 
-		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(txResponse.Events)
+		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
 			log.Errorf("[%s] Error parsing coins spent events: %s", x.name, err)
 			continue
@@ -244,6 +246,9 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Chai
 		currentHeight:   0,
 		client:          client,
 		minimumAmount:   feeAmount,
+
+		bech32Prefix: config.Bech32Prefix,
+		coinDenom:       config.CoinDenom,
 	}
 
 	x.UpdateCurrentHeight()

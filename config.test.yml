@@ -33,7 +33,7 @@ ethereum_networks:
 cosmos_networks:
   - start_block_height: 13600
     confirmations: 0
-    rpc_url: "https://testnet-validated-validator-rpc.poktroll.com"
+    rpc_url: "http://localhost:36657"
     grpc_enabled: false
     grpc_host: 'localhost'
     grpc_port: 36658
@@ -42,6 +42,7 @@ cosmos_networks:
     chain_name: "pokt_localnet"
     tx_fee: 0
     bech32_prefix: "pokt"
+    coin_denom: "upokt"
     multisig_address: "pokt13tsl3aglfyzf02n7x28x2ajzw94muu6y57k2ar"
     multisig_public_keys:
       - "026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d9"

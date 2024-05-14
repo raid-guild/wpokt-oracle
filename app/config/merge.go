@@ -125,6 +125,12 @@ func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envCosmosNet.TxFee != 0 {
 				mergedConfig.CosmosNetworks[i].TxFee = envCosmosNet.TxFee
 			}
+			if envCosmosNet.Bech32Prefix != "" {
+				mergedConfig.CosmosNetworks[i].Bech32Prefix = envCosmosNet.Bech32Prefix
+			}
+			if envCosmosNet.CoinDenom != "" {
+				mergedConfig.CosmosNetworks[i].CoinDenom = envCosmosNet.CoinDenom
+			}
 			if envCosmosNet.MultisigAddress != "" {
 				mergedConfig.CosmosNetworks[i].MultisigAddress = envCosmosNet.MultisigAddress
 			}

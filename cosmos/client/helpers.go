@@ -12,23 +12,32 @@ import (
 	testutil "github.com/cosmos/cosmos-sdk/codec/testutil"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 
+	std "github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
 	"context"
+
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-var txDecoder sdk.TxDecoder
-
-func init() {
+func getTxDecoder(bech32Prefix string) sdk.TxDecoder {
 
 	codecOptions := testutil.CodecOptions{
-		AccAddressPrefix: "pokt",
+		AccAddressPrefix: bech32Prefix,
 	}
 
-	txConfig := authtx.NewTxConfig(codec.NewProtoCodec(codecOptions.NewInterfaceRegistry()), authtx.DefaultSignModes)
+	reg := codecOptions.NewInterfaceRegistry()
 
-	txDecoder = txConfig.TxDecoder()
+	std.RegisterInterfaces(reg)
+	authtypes.RegisterInterfaces(reg)
+	banktypes.RegisterInterfaces(reg)
+	// TODO: add more modules' interfaces
+
+	codec := codec.NewProtoCodec(reg)
+
+	return authtx.DefaultTxDecoder(codec)
 }
 
 func getBlocksForTxResults(node *rpchttp.HTTP, resTxs []*rpctypes.ResultTx) (map[int64]*rpctypes.ResultBlock, error) {
@@ -50,11 +59,11 @@ func getBlocksForTxResults(node *rpchttp.HTTP, resTxs []*rpctypes.ResultTx) (map
 	return resBlocks, nil
 }
 
-func formatTxResults(resTxs []*rpctypes.ResultTx, resBlocks map[int64]*rpctypes.ResultBlock) ([]*sdk.TxResponse, error) {
+func formatTxResults(bech32Prefix string, resTxs []*rpctypes.ResultTx, resBlocks map[int64]*rpctypes.ResultBlock) ([]*sdk.TxResponse, error) {
 	var err error
 	out := make([]*sdk.TxResponse, len(resTxs))
 	for i := range resTxs {
-		out[i], err = mkTxResult(resTxs[i], resBlocks[resTxs[i].Height])
+		out[i], err = mkTxResult(bech32Prefix, resTxs[i], resBlocks[resTxs[i].Height])
 		if err != nil {
 			return nil, err
 		}
@@ -63,16 +72,19 @@ func formatTxResults(resTxs []*rpctypes.ResultTx, resBlocks map[int64]*rpctypes.
 	return out, nil
 }
 
-func mkTxResult(resTx *rpctypes.ResultTx, resBlock *rpctypes.ResultBlock) (*sdk.TxResponse, error) {
+func mkTxResult(bech32Prefix string, resTx *rpctypes.ResultTx, resBlock *rpctypes.ResultBlock) (*sdk.TxResponse, error) {
+	txDecoder := getTxDecoder(bech32Prefix)
 	txb, err := txDecoder(resTx.Tx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decoding tx: %w", err)
 	}
 	p, ok := txb.(intoAny)
 	if !ok {
 		return nil, fmt.Errorf("expecting a type implementing intoAny, got: %T", txb)
 	}
+
 	any := p.AsAny()
+
 	return sdk.NewResponseResultTx(resTx, any, resBlock.Block.Time.Format(time.RFC3339)), nil
 }
 

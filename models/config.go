@@ -51,6 +51,7 @@ type CosmosNetworkConfig struct {
 	ChainName          string        `yaml:"chain_name" json:"chain_name"`
 	TxFee              int64         `yaml:"tx_fee" json:"tx_fee"`
 	Bech32Prefix       string        `yaml:"bech32_prefix" json:"bech32_prefix"`
+	CoinDenom          string        `yaml:"coin_denom" json:"coin_denom"`
 	MultisigAddress    string        `yaml:"multisig_address" json:"multisig_address"`
 	MultisigPublicKeys []string      `yaml:"multisig_public_keys" json:"multisig_public_keys"`
 	MultisigThreshold  int64         `yaml:"multisig_threshold" json:"multisig_threshold"`

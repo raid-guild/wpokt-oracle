@@ -5,7 +5,7 @@ health_check:
 logger:
   level: "info"
 mongodb:
-  uri: "mongodb://localhost:27017"
+  uri: "mongodb://localhost:27017/example_db?retryWrites=true&w=majority"
   database: "example_db"
   timeout_ms: 10000
 ethereum_networks:
@@ -30,15 +30,19 @@ ethereum_networks:
       enabled: true
       interval_ms: 60000
 cosmos_networks:
-  - start_block_height: 500000
+  - start_block_height: 50000
     confirmations: 0
-    rpc_url: "http://localhost:26657"
-    rpc_timeout_ms: 5000
-    chain_id: "cosmoshub-4"
-    chain_name: "cosmoshub"
+    rpc_url: "http://localhost:36657"
+    grpc_enabled: false
+    grpc_host: 'localhost'
+    grpc_port: 36658
+    timeout_ms: 5000
+    chain_id: "poktroll"
+    chain_name: "pokt_localnet"
     tx_fee: 0
-    bech32_prefix: "cosmos"
-    multisig_address: "cosmos1abcdefg"
+    bech32_prefix: "pokt"
+    coin_denom: "upokt"
+    multisig_address: "pokt1abcdefg"
     multisig_public_keys:
       - "pubKey1"
       - "pubKey2"

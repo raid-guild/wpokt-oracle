@@ -15,6 +15,7 @@ const (
 	DefaultBIP39Passphrase = ""
 	DefaultCosmosHDPath    = "m/44'/118'/0'/0/0"
 	DefaultETHHDPath       = "m/44'/60'/0'/0/0"
+	ZeroAddress            = "0x0000000000000000000000000000000000000000"
 )
 
 var (

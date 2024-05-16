@@ -8,12 +8,12 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func CreateTransaction(tx *sdk.TxResponse, senderAddress []byte) (models.Transaction, error) {
+func CreateTransaction(tx *sdk.TxResponse, chain models.Chain, senderAddress []byte) (models.Transaction, error) {
 	hash0x := fmt.Sprintf("0x%s", strings.ToLower(tx.TxHash))
 	hashBytes, err := hex.DecodeString(hash0x)
 	if err != nil {
@@ -25,11 +25,9 @@ func CreateTransaction(tx *sdk.TxResponse, senderAddress []byte) (models.Transac
 		Sender:             senderAddress,
 		BlockHeight:        uint64(tx.Height),
 		BlockConfirmations: 0,
-		// 	ChainType:
-		// ChainID
-		// ChainDomain
-		TxStatus: "failed",
-		IsValid:  false,
+		Chain:              chain,
+		TxStatus:           "failed",
+		IsValid:            false,
 		Refund: models.RefundInfo{
 			Required:     false,
 			Refunded:     false,
@@ -38,12 +36,6 @@ func CreateTransaction(tx *sdk.TxResponse, senderAddress []byte) (models.Transac
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}, nil
-}
-
-var SupportedChainIDs = map[string]bool{
-	"1":        true,
-	"11155111": true,
-	"31337":    true,
 }
 
 func ValidateMemo(txMemo string) (models.MintMemo, error) {
@@ -57,16 +49,15 @@ func ValidateMemo(txMemo string) (models.MintMemo, error) {
 	memo.Address = strings.Trim(strings.ToLower(memo.Address), " ")
 	memo.ChainID = strings.Trim(strings.ToLower(memo.ChainID), " ")
 
-	address := common.HexToAddress(memo.Address).Hex()
-	if !strings.EqualFold(address, memo.Address) {
+	if !common.IsValidEthereumAddress(memo.Address) {
 		return memo, fmt.Errorf("invalid address: %s", memo.Address)
 	}
 
-	if address == common.HexToAddress("").Hex() {
+	if strings.EqualFold(memo.Address, common.ZeroAddress) {
 		return memo, fmt.Errorf("zero address: %s", memo.Address)
 	}
 
-	if !SupportedChainIDs[memo.ChainID] {
+	if !common.EthereumSupportedChainIDs[memo.ChainID] {
 		return memo, fmt.Errorf("unsupported chain id: %s", memo.ChainID)
 	}
 

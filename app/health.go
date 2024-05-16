@@ -29,7 +29,11 @@ func (x *HealthCheckRunner) Run() {
 	x.PostHealth()
 }
 
-func (x *HealthCheckRunner) FindLastHealth() (models.Node, error) {
+func (x *HealthCheckRunner) AddServices(services []service.ChainServiceInterface) {
+	x.services = services
+}
+
+func (x *HealthCheckRunner) GetLastHealth() (models.Node, error) {
 	var health models.Node
 	filter := bson.M{
 		"cosmos_address": x.cosmosAddress,
@@ -87,7 +91,7 @@ func (x *HealthCheckRunner) PostHealth() bool {
 	return true
 }
 
-func newHealthCheck(services []service.ChainServiceInterface) *HealthCheckRunner {
+func newHealthCheck() *HealthCheckRunner {
 	log.Debug("[HEALTH] Initializing health")
 
 	ethAddressHex, _ := config.EthereumAddressFromMnemonic(Config.Mnemonic)
@@ -129,7 +133,6 @@ func newHealthCheck(services []service.ChainServiceInterface) *HealthCheckRunner
 		ethAddress:    ethAddress,
 		hostname:      hostname,
 		oracleId:      oracleId,
-		services:      services,
 	}
 
 	log.Info("[HEALTH] Initialized health")

@@ -8,10 +8,11 @@ import (
 
 	"math/big"
 
-	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+
+	"github.com/dan13ram/wpokt-oracle/models"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +32,7 @@ type EthereumClient interface {
 
 type ethereumClient struct {
 	Timeout   time.Duration
-	ChainID   int64
+	ChainID   uint64
 	ChainName string
 
 	name   string
@@ -73,7 +74,7 @@ func (c *ethereumClient) ValidateNetwork() error {
 	if err != nil {
 		return fmt.Errorf("failed to validate network: %s", err)
 	}
-	if chainID.Cmp(big.NewInt(c.ChainID)) != 0 {
+	if chainID.Cmp(big.NewInt(int64(c.ChainID))) != 0 {
 		return fmt.Errorf("failed to validate network: expected chain id %d, got %s", c.ChainID, chainID)
 	}
 

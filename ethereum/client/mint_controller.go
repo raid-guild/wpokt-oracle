@@ -3,9 +3,10 @@ package client
 import (
 	"math/big"
 
-	"github.com/dan13ram/wpokt-oracle/eth/autogen"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 )
 
 type DomainData struct {

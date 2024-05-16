@@ -3,7 +3,7 @@
 package client
 
 import (
-	autogen "github.com/dan13ram/wpokt-oracle/eth/autogen"
+	autogen "github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 
 	mock "github.com/stretchr/testify/mock"
 )

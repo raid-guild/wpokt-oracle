@@ -1,4 +1,4 @@
-package eth
+package ethereum
 
 import (
 	"fmt"
@@ -8,15 +8,15 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/dan13ram/wpokt-oracle/app/service"
-	"github.com/dan13ram/wpokt-oracle/eth/autogen"
-	eth "github.com/dan13ram/wpokt-oracle/eth/client"
+	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
+	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 type MessageMonitorRunner struct {
 	name               string
-	startBlockHeight   int64
-	currentBlockHeight int64
+	startBlockHeight   uint64
+	currentBlockHeight uint64
 	wpoktContract      eth.WrappedPocketContract
 	client             eth.EthereumClient
 	minimumAmount      *big.Int
@@ -37,7 +37,7 @@ func (x *MessageMonitorRunner) UpdateCurrentBlockHeight() {
 		log.Errorf("[%s] Error getting latest block: %s", x.name, err)
 		return
 	}
-	x.currentBlockHeight = int64(res)
+	x.currentBlockHeight = res
 	log.Infof("[%s] Current block number: %d", x.name, x.currentBlockHeight)
 }
 
@@ -140,24 +140,21 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth models.ChainServiceHealth) {
-	// startBlockHeight := int64(app.Config.Ethereum.StartBlockHeight)
-	//
-	// if lastBlockHeight, err := strconv.ParseInt(lastHealth.EthBlockHeight, 10, 64); err == nil {
-	// 	startBlockHeight = lastBlockHeight
-	// }
-	//
-	// if startBlockHeight > 0 {
-	// 	x.startBlockHeight = startBlockHeight
-	// } else {
-	// 	log.Warn("Found invalid start block number, updating to current block number")
-	// 	x.startBlockHeight = x.currentBlockHeight
-	// }
-	//
-	// log.Info("[BURN MONITOR] Start block number: ", x.startBlockHeight)
+func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
+	if lastHealth == nil || lastHealth.BlockHeight == 0 {
+		log.Infof("[%s] Invalid last health", x.name)
+	} else {
+		log.Debugf("[%s] Last block height: %d", x.name, lastHealth.BlockHeight)
+		x.startBlockHeight = lastHealth.BlockHeight
+	}
+	if x.startBlockHeight == 0 || x.startBlockHeight > x.currentBlockHeight {
+		log.Infof("[%s] Start block height is greater than current block height", x.name)
+		x.startBlockHeight = x.currentBlockHeight
+	}
+	log.Infof("[%s] Initialized start block height: %d", x.name, x.startBlockHeight)
 }
 
-func NewMessageMonitor(config models.EthereumNetworkConfig, lastHealth models.ChainServiceHealth) service.Runner {
+func NewMessageMonitor(config models.EthereumNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runner {
 
 	name := strings.ToUpper(fmt.Sprintf("%s_Monitor", config.ChainName))
 
@@ -181,7 +178,7 @@ func NewMessageMonitor(config models.EthereumNetworkConfig, lastHealth models.Ch
 
 	x := &MessageMonitorRunner{
 		name:               name,
-		startBlockHeight:   0,
+		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 		// wpoktContract:      eth.NewWrappedPocketContract(contract),
 		client: client,
@@ -190,7 +187,7 @@ func NewMessageMonitor(config models.EthereumNetworkConfig, lastHealth models.Ch
 
 	x.UpdateCurrentBlockHeight()
 
-	// x.InitStartBlockHeight(lastHealth)
+	x.InitStartBlockHeight(lastHealth)
 
 	log.Infof("[%s] Initialized", name)
 

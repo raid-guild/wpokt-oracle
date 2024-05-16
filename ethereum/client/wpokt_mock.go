@@ -5,7 +5,7 @@ package client
 import (
 	big "math/big"
 
-	autogen "github.com/dan13ram/wpokt-oracle/eth/autogen"
+	autogen "github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 

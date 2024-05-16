@@ -12,11 +12,21 @@ import (
 func NewCosmosChainService(
 	config models.CosmosNetworkConfig,
 	wg *sync.WaitGroup,
+	nodeHealth models.Node,
 ) service.ChainServiceInterface {
+
+	var chainHealth models.ChainServiceHealth
+	for _, health := range nodeHealth.Health {
+		if health.Chain.ChainID == config.ChainID && health.Chain.ChainType == models.ChainTypeCosmos {
+			chainHealth = health
+			break
+		}
+	}
+
 	var monitorRunner service.Runner
 	monitorRunner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
-		monitorRunner = NewMessageMonitor(config, models.ChainServiceHealth{})
+		monitorRunner = NewMessageMonitor(config, chainHealth.MessageMonitor)
 	}
 	monitorRunnerService := service.NewRunnerService(
 		fmt.Sprintf("%s_Monitor", config.ChainName),
@@ -24,12 +34,14 @@ func NewCosmosChainService(
 		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
 	)
+
 	signerRunnerService := service.NewRunnerService(
 		fmt.Sprintf("%s_Signer", config.ChainName),
 		&service.EmptyRunner{},
 		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
 	)
+
 	relayerRunnerService := service.NewRunnerService(
 		fmt.Sprintf("%s_Relayer", config.ChainName),
 		&service.EmptyRunner{},

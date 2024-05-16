@@ -14,7 +14,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/app/service"
 	"github.com/dan13ram/wpokt-oracle/cosmos"
-	"github.com/dan13ram/wpokt-oracle/eth"
+	"github.com/dan13ram/wpokt-oracle/ethereum"
 )
 
 func main() {
@@ -62,25 +62,30 @@ func main() {
 	services := []service.ChainServiceInterface{}
 	var wg sync.WaitGroup
 
+	healthService := app.NewHealthService(&wg)
+
+	nodeHealth, err := healthService.GetLastHealth()
+	if err != nil {
+		log.Info("[MAIN] Error getting last health: ", err)
+	}
+
 	for _, ethNetwork := range app.Config.EthereumNetworks {
-		chainService := eth.NewEthereumChainService(ethNetwork, &wg)
+		chainService := ethereum.NewEthereumChainService(ethNetwork, &wg, nodeHealth)
 		services = append(services, chainService)
 	}
 
 	for _, cosmosNetwork := range app.Config.CosmosNetworks {
-		chainService := cosmos.NewCosmosChainService(cosmosNetwork, &wg)
+		chainService := cosmos.NewCosmosChainService(cosmosNetwork, &wg, nodeHealth)
 		services = append(services, chainService)
 	}
 
 	wg.Add(len(services) + 1)
 
-	healthService := app.NewHealthService(services, &wg)
-
 	for _, service := range services {
 		go service.Start()
 	}
 
-	go healthService.Start()
+	go healthService.Start(services)
 
 	log.Info("[MAIN] Server started")
 

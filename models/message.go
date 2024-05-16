@@ -21,7 +21,6 @@ type Message struct {
 	DestinationTransaction primitive.ObjectID `json:"destinationTransaction" bson:"destinationTransaction"`
 	CreatedAt              time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt              time.Time          `bson:"updated_at" json:"updated_at"`
-	UpdatedBy              primitive.ObjectID `bson:"updated_by" json:"updated_by"`
 }
 
 type MessageBody struct {

@@ -32,8 +32,8 @@ const (
 type CosmosClient interface {
 	GetLatestBlockHeight() (int64, error)
 	GetChainID() (string, error)
-	GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error)
-	GetTxsSentToAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error)
+	GetTxsSentFromAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
+	GetTxsSentToAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
 	// SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error)
 	GetTx(hash string) (*sdk.TxResponse, error)
 	ValidateNetwork() error
@@ -42,7 +42,7 @@ type CosmosClient interface {
 type cosmosClient struct {
 	GRPCEnabled bool
 
-	Timeout       time.Duration
+	Timeout      time.Duration
 	ChainID      string
 	ChainName    string
 	Bech32Prefix string
@@ -106,7 +106,7 @@ func (c *cosmosClient) GetLatestBlockHeight() (int64, error) {
 
 }
 
-func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error) {
+func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error) {
 	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)
@@ -117,7 +117,7 @@ func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height int
 	return c.getTxsByEvents(query)
 }
 
-func (c *cosmosClient) GetTxsSentFromAddressAfterHeight(address string, height int64) ([]*sdk.TxResponse, error) {
+func (c *cosmosClient) GetTxsSentFromAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error) {
 	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)

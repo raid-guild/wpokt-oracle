@@ -8,9 +8,10 @@ import (
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/go-bip39"
+	log "github.com/sirupsen/logrus"
+
 	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
-	log "github.com/sirupsen/logrus"
 )
 
 // ValidateConfig validates the config
@@ -72,10 +73,10 @@ func ValidateConfig(config models.Config) error {
 		if ethNetwork.RPCURL == "" {
 			return fmt.Errorf("EthereumNetworks[%d].RPCURL is required", i)
 		}
-		if ethNetwork.TimeoutMS <= 0 {
+		if ethNetwork.TimeoutMS == 0 {
 			return fmt.Errorf("EthereumNetworks[%d].TimeoutMS is required", i)
 		}
-		if ethNetwork.ChainID <= 0 {
+		if ethNetwork.ChainID == 0 {
 			return fmt.Errorf("EthereumNetworks[%d].ChainId is required", i)
 		}
 		if ethNetwork.ChainName == "" {
@@ -146,7 +147,7 @@ func ValidateConfig(config models.Config) error {
 				return fmt.Errorf("CosmosNetworks[%d].RPCURL is required when GRPCEnabled is false", i)
 			}
 		}
-		if cosmosNetwork.TimeoutMS <= 0 {
+		if cosmosNetwork.TimeoutMS == 0 {
 			return fmt.Errorf("CosmosNetworks[%d].TimeoutMS is required", i)
 		}
 		if cosmosNetwork.ChainID == "" {
@@ -193,7 +194,7 @@ func ValidateConfig(config models.Config) error {
 		if !foundPublicKey {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys must contain the public key of this oracle", i)
 		}
-		if cosmosNetwork.MultisigThreshold <= 0 || cosmosNetwork.MultisigThreshold > int64(len(cosmosNetwork.MultisigPublicKeys)) {
+		if cosmosNetwork.MultisigThreshold == 0 || cosmosNetwork.MultisigThreshold > uint64(len(cosmosNetwork.MultisigPublicKeys)) {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigThreshold is invalid", i)
 		}
 		multisigPk := multisig.NewLegacyAminoPubKey(int(cosmosNetwork.MultisigThreshold), pKeys)
@@ -229,7 +230,7 @@ func ValidateConfig(config models.Config) error {
 
 func validateServiceConfig(label string, config models.ServiceConfig) error {
 	if config.Enabled {
-		if config.IntervalMS <= 0 {
+		if config.IntervalMS == 0 {
 			return fmt.Errorf("%s.IntervalMS is required", label)
 		}
 	}

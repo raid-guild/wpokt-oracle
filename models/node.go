@@ -26,9 +26,10 @@ const (
 )
 
 type Chain struct {
-	ChainID   string    `bson:"chain_id" json:"chain_id"`
-	ChainName string    `bson:"chain_name" json:"chain_name"`
-	ChainType ChainType `bson:"chain_type" json:"chain_type"`
+	ChainID     string    `bson:"chain_id" json:"chain_id"`
+	ChainName   string    `bson:"chain_name" json:"chain_name"`
+	ChainDomain uint64    `bson:"chain_domain" json:"chain_domain"`
+	ChainType   ChainType `bson:"chain_type" json:"chain_type"`
 }
 
 type ChainServiceHealth struct {

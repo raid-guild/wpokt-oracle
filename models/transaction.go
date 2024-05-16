@@ -9,7 +9,6 @@ import (
 type Transaction struct {
 	ID                 primitive.ObjectID `json:"id" bson:"_id"`
 	Hash               []byte             `json:"hash" bson:"hash"`
-	Timestamp          uint64             `json:"timestamp" bson:"timestamp"`
 	Sender             []byte             `json:"sender" bson:"sender"`
 	BlockHeight        uint64             `json:"blockHeight" bson:"blockHeight"`
 	BlockConfirmations uint64             `json:"blockConfirmations" bson:"blockConfirmations"`
@@ -22,7 +21,6 @@ type Transaction struct {
 	MessageID          primitive.ObjectID `json:"message_id" bson:"message_id"`
 	CreatedAt          time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt          time.Time          `bson:"updated_at" json:"updated_at"`
-	UpdatedBy          primitive.ObjectID `bson:"updated_by" json:"updated_by"`
 }
 
 type RefundInfo struct {

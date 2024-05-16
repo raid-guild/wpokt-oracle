@@ -30,12 +30,12 @@ func LoadConfigFromEnv(envFile string) models.Config {
 	var config models.Config
 
 	// Set values from environment variables
-	config.HealthCheck.IntervalMS = getInt64Env("HEALTH_CHECK_INTERVAL_MS")
+	config.HealthCheck.IntervalMS = getUint64Env("HEALTH_CHECK_INTERVAL_MS")
 	config.HealthCheck.ReadLastHealth = getBoolEnv("HEALTH_CHECK_READ_LAST_HEALTH")
 	config.Logger.Level = getStringEnv("LOGGER_LEVEL")
 	config.MongoDB.URI = getStringEnv("MONGODB_URI")
 	config.MongoDB.Database = getStringEnv("MONGODB_DATABASE")
-	config.MongoDB.TimeoutMS = getInt64Env("MONGODB_TIMEOUT_MS")
+	config.MongoDB.TimeoutMS = getUint64Env("MONGODB_TIMEOUT_MS")
 
 	// Mnemonic for both Ethereum and Cosmos networks
 	config.Mnemonic = getStringEnv("MNEMONIC")
@@ -45,26 +45,26 @@ func LoadConfigFromEnv(envFile string) models.Config {
 	config.EthereumNetworks = make([]models.EthereumNetworkConfig, numEthereumNetworks)
 	for i := 0; i < numEthereumNetworks; i++ {
 		config.EthereumNetworks[i] = models.EthereumNetworkConfig{
-			StartBlockHeight:      getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
-			Confirmations:         getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
+			StartBlockHeight:      getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
+			Confirmations:         getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
 			RPCURL:                getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
-			TimeoutMS:             getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_TIMEOUT_MS"),
-			ChainID:               getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
+			TimeoutMS:             getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_TIMEOUT_MS"),
+			ChainID:               getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
 			ChainName:             getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			MailboxAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MAILBOX_ADDRESS"),
 			MintControllerAddress: getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MINT_CONTROLLER_ADDRESS"),
 			OracleAddresses:       getStringArrayEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_ORACLE_ADDRESSES"),
 			MessageMonitor: models.ServiceConfig{
 				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_ENABLED"),
-				IntervalMS: getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_INTERVAL_MS"),
+				IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_INTERVAL_MS"),
 			},
 			MessageSigner: models.ServiceConfig{
 				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_ENABLED"),
-				IntervalMS: getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
+				IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
 			},
 			MessageRelayer: models.ServiceConfig{
 				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_ENABLED"),
-				IntervalMS: getInt64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
+				IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
 			},
 		}
 	}
@@ -74,32 +74,32 @@ func LoadConfigFromEnv(envFile string) models.Config {
 	config.CosmosNetworks = make([]models.CosmosNetworkConfig, numCosmosNetworks)
 	for i := 0; i < numCosmosNetworks; i++ {
 		config.CosmosNetworks[i] = models.CosmosNetworkConfig{
-			StartBlockHeight:   getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
-			Confirmations:      getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
+			StartBlockHeight:   getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
+			Confirmations:      getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
 			RPCURL:             getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
 			GRPCEnabled:        getBoolEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_ENABLED"),
 			GRPCHost:           getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_HOST"),
-			GRPCPort:           getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_PORT"),
-			TimeoutMS:          getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TIMEOUT_MS"),
+			GRPCPort:           getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_GRPC_PORT"),
+			TimeoutMS:          getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TIMEOUT_MS"),
 			ChainID:            getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
 			ChainName:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
-			TxFee:              getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
+			TxFee:              getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
 			Bech32Prefix:       getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_BECH32_PREFIX"),
-			CoinDenom:               getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_COIN_DENOM"),
+			CoinDenom:     getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_COIN_DENOM"),
 			MultisigAddress:    getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_ADDRESS"),
 			MultisigPublicKeys: getStringArrayEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_PUBLIC_KEYS"),
-			MultisigThreshold:  getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_THRESHOLD"),
+			MultisigThreshold:  getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_THRESHOLD"),
 			MessageMonitor: models.ServiceConfig{
 				Enabled:    getBoolEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_ENABLED"),
-				IntervalMS: getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_INTERVAL_MS"),
+				IntervalMS: getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_INTERVAL_MS"),
 			},
 			MessageSigner: models.ServiceConfig{
 				Enabled:    getBoolEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_ENABLED"),
-				IntervalMS: getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
+				IntervalMS: getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
 			},
 			MessageRelayer: models.ServiceConfig{
 				Enabled:    getBoolEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_ENABLED"),
-				IntervalMS: getInt64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
+				IntervalMS: getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
 			},
 		}
 	}
@@ -110,9 +110,9 @@ func LoadConfigFromEnv(envFile string) models.Config {
 }
 
 // Helper functions to retrieve environment variables with fallback values
-func getInt64Env(key string) int64 {
+func getUint64Env(key string) uint64 {
 	valStr := os.Getenv(key)
-	val, err := strconv.ParseInt(valStr, 10, 64)
+	val, err := strconv.ParseUint(valStr, 10, 64)
 	if err != nil {
 		return 0 // Default value
 	}

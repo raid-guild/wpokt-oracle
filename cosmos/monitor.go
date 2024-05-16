@@ -21,8 +21,8 @@ import (
 )
 
 type MessageMonitorRunner struct {
-	startBlockHeight   int64
-	currentBlockHeight int64
+	startBlockHeight   uint64
+	currentBlockHeight uint64
 	name               string
 	multisigAddress    string
 	bech32Prefix       string
@@ -48,7 +48,7 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 		log.Errorf("[%s] Error getting latest block: %s", x.name, err)
 		return
 	}
-	x.currentBlockHeight = height
+	x.currentBlockHeight = uint64(height)
 
 	log.Infof("[%s] Current height: %d", x.name, x.currentBlockHeight)
 }
@@ -184,24 +184,21 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) InitStartHeight(lastHealth models.ChainServiceHealth) {
-	// startHeight := (app.Config.Pocket.StartHeight)
-	//
-	// if (lastHealth.PoktHeight) != "" {
-	// 	if lastHeight, err := strconv.ParseInt(lastHealth.PoktHeight, 10, 64); err == nil {
-	// 		startHeight = lastHeight
-	// 	}
-	// }
-	// if startHeight > 0 {
-	// 	x.startHeight = startHeight
-	// } else {
-	// 	log.Info("[MINT MONITOR] Found invalid start height, using current height")
-	// 	x.startHeight = x.currentHeight
-	// }
-	// log.Info("[MINT MONITOR] Start height: ", x.startHeight)
+func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
+	if lastHealth == nil || lastHealth.BlockHeight == 0 {
+		log.Infof("[%s] Invalid last health", x.name)
+	} else {
+		log.Debugf("[%s] Last block height: %d", x.name, lastHealth.BlockHeight)
+		x.startBlockHeight = lastHealth.BlockHeight
+	}
+	if x.startBlockHeight == 0 || x.startBlockHeight > x.currentBlockHeight {
+		log.Infof("[%s] Start block height is greater than current block height", x.name)
+		x.startBlockHeight = x.currentBlockHeight
+	}
+	log.Infof("[%s] Initialized start block height: %d", x.name, x.startBlockHeight)
 }
 
-func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.ChainServiceHealth) service.Runner {
+func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runner {
 
 	name := strings.ToUpper(fmt.Sprintf("%s_Monitor", config.ChainName))
 
@@ -235,14 +232,14 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Chai
 		log.Fatalf("[%s] Error creating cosmos client: %s", name, err)
 	}
 
-	feeAmount := sdk.NewCoin("upokt", math.NewInt(config.TxFee))
+	feeAmount := sdk.NewCoin("upokt", math.NewInt(int64(config.TxFee)))
 
 	x := &MessageMonitorRunner{
 		name:       name,
 		multisigPk: multisigPk,
 		// wpoktAddress:  strings.ToLower(app.Config.Ethereum.WrappedPocketAddress),
 		multisigAddress:    multisigAddress,
-		startBlockHeight:   0,
+		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 		client:             client,
 		minimumAmount:      feeAmount,
@@ -253,7 +250,7 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth models.Chai
 
 	x.UpdateCurrentHeight()
 
-	// x.InitStartHeight(lastHealth)
+	x.InitStartBlockHeight(lastHealth)
 
 	log.Infof("[%s] Initialized", name)
 

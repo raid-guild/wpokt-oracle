@@ -4,8 +4,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/app/service"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/dan13ram/wpokt-oracle/app/service"
+	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 type HealthService struct {
@@ -16,11 +18,15 @@ type HealthService struct {
 }
 
 type HealthServiceInterface interface {
-	Start()
+	Start(services []service.ChainServiceInterface)
+	GetLastHealth() (models.Node, error)
 	Stop()
 }
 
-func (x *HealthService) Start() {
+func (x *HealthService) Start(
+	services []service.ChainServiceInterface,
+) {
+	x.runner.AddServices(services)
 	log.Infof("[HEALTH] HealthService started")
 	stop := false
 	for !stop {
@@ -40,17 +46,20 @@ func (x *HealthService) Start() {
 	}
 }
 
+func (x *HealthService) GetLastHealth() (models.Node, error) {
+	return x.runner.GetLastHealth()
+}
+
 func (x *HealthService) Stop() {
 	log.Debugf("[HEALTH] Stopping")
 	close(x.stop)
 }
 
 func NewHealthService(
-	services []service.ChainServiceInterface,
 	wg *sync.WaitGroup,
 ) HealthServiceInterface {
 	interval := time.Duration(Config.HealthCheck.IntervalMS) * time.Millisecond
-	runner := newHealthCheck(services)
+	runner := newHealthCheck()
 	return &HealthService{
 		runner:   runner,
 		interval: interval,

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"time"
 
+	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -42,6 +43,7 @@ type MongoDatabase struct {
 	uri      string
 	database string
 	locker   *lock.Client
+	timeout   time.Duration
 }
 
 var (
@@ -53,7 +55,7 @@ func (d *MongoDatabase) Connect() error {
 	log.Debug("[DB] Connecting to database")
 	wcMajority := writeconcern.Majority()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(d.uri).SetWriteConcern(wcMajority))
@@ -73,7 +75,7 @@ func (d *MongoDatabase) SetupLocker() error {
 
 	var locker *lock.Client
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
 	locker = lock.NewClient(d.db.Collection("locks"))
@@ -105,7 +107,7 @@ func randomString(n int) (string, error) {
 
 // XLock locks a resource for exclusive access
 func (d *MongoDatabase) XLock(resourceId string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
 	lockId, err := randomString(32)
@@ -120,7 +122,7 @@ func (d *MongoDatabase) XLock(resourceId string) (string, error) {
 
 // SLock locks a resource for shared access
 func (d *MongoDatabase) SLock(resourceId string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
 	lockId, err := randomString(32)
@@ -135,7 +137,7 @@ func (d *MongoDatabase) SLock(resourceId string) (string, error) {
 
 // Unlock unlocks a resource
 func (d *MongoDatabase) Unlock(lockId string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
 	_, err := d.locker.Unlock(ctx, lockId)
@@ -149,7 +151,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 
 	// setup unique index for mints
 	log.Debug("[DB] Setting up indexes for mints")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err := d.db.Collection(models.CollectionMints).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "transaction_hash", Value: 1}},
@@ -161,7 +163,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 
 	// setup unique index for invalid mints
 	log.Debug("[DB] Setting up indexes for invalid mints")
-	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err = d.db.Collection(models.CollectionInvalidMints).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "transaction_hash", Value: 1}},
@@ -173,7 +175,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 
 	// setup unique index for burns
 	log.Debug("[DB] Setting up indexes for burns")
-	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err = d.db.Collection(models.CollectionBurns).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "transaction_hash", Value: 1}, {Key: "log_index", Value: 1}},
@@ -185,7 +187,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 
 	// setup unique index for healthchecks
 	log.Debug("[DB] Setting up indexes for healthchecks")
-	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err = d.db.Collection(models.CollectionHealthChecks).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "validator_id", Value: 1}, {Key: "hostname", Value: 1}},
@@ -204,7 +206,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 // Disconnect disconnects from the database
 func (d *MongoDatabase) Disconnect() error {
 	log.Debug("[DB] Disconnecting from database")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	err := d.db.Client().Disconnect(ctx)
 	log.Info("[DB] Disconnected from database")
@@ -213,7 +215,7 @@ func (d *MongoDatabase) Disconnect() error {
 
 // method for insert single value in a collection
 func (d *MongoDatabase) InsertOne(collection string, data interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err := d.db.Collection(collection).InsertOne(ctx, data)
 	return err
@@ -221,7 +223,7 @@ func (d *MongoDatabase) InsertOne(collection string, data interface{}) error {
 
 // method for find single value in a collection
 func (d *MongoDatabase) FindOne(collection string, filter interface{}, result interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	err := d.db.Collection(collection).FindOne(ctx, filter).Decode(result)
 	return err
@@ -229,7 +231,7 @@ func (d *MongoDatabase) FindOne(collection string, filter interface{}, result in
 
 // method for find multiple values in a collection
 func (d *MongoDatabase) FindMany(collection string, filter interface{}, result interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	cursor, err := d.db.Collection(collection).Find(ctx, filter)
 	if err != nil {
@@ -241,7 +243,7 @@ func (d *MongoDatabase) FindMany(collection string, filter interface{}, result i
 
 // method for update single value in a collection
 func (d *MongoDatabase) UpdateOne(collection string, filter interface{}, update interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err := d.db.Collection(collection).UpdateOne(ctx, filter, update)
 	return err
@@ -249,7 +251,7 @@ func (d *MongoDatabase) UpdateOne(collection string, filter interface{}, update 
 
 // method for upsert single value in a collection
 func (d *MongoDatabase) UpsertOne(collection string, filter interface{}, update interface{}) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(Config.MongoDB.TimeoutMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
 	opts := options.Update().SetUpsert(true)
@@ -258,10 +260,11 @@ func (d *MongoDatabase) UpsertOne(collection string, filter interface{}, update 
 }
 
 // InitDB creates a new database wrapper
-func InitDB() {
+func InitDB(config models.MongoConfig) {
 	db := &MongoDatabase{
-		uri:      Config.MongoDB.URI,
-		database: Config.MongoDB.Database,
+		uri:      config.URI,
+		database: config.Database,
+		timeout:   time.Duration(config.TimeoutMS )  * time.Millisecond,
 	}
 
 	err := db.Connect()

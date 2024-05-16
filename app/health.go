@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/app/config"
 	"github.com/dan13ram/wpokt-oracle/app/service"
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 
 	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
@@ -91,16 +91,16 @@ func (x *HealthCheckRunner) PostHealth() bool {
 	return true
 }
 
-func newHealthCheck() *HealthCheckRunner {
+func newHealthCheck(config models.Config) *HealthCheckRunner {
 	log.Debug("[HEALTH] Initializing health")
 
-	ethAddressHex, _ := config.EthereumAddressFromMnemonic(Config.Mnemonic)
+	ethAddressHex, _ := common.EthereumAddressFromMnemonic(config.Mnemonic)
 
 	ethAddress, _ := hex.DecodeString(ethAddressHex[2:])
 
 	log.Debugf("[HEALTH] ETH Address: %s", ethAddressHex)
 
-	cosmosPubKeyHex, _ := config.CosmosPublicKeyFromMnemonic(Config.Mnemonic)
+	cosmosPubKeyHex, _ := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 
 	cosmosPubKey, _ := cosmosUtil.PubKeyFromHex(cosmosPubKeyHex)
 
@@ -111,7 +111,7 @@ func newHealthCheck() *HealthCheckRunner {
 	log.Debugf("[HEALTH] Cosmos Address: 0x%s", cosmosAddressHex)
 
 	signerIndex := -1
-	for i, pk := range Config.CosmosNetworks[0].MultisigPublicKeys {
+	for i, pk := range config.CosmosNetworks[0].MultisigPublicKeys {
 		if strings.EqualFold(pk, cosmosPubKeyHex) {
 			signerIndex = i
 		}

@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	// "strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -10,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func LoadConfigFromYamlFile(configFile string) models.Config {
+func loadConfigFromYamlFile(configFile string) models.Config {
 	if configFile == "" {
 		log.Debug("[CONFIG] No yaml file provided")
 		return models.Config{}

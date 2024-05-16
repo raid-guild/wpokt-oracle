@@ -3,11 +3,12 @@ package app
 import (
 	"strings"
 
+	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
 )
 
-func InitLogger() {
-	logLevel := strings.ToLower(Config.Logger.Level)
+func InitLogger(config models.LoggerConfig) {
+	logLevel := strings.ToLower(config.Level)
 	log.Debug("[LOGGER] Initializing logger with level: ", logLevel)
 
 	if logLevel == "debug" {

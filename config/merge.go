@@ -7,7 +7,7 @@ import (
 )
 
 // Function to merge two Config structs, prioritizing non-empty configurations from the envConfig
-func MergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Config {
+func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Config {
 
 	log.Debug("[CONFIG] Merging configs from YAML and ENV")
 	// Create a new Config instance to store the merged values

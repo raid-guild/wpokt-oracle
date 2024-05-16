@@ -10,12 +10,13 @@ import (
 	"github.com/cosmos/go-bip39"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 // ValidateConfig validates the config
-func ValidateConfig(config models.Config) error {
+func validateConfig(config models.Config) error {
 	log.Debug("[CONFIG] Validating config")
 
 	// mongodb
@@ -40,19 +41,19 @@ func ValidateConfig(config models.Config) error {
 		return fmt.Errorf("Mnemonic is invalid")
 	}
 
-	cosmosPubKey, err := CosmosPublicKeyFromMnemonic(config.Mnemonic)
+	cosmosPubKey, err := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 	if err != nil {
 		return fmt.Errorf("Failed to generate Cosmos public key from mnemonic: %s", err)
 	}
-	if !IsValidCosmosPublicKey(cosmosPubKey) {
+	if !common.IsValidCosmosPublicKey(cosmosPubKey) {
 		return fmt.Errorf("Cosmos public key is invalid")
 	}
 
-	ethAddress, err := EthereumAddressFromMnemonic(config.Mnemonic)
+	ethAddress, err := common.EthereumAddressFromMnemonic(config.Mnemonic)
 	if err != nil {
 		return fmt.Errorf("Failed to generate Ethereum address from mnemonic: %s", err)
 	}
-	if !IsValidEthereumAddress(ethAddress) {
+	if !common.IsValidEthereumAddress(ethAddress) {
 		return fmt.Errorf("Ethereum address is invalid")
 	}
 
@@ -82,10 +83,10 @@ func ValidateConfig(config models.Config) error {
 		if ethNetwork.ChainName == "" {
 			return fmt.Errorf("EthereumNetworks[%d].ChainName is required", i)
 		}
-		if !IsValidEthereumAddress(ethNetwork.MailboxAddress) {
+		if !common.IsValidEthereumAddress(ethNetwork.MailboxAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MailboxAddress is invalid", i)
 		}
-		if !IsValidEthereumAddress(ethNetwork.MintControllerAddress) {
+		if !common.IsValidEthereumAddress(ethNetwork.MintControllerAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MintControllerAddress is invalid", i)
 		}
 		if ethNetwork.OracleAddresses == nil || len(ethNetwork.OracleAddresses) <= 1 {
@@ -94,7 +95,7 @@ func ValidateConfig(config models.Config) error {
 		foundAddress := false
 		seen := make(map[string]bool)
 		for j, oracleAddress := range ethNetwork.OracleAddresses {
-			if !IsValidEthereumAddress(oracleAddress) {
+			if !common.IsValidEthereumAddress(oracleAddress) {
 				return fmt.Errorf("EthereumNetworks[%d].OracleAddresses[%d] is invalid", i, j)
 			}
 			if strings.EqualFold(oracleAddress, ethAddress) {
@@ -165,7 +166,7 @@ func ValidateConfig(config models.Config) error {
 		if cosmosNetwork.CoinDenom == "" {
 			return fmt.Errorf("CosmosNetworks[%d].CoinDenom is required", i)
 		}
-		if !IsValidBech32Address(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress) {
+		if !common.IsValidBech32Address(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress) {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is invalid", i)
 		}
 		if cosmosNetwork.MultisigPublicKeys == nil || len(cosmosNetwork.MultisigPublicKeys) <= 1 {
@@ -175,7 +176,7 @@ func ValidateConfig(config models.Config) error {
 		seen := make(map[string]bool)
 		var pKeys []crypto.PubKey
 		for j, publicKey := range cosmosNetwork.MultisigPublicKeys {
-			if !IsValidCosmosPublicKey(publicKey) {
+			if !common.IsValidCosmosPublicKey(publicKey) {
 				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
 			}
 			if strings.EqualFold(publicKey, cosmosPubKey) {

@@ -36,7 +36,7 @@ func readSecretFromGSM(client *secretmanager.Client, label string, value string)
 	return string(result.Payload.Data)
 }
 
-func LoadSecretsFromGSM(config models.Config) models.Config {
+func loadSecretsFromGSM(config models.Config) models.Config {
 	log.Debugf("[CONFIG] Loading secrets from GSM")
 	configWithSecrets := config
 

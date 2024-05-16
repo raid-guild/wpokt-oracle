@@ -11,7 +11,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func LoadConfigFromEnv(envFile string) models.Config {
+func loadConfigFromEnv(envFile string) models.Config {
 
 	// Load environment variables from a .env file if needed
 	if envFile != "" {
@@ -85,7 +85,7 @@ func LoadConfigFromEnv(envFile string) models.Config {
 			ChainName:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			TxFee:              getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
 			Bech32Prefix:       getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_BECH32_PREFIX"),
-			CoinDenom:     getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_COIN_DENOM"),
+			CoinDenom:               getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_COIN_DENOM"),
 			MultisigAddress:    getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_ADDRESS"),
 			MultisigPublicKeys: getStringArrayEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_PUBLIC_KEYS"),
 			MultisigThreshold:  getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_THRESHOLD"),

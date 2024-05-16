@@ -13,6 +13,7 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/app/service"
+	cfg "github.com/dan13ram/wpokt-oracle/config"
 	"github.com/dan13ram/wpokt-oracle/cosmos"
 	"github.com/dan13ram/wpokt-oracle/ethereum"
 )
@@ -53,28 +54,28 @@ func main() {
 		log.Debug("[MAIN] Env file: ", absEnvPath)
 	}
 
-	app.InitConfig(absYamlPath, absEnvPath)
-	app.InitLogger()
-	app.InitDB()
+	config := cfg.InitConfig(absYamlPath, absEnvPath)
+	app.InitLogger(config.Logger)
+	app.InitDB(config.MongoDB)
 
 	log.Debug("[MAIN] Starting server")
 
 	services := []service.ChainServiceInterface{}
 	var wg sync.WaitGroup
 
-	healthService := app.NewHealthService(&wg)
+	healthService := app.NewHealthService(config, &wg)
 
 	nodeHealth, err := healthService.GetLastHealth()
 	if err != nil {
 		log.Info("[MAIN] Error getting last health: ", err)
 	}
 
-	for _, ethNetwork := range app.Config.EthereumNetworks {
+	for _, ethNetwork := range config.EthereumNetworks {
 		chainService := ethereum.NewEthereumChainService(ethNetwork, &wg, nodeHealth)
 		services = append(services, chainService)
 	}
 
-	for _, cosmosNetwork := range app.Config.CosmosNetworks {
+	for _, cosmosNetwork := range config.CosmosNetworks {
 		chainService := cosmos.NewCosmosChainService(cosmosNetwork, &wg, nodeHealth)
 		services = append(services, chainService)
 	}

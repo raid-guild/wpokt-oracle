@@ -56,10 +56,11 @@ func (x *HealthService) Stop() {
 }
 
 func NewHealthService(
+	config models.Config,
 	wg *sync.WaitGroup,
 ) HealthServiceInterface {
-	interval := time.Duration(Config.HealthCheck.IntervalMS) * time.Millisecond
-	runner := newHealthCheck()
+	interval := time.Duration(config.HealthCheck.IntervalMS) * time.Millisecond
+	runner := newHealthCheck(config)
 	return &HealthService{
 		runner:   runner,
 		interval: interval,

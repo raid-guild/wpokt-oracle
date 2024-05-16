@@ -35,8 +35,9 @@ type ethereumClient struct {
 	ChainID   uint64
 	ChainName string
 
-	name   string
 	client *ethclient.Client
+
+	logger *log.Entry
 }
 
 func (c *ethereumClient) GetClient() *ethclient.Client {
@@ -68,7 +69,7 @@ func (c *ethereumClient) GetChainID() (*big.Int, error) {
 }
 
 func (c *ethereumClient) ValidateNetwork() error {
-	log.Debugf("[%s] Validating network", c.name)
+	c.logger.Debugf("Validating network")
 
 	chainID, err := c.GetChainID()
 	if err != nil {
@@ -78,7 +79,7 @@ func (c *ethereumClient) ValidateNetwork() error {
 		return fmt.Errorf("failed to validate network: expected chain id %d, got %s", c.ChainID, chainID)
 	}
 
-	log.Debugf("[%s] Network validated", c.name)
+	c.logger.Debugf("Validated network")
 	return nil
 }
 
@@ -99,9 +100,15 @@ func (c *ethereumClient) GetTransactionReceipt(txHash string) (*types.Receipt, e
 }
 
 func NewClient(config models.EthereumNetworkConfig) (EthereumClient, error) {
+	logger := log.
+		WithField("module", "ethereum").
+		WithField("package", "client").
+		WithField("chain_name", strings.ToLower(config.ChainName)).
+		WithField("chain_id", config.ChainID)
 	client, err := ethclient.Dial(config.RPCURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to rpc: %s", err)
+		logger.WithError(err).Error("failed to connect to rpc")
+		return nil, fmt.Errorf("failed to connect to rpc")
 	}
 
 	ethclient := &ethereumClient{
@@ -109,13 +116,15 @@ func NewClient(config models.EthereumNetworkConfig) (EthereumClient, error) {
 		ChainID:   config.ChainID,
 		ChainName: config.ChainName,
 
-		name:   strings.ToUpper(fmt.Sprintf("%s_CLIENT", config.ChainName)),
 		client: client,
+
+		logger: logger,
 	}
 
 	err = ethclient.ValidateNetwork()
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate network: %s", err)
+		logger.WithError(err).Error("failed to validate network")
+		return nil, fmt.Errorf("failed to validate network")
 	}
 
 	return ethclient, err

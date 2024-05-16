@@ -118,7 +118,7 @@ func NewRunnerService(
 		WithField("name", strings.ToLower(name))
 	if (runner == nil) || (interval == 0) {
 		logger.
-				Debug("Invalid parameters")
+			Debug("Invalid parameters")
 		return nil
 	}
 

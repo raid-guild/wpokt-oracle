@@ -117,6 +117,6 @@ func NewChainService(
 		relayerService: relayerService,
 		wg:             wg,
 		stop:           make(chan bool, 1),
-		logger:     logger,
+		logger:         logger,
 	}
 }

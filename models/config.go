@@ -11,7 +11,7 @@ type Config struct {
 
 type HealthCheckConfig struct {
 	IntervalMS     uint64 `yaml:"interval_ms" json:"interval_ms"`
-	ReadLastHealth bool    `yaml:"read_last_health" json:"read_last_health"`
+	ReadLastHealth bool   `yaml:"read_last_health" json:"read_last_health"`
 }
 
 type LoggerConfig struct {
@@ -21,12 +21,12 @@ type LoggerConfig struct {
 type MongoConfig struct {
 	URI       string `yaml:"uri" json:"uri"`
 	Database  string `yaml:"database" json:"database"`
-	TimeoutMS uint64`yaml:"timeout_ms" json:"timeout_ms"`
+	TimeoutMS uint64 `yaml:"timeout_ms" json:"timeout_ms"`
 }
 
 type EthereumNetworkConfig struct {
 	StartBlockHeight      uint64        `yaml:"start_block_height" json:"start_block_height"`
-	Confirmations         uint64       `yaml:"confirmations" json:"confirmations"`
+	Confirmations         uint64        `yaml:"confirmations" json:"confirmations"`
 	RPCURL                string        `yaml:"rpc_url" json:"rpcurl"`
 	TimeoutMS             uint64        `yaml:"timeout_ms" json:"timeout_ms"`
 	ChainID               uint64        `yaml:"chain_id" json:"chain_id"`
@@ -61,6 +61,6 @@ type CosmosNetworkConfig struct {
 }
 
 type ServiceConfig struct {
-	Enabled    bool    `yaml:"enabled" json:"enabled"`
+	Enabled    bool   `yaml:"enabled" json:"enabled"`
 	IntervalMS uint64 `yaml:"interval_ms" json:"interval_ms"`
 }

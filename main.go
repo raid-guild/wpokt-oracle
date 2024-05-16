@@ -28,7 +28,7 @@ func main() {
 	if appENV == "production" {
 		log.SetFormatter(&log.JSONFormatter{})
 	} else {
-		log.SetFormatter(&log.TextFormatter{})
+		log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 	}
 
 	logLevel := strings.ToLower(os.Getenv("LOGGER_LEVEL"))

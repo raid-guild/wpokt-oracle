@@ -18,7 +18,7 @@ func NewEthereumChainService(
 
 	var chainHealth models.ChainServiceHealth
 	for _, health := range nodeHealth.Health {
-		if health.Chain.ChainID == string(config.ChainID) && health.Chain.ChainType == models.ChainTypeCosmos {
+		if health.Chain.ChainID == fmt.Sprintf("%d", config.ChainID) && health.Chain.ChainType == models.ChainTypeCosmos {
 			chainHealth = health
 			break
 		}
@@ -30,21 +30,21 @@ func NewEthereumChainService(
 		monitorRunner = NewMessageMonitor(config, chainHealth.MessageMonitor)
 	}
 	monitorRunnerService := service.NewRunnerService(
-		fmt.Sprintf("%s_Monitor", config.ChainName),
+		"monitor",
 		monitorRunner,
 		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
 	)
 
 	signerRunnerService := service.NewRunnerService(
-		fmt.Sprintf("%s_Signer", config.ChainName),
+		"signer",
 		&service.EmptyRunner{},
 		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
 	)
 
 	relayerRunnerService := service.NewRunnerService(
-		fmt.Sprintf("%s_Relayer", config.ChainName),
+		"relayer",
 		&service.EmptyRunner{},
 		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,

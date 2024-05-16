@@ -105,7 +105,9 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 
 	ethAddress, _ := hex.DecodeString(ethAddressHex[2:])
 
-	logger.Debugf("ETH Address: %s", ethAddressHex)
+	logger.
+		WithField("eth_address", ethAddressHex).
+		Debugf("Initialized ethereum address")
 
 	cosmosPubKeyHex, _ := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 
@@ -115,7 +117,9 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 
 	cosmosAddressHex := hex.EncodeToString(cosmosAddress)
 
-	logger.Debugf("Cosmos Address: 0x%s", cosmosAddressHex)
+	logger.
+		WithField("cosmos_address", cosmosAddressHex).
+		Debug("Initialized cosmos address")
 
 	signerIndex := -1
 	for i, pk := range config.CosmosNetworks[0].MultisigPublicKeys {

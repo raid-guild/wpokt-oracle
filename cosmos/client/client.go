@@ -48,9 +48,10 @@ type cosmosClient struct {
 	Bech32Prefix string
 	CoinDenom    string
 
-	name      string
 	grpcConn  *grpc.ClientConn
 	rpcClient *rpchttp.HTTP
+
+	logger *log.Entry
 }
 
 func (c *cosmosClient) getLatestBlockGRPC() (*cmtservice.Block, error) {
@@ -305,7 +306,7 @@ func (c *cosmosClient) GetChainID() (string, error) {
 }
 
 func (c *cosmosClient) ValidateNetwork() error {
-	log.Debugf("[%s] Validating network", c.name)
+	c.logger.Debugf("Validating network")
 	chainID, err := c.GetChainID()
 	if err != nil {
 		return fmt.Errorf("failed to validate network: %s", err)
@@ -313,7 +314,7 @@ func (c *cosmosClient) ValidateNetwork() error {
 	if chainID != c.ChainID {
 		return fmt.Errorf("failed to validate network: expected chain id %s, got %s", c.ChainID, chainID)
 	}
-	log.Debugf("[%s] Network validated", c.name)
+	c.logger.Debugf("Validated network")
 	return nil
 }
 
@@ -321,18 +322,26 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 	var connection *grpc.ClientConn
 	var client *rpchttp.HTTP
 
+	logger := log.
+		WithField("module", "cosmos").
+		WithField("package", "client").
+		WithField("chain_name", strings.ToLower(config.ChainName)).
+		WithField("chain_id", strings.ToLower(config.ChainID))
+
 	if config.GRPCEnabled {
 		grpcURL := fmt.Sprintf("%s:%d", config.GRPCHost, config.GRPCPort)
 		conn, err := grpc.Dial(grpcURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			return nil, fmt.Errorf("failed to connect to grpc: %s", err)
+			logger.WithError(err).Error("failed to connect to grpc")
+			return nil, fmt.Errorf("failed to connect to grpc")
 		}
 		connection = conn
 		client = nil
 	} else {
 		c, err := rpchttp.New(config.RPCURL, "/websocket")
 		if err != nil {
-			return nil, fmt.Errorf("failed to connect to rpc: %s", err)
+			logger.WithError(err).Error("failed to connect to rpc")
+			return nil, fmt.Errorf("failed to connect to rpc")
 		}
 		client = c
 		connection = nil
@@ -341,20 +350,22 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 	c := &cosmosClient{
 		GRPCEnabled: config.GRPCEnabled,
 
-		Timeout:        time.Duration(config.TimeoutMS) * time.Millisecond,
+		Timeout:      time.Duration(config.TimeoutMS) * time.Millisecond,
 		ChainID:      config.ChainID,
 		ChainName:    config.ChainName,
 		Bech32Prefix: config.Bech32Prefix,
 		CoinDenom:    config.CoinDenom,
 
-		name:      strings.ToUpper(fmt.Sprintf("%s_CLIENT", config.ChainName)),
 		grpcConn:  connection,
 		rpcClient: client,
+
+		logger: logger,
 	}
 
 	err := c.ValidateNetwork()
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate network: %s", err)
+		logger.WithError(err).Error("failed to validate network")
+		return nil, fmt.Errorf("failed to validate network")
 	}
 
 	return c, nil

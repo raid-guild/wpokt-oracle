@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -14,12 +13,13 @@ import (
 )
 
 type MessageMonitorRunner struct {
-	name               string
 	startBlockHeight   uint64
 	currentBlockHeight uint64
 	wpoktContract      eth.WrappedPocketContract
 	client             eth.EthereumClient
 	minimumAmount      *big.Int
+
+	logger *log.Entry
 }
 
 func (x *MessageMonitorRunner) Run() {
@@ -34,35 +34,39 @@ func (x *MessageMonitorRunner) Height() uint64 {
 func (x *MessageMonitorRunner) UpdateCurrentBlockHeight() {
 	res, err := x.client.GetBlockHeight()
 	if err != nil {
-		log.Errorf("[%s] Error getting latest block: %s", x.name, err)
+		x.logger.
+			WithError(err).
+			Error("could not get current block height")
 		return
 	}
 	x.currentBlockHeight = res
-	log.Infof("[%s] Current block number: %d", x.name, x.currentBlockHeight)
+	x.logger.
+		WithField("current_block_height", x.currentBlockHeight).
+		Info("updated current block height")
 }
 
 func (x *MessageMonitorRunner) HandleBurnEvent(event *autogen.WrappedPocketBurnAndBridge) bool {
 	// if event == nil {
-	// 	log.Error("[BURN MONITOR] Error while handling burn event: event is nil")
+	// 	x.logger.Error("[BURN MONITOR] Error while handling burn event: event is nil")
 	// 	return false
 	// }
 	//
 	// doc := util.CreateBurn(event)
 	//
 	// // each event is a combination of transaction hash and log index
-	// log.Debug("[BURN MONITOR] Handling burn event: ", event.Raw.TxHash, " ", event.Raw.Index)
+	// x.logger.Debug("[BURN MONITOR] Handling burn event: ", event.Raw.TxHash, " ", event.Raw.Index)
 	//
 	// err := app.DB.InsertOne(models.CollectionBurns, doc)
 	// if err != nil {
 	// 	if mongo.IsDuplicateKeyError(err) {
-	// 		log.Info("[BURN MONITOR] Found duplicate burn event: ", event.Raw.TxHash, " ", event.Raw.Index)
+	// 		x.logger.Info("[BURN MONITOR] Found duplicate burn event: ", event.Raw.TxHash, " ", event.Raw.Index)
 	// 		return true
 	// 	}
-	// 	log.Error("[BURN MONITOR] Error while storing burn event in db: ", err)
+	// 	x.logger.Error("[BURN MONITOR] Error while storing burn event in db: ", err)
 	// 	return false
 	// }
 	//
-	// log.Info("[BURN MONITOR] Stored burn event: ", event.Raw.TxHash, " ", event.Raw.Index)
+	// x.logger.Info("[BURN MONITOR] Stored burn event: ", event.Raw.TxHash, " ", event.Raw.Index)
 	return true
 }
 
@@ -78,7 +82,7 @@ func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 	// }
 	//
 	// if err != nil {
-	// 	log.Error("[BURN MONITOR] Error while syncing burn events: ", err)
+	// 	x.logger.Error("[BURN MONITOR] Error while syncing burn events: ", err)
 	// 	return false
 	// }
 
@@ -104,7 +108,7 @@ func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 	// }
 	//
 	// if err := filter.Error(); err != nil {
-	// 	log.Error("[BURN MONITOR] Error while syncing burn events: ", err)
+	// 	x.logger.Error("[BURN MONITOR] Error while syncing burn events: ", err)
 	// 	return false
 	// }
 
@@ -113,23 +117,23 @@ func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 
 func (x *MessageMonitorRunner) SyncTxs() bool {
 	if x.currentBlockHeight <= x.startBlockHeight {
-		log.Infof("[%s] No new blocks to sync", x.name)
+		x.logger.Infof("No new blocks to sync")
 		return true
 	}
 
 	var success bool = true
 	// if (x.currentBlockHeight - x.startBlockHeight) > eth.MAX_QUERY_BLOCKS {
-	// 	log.Debug("[BURN MONITOR] Syncing burn txs in chunks")
+	// 	x.logger.Debug("[BURN MONITOR] Syncing burn txs in chunks")
 	// 	for i := x.startBlockHeight; i < x.currentBlockHeight; i += eth.MAX_QUERY_BLOCKS {
 	// 		endBlockHeight := i + eth.MAX_QUERY_BLOCKS
 	// 		if endBlockHeight > x.currentBlockHeight {
 	// 			endBlockHeight = x.currentBlockHeight
 	// 		}
-	// 		log.Info("[BURN MONITOR] Syncing burn txs from blockNumber: ", i, " to blockNumber: ", endBlockHeight)
+	// 		x.logger.Info("[BURN MONITOR] Syncing burn txs from blockNumber: ", i, " to blockNumber: ", endBlockHeight)
 	// 		success = success && x.SyncBlocks(uint64(i), uint64(endBlockHeight))
 	// 	}
 	// } else {
-	// 	log.Info("[BURN MONITOR] Syncing burn txs from blockNumber: ", x.startBlockHeight, " to blockNumber: ", x.currentBlockHeight)
+	// 	x.logger.Info("[BURN MONITOR] Syncing burn txs from blockNumber: ", x.startBlockHeight, " to blockNumber: ", x.currentBlockHeight)
 	// 	success = success && x.SyncBlocks(uint64(x.startBlockHeight), uint64(x.currentBlockHeight))
 	// }
 	//
@@ -142,54 +146,58 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 
 func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
 	if lastHealth == nil || lastHealth.BlockHeight == 0 {
-		log.Infof("[%s] Invalid last health", x.name)
+		x.logger.Infof("Invalid last health")
 	} else {
-		log.Debugf("[%s] Last block height: %d", x.name, lastHealth.BlockHeight)
+		x.logger.Debugf("Last block height: %d", lastHealth.BlockHeight)
 		x.startBlockHeight = lastHealth.BlockHeight
 	}
 	if x.startBlockHeight == 0 || x.startBlockHeight > x.currentBlockHeight {
-		log.Infof("[%s] Start block height is greater than current block height", x.name)
+		x.logger.Infof("Start block height is greater than current block height")
 		x.startBlockHeight = x.currentBlockHeight
 	}
-	log.Infof("[%s] Initialized start block height: %d", x.name, x.startBlockHeight)
+	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
 func NewMessageMonitor(config models.EthereumNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runner {
-
-	name := strings.ToUpper(fmt.Sprintf("%s_Monitor", config.ChainName))
+	logger := log.
+		WithField("module", "ethereum").
+		WithField("service", "monitor").
+		WithField("chain_name", strings.ToLower(config.ChainName)).
+		WithField("chain_id", config.ChainID)
 
 	if !config.MessageMonitor.Enabled {
-		log.Fatalf("[%s] Message monitor is not enabled", name)
+		logger.Fatalf("Message monitor is not enabled")
 	}
 
-	log.Debugf("[%s] Initializing", name)
+	logger.Debugf("Initializing")
 
 	client, err := eth.NewClient(config)
 	if err != nil {
-		log.Fatalf("[%s] Error creating ethereum client: %s", name, err)
+		logger.Fatalf("Error creating ethereum client: %s", err)
 	}
-	// log.Debug("[BURN MONITOR] Connecting to wpokt contract at: ", app.Config.Ethereum.WrappedPocketAddress)
+	// logger.Debug("[BURN MONITOR] Connecting to wpokt contract at: ", app.Config.Ethereum.WrappedPocketAddress)
 	// contract, err := autogen.NewWrappedPocket(common.HexToAddress(app.Config.Ethereum.WrappedPocketAddress), client.GetClient())
 	// if err != nil {
-	// 	log.Fatal("[BURN MONITOR] Error connecting to wpokt contract: ", err)
+	// 	logger.Fatal("[BURN MONITOR] Error connecting to wpokt contract: ", err)
 	// }
 	//
-	// log.Debug("[BURN MONITOR] Connected to wpokt contract")
+	// logger.Debug("[BURN MONITOR] Connected to wpokt contract")
 
 	x := &MessageMonitorRunner{
-		name:               name,
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 		// wpoktContract:      eth.NewWrappedPocketContract(contract),
 		client: client,
 		// minimumAmount:      big.NewInt(app.Config.Pocket.TxFee),
+
+		logger: logger,
 	}
 
 	x.UpdateCurrentBlockHeight()
 
 	x.InitStartBlockHeight(lastHealth)
 
-	log.Infof("[%s] Initialized", name)
+	logger.Infof("Initialized")
 
 	return x
 }

@@ -23,6 +23,8 @@ type HealthCheckRunner struct {
 	hostname      string
 	oracleId      string
 	services      []service.ChainServiceInterface
+
+	logger *log.Entry
 }
 
 func (x *HealthCheckRunner) Run() {
@@ -55,7 +57,7 @@ func (x *HealthCheckRunner) ServiceHealths() []models.ChainServiceHealth {
 }
 
 func (x *HealthCheckRunner) PostHealth() bool {
-	log.Debug("[HEALTH] Posting health")
+	x.logger.Debug("Posting health")
 
 	filter := bson.M{
 		"cosmos_address": x.cosmosAddress,
@@ -83,22 +85,25 @@ func (x *HealthCheckRunner) PostHealth() bool {
 	err := DB.UpsertOne(CollectionNodes, filter, update)
 
 	if err != nil {
-		log.Error("[HEALTH] Error posting health: ", err)
+		x.logger.Error("Error posting health: ", err)
 		return false
 	}
 
-	log.Info("[HEALTH] Posted health")
+	x.logger.Info("Posted health")
 	return true
 }
 
 func newHealthCheck(config models.Config) *HealthCheckRunner {
-	log.Debug("[HEALTH] Initializing health")
+	logger := log.WithFields(log.Fields{
+		"module": "health",
+	})
+	logger.Debug("Initializing health")
 
 	ethAddressHex, _ := common.EthereumAddressFromMnemonic(config.Mnemonic)
 
 	ethAddress, _ := hex.DecodeString(ethAddressHex[2:])
 
-	log.Debugf("[HEALTH] ETH Address: %s", ethAddressHex)
+	logger.Debugf("ETH Address: %s", ethAddressHex)
 
 	cosmosPubKeyHex, _ := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 
@@ -108,7 +113,7 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 
 	cosmosAddressHex := hex.EncodeToString(cosmosAddress)
 
-	log.Debugf("[HEALTH] Cosmos Address: 0x%s", cosmosAddressHex)
+	logger.Debugf("Cosmos Address: 0x%s", cosmosAddressHex)
 
 	signerIndex := -1
 	for i, pk := range config.CosmosNetworks[0].MultisigPublicKeys {
@@ -118,14 +123,14 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 	}
 
 	if signerIndex == -1 {
-		log.Fatal("[HEALTH] Multisig public keys do not contain signer")
+		logger.Fatal("Multisig public keys do not contain signer")
 	}
 
 	oracleId := "oracle-" + fmt.Sprintf("%02d", signerIndex)
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		log.Fatal("[HEALTH] Error getting hostname: ", err)
+		logger.Fatal("Error getting hostname: ", err)
 	}
 
 	x := &HealthCheckRunner{
@@ -133,9 +138,10 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 		ethAddress:    ethAddress,
 		hostname:      hostname,
 		oracleId:      oracleId,
+		logger:        logger,
 	}
 
-	log.Info("[HEALTH] Initialized health")
+	x.logger.Info("Initialized health")
 
 	return x
 }

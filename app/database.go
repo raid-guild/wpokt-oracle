@@ -43,7 +43,9 @@ type MongoDatabase struct {
 	uri      string
 	database string
 	locker   *lock.Client
-	timeout   time.Duration
+	timeout  time.Duration
+
+	logger *log.Entry
 }
 
 var (
@@ -52,7 +54,7 @@ var (
 
 // Connect connects to the database
 func (d *MongoDatabase) Connect() error {
-	log.Debug("[DB] Connecting to database")
+	d.logger.Debug("Connecting to database")
 	wcMajority := writeconcern.Majority()
 
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
@@ -64,14 +66,14 @@ func (d *MongoDatabase) Connect() error {
 	}
 	d.db = client.Database(d.database)
 
-	log.Info("[DB] Connected to mongo database: ", d.database)
+	d.logger.Info("Connected to mongo database: ", d.database)
 	return nil
 }
 
 // SetupLocker sets up the locker
 func (d *MongoDatabase) SetupLocker() error {
 	/* TODO: setup the locker
-	log.Debug("[DB] Setting up locker")
+	d.logger.Debug("Setting up locker")
 
 	var locker *lock.Client
 
@@ -86,7 +88,7 @@ func (d *MongoDatabase) SetupLocker() error {
 
 	d.locker = locker
 
-	log.Info("[DB] Locker setup")
+	d.logger.Info("Locker setup")
 	*/
 	return nil
 }
@@ -147,10 +149,10 @@ func (d *MongoDatabase) Unlock(lockId string) error {
 // Setup Indexes
 func (d *MongoDatabase) SetupIndexes() error {
 	/* TODO: setup the right indexes
-	log.Debug("[DB] Setting up indexes")
+	d.logger.Debug("Setting up indexes")
 
 	// setup unique index for mints
-	log.Debug("[DB] Setting up indexes for mints")
+	d.logger.Debug("Setting up indexes for mints")
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err := d.db.Collection(models.CollectionMints).Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -162,7 +164,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 	}
 
 	// setup unique index for invalid mints
-	log.Debug("[DB] Setting up indexes for invalid mints")
+	d.logger.Debug("Setting up indexes for invalid mints")
 	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err = d.db.Collection(models.CollectionInvalidMints).Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -174,7 +176,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 	}
 
 	// setup unique index for burns
-	log.Debug("[DB] Setting up indexes for burns")
+	d.logger.Debug("Setting up indexes for burns")
 	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err = d.db.Collection(models.CollectionBurns).Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -186,7 +188,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 	}
 
 	// setup unique index for healthchecks
-	log.Debug("[DB] Setting up indexes for healthchecks")
+	d.logger.Debug("Setting up indexes for healthchecks")
 	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err = d.db.Collection(models.CollectionHealthChecks).Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -197,7 +199,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 		return err
 	}
 
-	log.Info("[DB] Indexes setup")
+	d.logger.Info("Indexes setup")
 	*/
 
 	return nil
@@ -205,11 +207,11 @@ func (d *MongoDatabase) SetupIndexes() error {
 
 // Disconnect disconnects from the database
 func (d *MongoDatabase) Disconnect() error {
-	log.Debug("[DB] Disconnecting from database")
+	d.logger.Debug("Disconnecting from database")
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	err := d.db.Client().Disconnect(ctx)
-	log.Info("[DB] Disconnected from database")
+	d.logger.Info("Disconnected from database")
 	return err
 }
 
@@ -261,25 +263,26 @@ func (d *MongoDatabase) UpsertOne(collection string, filter interface{}, update 
 
 // InitDB creates a new database wrapper
 func InitDB(config models.MongoConfig) {
-	db := &MongoDatabase{
+	d := &MongoDatabase{
 		uri:      config.URI,
 		database: config.Database,
-		timeout:   time.Duration(config.TimeoutMS )  * time.Millisecond,
+		timeout:  time.Duration(config.TimeoutMS) * time.Millisecond,
+		logger:   log.WithFields(log.Fields{"module": "database"}),
 	}
 
-	err := db.Connect()
+	err := d.Connect()
 	if err != nil {
-		log.Fatal("[DB] Failed to connect to database: ", err)
+		d.logger.Fatal("Failed to connect to database: ", err)
 	}
-	err = db.SetupIndexes()
+	err = d.SetupIndexes()
 	if err != nil {
-		log.Fatal("[DB] Failed to setup indexes: ", err)
+		d.logger.Fatal("Failed to setup indexes: ", err)
 	}
-	err = db.SetupLocker()
+	err = d.SetupLocker()
 	if err != nil {
-		log.Fatal("[DB] Failed to setup locker: ", err)
+		d.logger.Fatal("Failed to setup locker: ", err)
 	}
-	log.Info("[DB] Database initialized")
+	d.logger.Info("Database initialized")
 
-	DB = db
+	DB = d
 }

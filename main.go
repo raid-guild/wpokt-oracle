@@ -19,15 +19,15 @@ import (
 )
 
 func main() {
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
+	log.SetFormatter(&log.JSONFormatter{})
 	logLevel := strings.ToLower(os.Getenv("LOGGER_LEVEL"))
 	if logLevel == "debug" {
 		log.SetLevel(log.DebugLevel)
 	} else {
 		log.SetLevel(log.InfoLevel)
 	}
+
+	logger := log.WithFields(log.Fields{"module": "main"})
 
 	var yamlPath string
 	var envPath string
@@ -40,25 +40,25 @@ func main() {
 	if yamlPath != "" {
 		absYamlPath, err = filepath.Abs(yamlPath)
 		if err != nil {
-			log.Fatal("[MAIN] Error getting absolute path for yaml file: ", err)
+			logger.Fatal("Error getting absolute path for yaml file: ", err)
 		}
-		log.Debug("[MAIN] Yaml file: ", absYamlPath)
+		logger.Debug("Yaml file: ", absYamlPath)
 	}
 
 	var absEnvPath string
 	if envPath != "" {
 		absEnvPath, err = filepath.Abs(envPath)
 		if err != nil {
-			log.Fatal("[MAIN] Error getting absolute path for env file: ", err)
+			logger.Fatal("Error getting absolute path for env file: ", err)
 		}
-		log.Debug("[MAIN] Env file: ", absEnvPath)
+		logger.Debug("Env file: ", absEnvPath)
 	}
 
 	config := cfg.InitConfig(absYamlPath, absEnvPath)
 	app.InitLogger(config.Logger)
 	app.InitDB(config.MongoDB)
 
-	log.Debug("[MAIN] Starting server")
+	logger.Debug("Starting server")
 
 	services := []service.ChainServiceInterface{}
 	var wg sync.WaitGroup
@@ -67,7 +67,7 @@ func main() {
 
 	nodeHealth, err := healthService.GetLastHealth()
 	if err != nil {
-		log.Info("[MAIN] Error getting last health: ", err)
+		logger.Info("Error getting last health: ", err)
 	}
 
 	for _, ethNetwork := range config.EthereumNetworks {
@@ -88,7 +88,7 @@ func main() {
 
 	go healthService.Start(services)
 
-	log.Info("[MAIN] Server started")
+	logger.Info("Server started")
 
 	gracefulStop := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
@@ -96,7 +96,7 @@ func main() {
 	go waitForExitSignals(gracefulStop, done)
 	<-done
 
-	log.Debug("[MAIN] Server stopping")
+	logger.Debug("Server stopping")
 
 	for _, service := range services {
 		service.Stop()
@@ -107,11 +107,13 @@ func main() {
 	wg.Wait()
 
 	app.DB.Disconnect()
-	log.Info("[MAIN] Server stopped")
+	logger.Info("Server stopped")
 }
 
 func waitForExitSignals(gracefulStop chan os.Signal, done chan bool) {
+	logger := log.WithFields(log.Fields{"package": "main"})
 	sig := <-gracefulStop
-	log.Debug("[MAIN] Caught signal: ", sig)
+	logger.Debug("Caught signal: ", sig)
 	done <- true
 }
+

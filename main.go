@@ -12,14 +12,25 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/dan13ram/wpokt-oracle/app"
-	"github.com/dan13ram/wpokt-oracle/app/service"
 	cfg "github.com/dan13ram/wpokt-oracle/config"
 	"github.com/dan13ram/wpokt-oracle/cosmos"
 	"github.com/dan13ram/wpokt-oracle/ethereum"
+	"github.com/dan13ram/wpokt-oracle/health"
+	"github.com/dan13ram/wpokt-oracle/service"
 )
 
+var logger *log.Entry
+
 func main() {
-	log.SetFormatter(&log.JSONFormatter{})
+	// log.SetFormatter(&log.JSONFormatter{})
+
+	appENV := strings.ToLower(os.Getenv("APP_ENV"))
+	if appENV == "production" {
+		log.SetFormatter(&log.JSONFormatter{})
+	} else {
+		log.SetFormatter(&log.TextFormatter{})
+	}
+
 	logLevel := strings.ToLower(os.Getenv("LOGGER_LEVEL"))
 	if logLevel == "debug" {
 		log.SetLevel(log.DebugLevel)
@@ -27,7 +38,7 @@ func main() {
 		log.SetLevel(log.InfoLevel)
 	}
 
-	logger := log.WithFields(log.Fields{"module": "main"})
+	logger = log.WithFields(log.Fields{"module": "main"})
 
 	var yamlPath string
 	var envPath string
@@ -69,7 +80,7 @@ func main() {
 	services := []service.ChainServiceInterface{}
 	var wg sync.WaitGroup
 
-	healthService := app.NewHealthService(config, &wg)
+	healthService := health.NewHealthService(config, &wg)
 
 	nodeHealth, err := healthService.GetLastHealth()
 	if err != nil {
@@ -119,7 +130,6 @@ func main() {
 }
 
 func waitForExitSignals(gracefulStop chan os.Signal, done chan bool) {
-	logger := log.WithFields(log.Fields{"package": "main"})
 	sig := <-gracefulStop
 	logger.Debug("Caught signal: ", sig)
 	done <- true

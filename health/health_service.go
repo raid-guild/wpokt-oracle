@@ -1,4 +1,4 @@
-package app
+package health
 
 import (
 	"sync"
@@ -6,8 +6,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/dan13ram/wpokt-oracle/app/service"
 	"github.com/dan13ram/wpokt-oracle/models"
+	"github.com/dan13ram/wpokt-oracle/service"
 )
 
 type HealthService struct {

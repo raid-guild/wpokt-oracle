@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/app/service"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
+	"github.com/dan13ram/wpokt-oracle/service"
 )
 
 func NewCosmosChainService(

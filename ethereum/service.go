@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/app/service"
 	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
+	"github.com/dan13ram/wpokt-oracle/service"
 )
 
 func NewEthereumChainService(

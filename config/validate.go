@@ -42,7 +42,7 @@ func validateConfig(config models.Config) error {
 
 	cosmosPubKey, err := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 	if err != nil {
-		logger.WithField("error", err).Error("Failed to generate Cosmos public key from mnemonic")
+		logger.WithError(err).Error("Failed to generate Cosmos public key from mnemonic")
 		return fmt.Errorf("failed to generate Cosmos public key from mnemonic")
 	}
 	if !common.IsValidCosmosPublicKey(cosmosPubKey) {
@@ -51,7 +51,7 @@ func validateConfig(config models.Config) error {
 
 	ethAddress, err := common.EthereumAddressFromMnemonic(config.Mnemonic)
 	if err != nil {
-		logger.WithField("error", err).Error("Failed to generate Ethereum address from mnemonic")
+		logger.WithError(err).Error("Failed to generate Ethereum address from mnemonic")
 		return fmt.Errorf("failed to generate Ethereum address from mnemonic")
 	}
 	if !common.IsValidEthereumAddress(ethAddress) {

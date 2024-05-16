@@ -7,10 +7,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/dan13ram/wpokt-oracle/app/service"
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
 	"github.com/dan13ram/wpokt-oracle/models"
+	"github.com/dan13ram/wpokt-oracle/service"
 )
 
 type MessageMonitorRunner struct {

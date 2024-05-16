@@ -3,8 +3,9 @@ package config
 import (
 	"os"
 
-	"github.com/dan13ram/wpokt-oracle/models"
 	"gopkg.in/yaml.v2"
+
+	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 func loadConfigFromYamlFile(configFile string) models.Config {
@@ -16,7 +17,7 @@ func loadConfigFromYamlFile(configFile string) models.Config {
 	var yamlFile, err = os.ReadFile(configFile)
 	if err != nil {
 		logger.
-			WithField("error", err).
+			WithError(err).
 			Warnf("Error reading yaml file")
 		return models.Config{}
 	}
@@ -24,7 +25,7 @@ func loadConfigFromYamlFile(configFile string) models.Config {
 	err = yaml.Unmarshal(yamlFile, &config)
 	if err != nil {
 		logger.
-			WithField("error", err).
+			WithError(err).
 			Warnf("Error unmarshalling yaml file")
 		return models.Config{}
 	}

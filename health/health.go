@@ -1,4 +1,4 @@
-package app
+package health
 
 import (
 	"encoding/hex"
@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/app/service"
+	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
+	"github.com/dan13ram/wpokt-oracle/service"
 
 	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 
@@ -43,7 +44,7 @@ func (x *HealthCheckRunner) GetLastHealth() (models.Node, error) {
 		"hostname":       x.hostname,
 		"oracle_id":      x.oracleId,
 	}
-	err := DB.FindOne(CollectionNodes, filter, &health)
+	err := app.DB.FindOne(common.CollectionNodes, filter, &health)
 	return health, err
 }
 
@@ -82,7 +83,7 @@ func (x *HealthCheckRunner) PostHealth() bool {
 
 	update := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
 
-	err := DB.UpsertOne(CollectionNodes, filter, update)
+	err := app.DB.UpsertOne(common.CollectionNodes, filter, update)
 
 	if err != nil {
 		x.logger.Error("Error posting health: ", err)

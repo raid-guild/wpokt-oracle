@@ -5,6 +5,7 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
@@ -35,7 +36,7 @@ func readSecretFromGSM(client *secretmanager.Client, label string, value string)
 		logger.
 			WithField("config", label).
 			WithField("secret", name).
-			WithField("error", err).
+			WithError(err).
 			Errorf("Failed to read GSM secret")
 		return ""
 	}
@@ -60,7 +61,7 @@ func loadSecretsFromGSM(config models.Config) models.Config {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		logger.
-			WithField("error", err).
+			WithError(err).
 			Errorf("Failed to create secretmanager client")
 		return configWithSecrets
 	}

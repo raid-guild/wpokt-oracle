@@ -5,8 +5,9 @@ import (
 	"crypto/rand"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/dan13ram/wpokt-oracle/models"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -15,11 +16,8 @@ import (
 	lock "github.com/square/mongo-lock"
 )
 
-const (
-	CollectionLocks        = "locks"
-	CollectionTransactions = "transactions"
-	CollectionMessages     = "messages"
-	CollectionNodes        = "nodes"
+var (
+	DB Database
 )
 
 type Database interface {
@@ -32,9 +30,9 @@ type Database interface {
 	UpdateOne(collection string, filter interface{}, update interface{}) error
 	UpsertOne(collection string, filter interface{}, update interface{}) error
 
-	XLock(resourceId string) (string, error)
-	SLock(resourceId string) (string, error)
-	Unlock(lockId string) error
+	XLock(resourceID string) (string, error)
+	SLock(resourceID string) (string, error)
+	Unlock(lockID string) error
 }
 
 // MongoDatabase is a wrapper around the mongo database
@@ -47,10 +45,6 @@ type MongoDatabase struct {
 
 	logger *log.Entry
 }
-
-var (
-	DB Database
-)
 
 // Connect connects to the database
 func (d *MongoDatabase) Connect() error {
@@ -108,41 +102,41 @@ func randomString(n int) (string, error) {
 }
 
 // XLock locks a resource for exclusive access
-func (d *MongoDatabase) XLock(resourceId string) (string, error) {
+func (d *MongoDatabase) XLock(resourceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
-	lockId, err := randomString(32)
+	lockID, err := randomString(32)
 	if err != nil {
 		return "", err
 	}
-	err = d.locker.XLock(ctx, resourceId, lockId, lock.LockDetails{
+	err = d.locker.XLock(ctx, resourceID, lockID, lock.LockDetails{
 		TTL: 60, // locks expire in 60 seconds
 	})
-	return lockId, err
+	return lockID, err
 }
 
 // SLock locks a resource for shared access
-func (d *MongoDatabase) SLock(resourceId string) (string, error) {
+func (d *MongoDatabase) SLock(resourceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
-	lockId, err := randomString(32)
+	lockID, err := randomString(32)
 	if err != nil {
 		return "", err
 	}
-	err = d.locker.SLock(ctx, resourceId, lockId, lock.LockDetails{
+	err = d.locker.SLock(ctx, resourceID, lockID, lock.LockDetails{
 		TTL: 60, // locks expire in 60 seconds
 	}, -1)
-	return lockId, err
+	return lockID, err
 }
 
 // Unlock unlocks a resource
-func (d *MongoDatabase) Unlock(lockId string) error {
+func (d *MongoDatabase) Unlock(lockID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
-	_, err := d.locker.Unlock(ctx, lockId)
+	_, err := d.locker.Unlock(ctx, lockID)
 	return err
 }
 
@@ -272,15 +266,21 @@ func InitDB(config models.MongoConfig) {
 
 	err := d.Connect()
 	if err != nil {
-		d.logger.Fatal("Failed to connect to database: ", err)
+		d.logger.
+			WithError(err).
+			Fatal("Failed to connect to database")
 	}
 	err = d.SetupIndexes()
 	if err != nil {
-		d.logger.Fatal("Failed to setup indexes: ", err)
+		d.logger.
+			WithError(err).
+			Fatal("Failed to setup indexes")
 	}
 	err = d.SetupLocker()
 	if err != nil {
-		d.logger.Fatal("Failed to setup locker: ", err)
+		d.logger.
+			WithError(err).
+			Fatal("Failed to setup locker")
 	}
 	d.logger.Info("Database initialized")
 

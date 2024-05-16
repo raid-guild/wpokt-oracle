@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/go-bip39"
 
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
+	hdwallet "github.com/dan13ram/go-ethereum-hdwallet"
 
 	"github.com/dan13ram/wpokt-oracle/scripts/utils"
 )
@@ -16,8 +16,10 @@ import (
 func main() {
 
 	var mnemonic string
+	var insecure bool
 	var err error
 	flag.StringVar(&mnemonic, "mnemonic", "", "24 word mnemonic")
+	flag.BoolVar(&insecure, "insecure", false, "insecure mode")
 	flag.Parse()
 
 	if mnemonic == "" {
@@ -34,7 +36,7 @@ func main() {
 	}
 
 	fields := strings.Fields(mnemonic)
-	if len(fields) != 24 {
+	if !insecure && len(fields) != 24 {
 		fmt.Println("mnemonic is invalid, must be 24 words")
 		return
 	}

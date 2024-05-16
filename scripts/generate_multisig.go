@@ -9,7 +9,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/dan13ram/wpokt-oracle/app/config"
+
+	"github.com/dan13ram/wpokt-oracle/common"
 
 	"github.com/dan13ram/wpokt-oracle/scripts/utils"
 )
@@ -41,7 +42,7 @@ func main() {
 	var pKeys []crypto.PubKey
 
 	for i, key := range keys {
-		if !config.IsValidCosmosPublicKey(key) {
+		if !common.IsValidCosmosPublicKey(key) {
 			log.Fatalf("invalid public key %d: %v", i, key)
 		}
 		pKey := &secp256k1.PubKey{}

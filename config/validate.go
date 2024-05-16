@@ -8,7 +8,6 @@ import (
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/go-bip39"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
@@ -17,7 +16,7 @@ import (
 
 // ValidateConfig validates the config
 func validateConfig(config models.Config) error {
-	log.Debug("[CONFIG] Validating config")
+	logger.Debug("Validating config")
 
 	// mongodb
 	if config.MongoDB.URI == "" {
@@ -31,7 +30,7 @@ func validateConfig(config models.Config) error {
 		return fmt.Errorf("MongoDB.TimeoutMS is required")
 	}
 
-	log.Debug("[CONFIG] MongoDB validated")
+	logger.Debug("MongoDB validated")
 
 	// Mnemonic for both Ethereum and Cosmos networks
 	if config.Mnemonic == "" {
@@ -43,33 +42,35 @@ func validateConfig(config models.Config) error {
 
 	cosmosPubKey, err := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 	if err != nil {
-		return fmt.Errorf("Failed to generate Cosmos public key from mnemonic: %s", err)
+		logger.WithField("error", err).Error("Failed to generate Cosmos public key from mnemonic")
+		return fmt.Errorf("failed to generate Cosmos public key from mnemonic")
 	}
 	if !common.IsValidCosmosPublicKey(cosmosPubKey) {
-		return fmt.Errorf("Cosmos public key is invalid")
+		return fmt.Errorf("cosmos public key is invalid")
 	}
 
 	ethAddress, err := common.EthereumAddressFromMnemonic(config.Mnemonic)
 	if err != nil {
-		return fmt.Errorf("Failed to generate Ethereum address from mnemonic: %s", err)
+		logger.WithField("error", err).Error("Failed to generate Ethereum address from mnemonic")
+		return fmt.Errorf("failed to generate Ethereum address from mnemonic")
 	}
 	if !common.IsValidEthereumAddress(ethAddress) {
-		return fmt.Errorf("Ethereum address is invalid")
+		return fmt.Errorf("ethereum address is invalid")
 	}
 
-	log.Debug("[CONFIG] Mnemonic validated")
+	logger.Debug("Mnemonic validated")
 
 	if len(config.EthereumNetworks) == 0 {
-		return fmt.Errorf("At least one Ethereum network must be configured")
+		return fmt.Errorf("at least one ethereum network must be configured")
 	}
 
 	// ethereum
 	for i, ethNetwork := range config.EthereumNetworks {
-		if ethNetwork.StartBlockHeight < 0 {
-			return fmt.Errorf("EthereumNetworks[%d].StartBlockHeight is invalid", i)
+		if ethNetwork.StartBlockHeight == 0 {
+			logger.Warnf("EthereumNetworks[%d].StartBlockHeight is 0", i)
 		}
-		if ethNetwork.Confirmations < 0 {
-			return fmt.Errorf("EthereumNetworks[%d].Confirmations is invalid", i)
+		if ethNetwork.Confirmations == 0 {
+			logger.Warnf("EthereumNetworks[%d].Confirmations is 0", i)
 		}
 		if ethNetwork.RPCURL == "" {
 			return fmt.Errorf("EthereumNetworks[%d].RPCURL is required", i)
@@ -109,32 +110,32 @@ func validateConfig(config models.Config) error {
 		if !foundAddress {
 			return fmt.Errorf("EthereumNetworks[%d].OracleAddresses must contain the address of this oracle", i)
 		}
-		if err := validateServiceConfig("EthereumNetworks[%d].MessageMonitor", ethNetwork.MessageMonitor); err != nil {
+		if err := validateServiceConfig(fmt.Sprintf("EthereumNetworks[%d].MessageMonitor", i), ethNetwork.MessageMonitor); err != nil {
 			return err
 		}
-		if err := validateServiceConfig("EthereumNetworks[%d].MessageSigner", ethNetwork.MessageSigner); err != nil {
+		if err := validateServiceConfig(fmt.Sprintf("EthereumNetworks[%d].MessageSigner", i), ethNetwork.MessageSigner); err != nil {
 			return err
 		}
-		if err := validateServiceConfig("EthereumNetworks[%d].MessageRelayer", ethNetwork.MessageRelayer); err != nil {
+		if err := validateServiceConfig(fmt.Sprintf("EthereumNetworks[%d].MessageRelayer", i), ethNetwork.MessageRelayer); err != nil {
 			return err
 		}
 	}
 
-	log.Debug("[CONFIG] Ethereum validated")
+	logger.Debug("Ethereum validated")
 	if len(config.CosmosNetworks) == 0 {
-		return fmt.Errorf("At least one Cosmos network must be configured")
+		return fmt.Errorf("at least one cosmos network must be configured")
 	}
 	if len(config.CosmosNetworks) > 1 {
-		return fmt.Errorf("Only one Cosmos network is supported")
+		return fmt.Errorf("only one cosmos network is supported")
 	}
 
 	// cosmos
 	for i, cosmosNetwork := range config.CosmosNetworks {
-		if cosmosNetwork.StartBlockHeight < 0 {
-			return fmt.Errorf("CosmosNetworks[%d].StartBlockHeight is invalid", i)
+		if cosmosNetwork.StartBlockHeight == 0 {
+			logger.Warnf("CosmosNetworks[%d].StartBlockHeight is 0", i)
 		}
-		if cosmosNetwork.Confirmations < 0 {
-			return fmt.Errorf("CosmosNetworks[%d].Confirmations is invalid", i)
+		if cosmosNetwork.Confirmations == 0 {
+			logger.Warnf("CosmosNetworks[%d].Confirmations is 0", i)
 		}
 		if cosmosNetwork.GRPCEnabled {
 			if cosmosNetwork.GRPCHost == "" {
@@ -157,8 +158,8 @@ func validateConfig(config models.Config) error {
 		if cosmosNetwork.ChainName == "" {
 			return fmt.Errorf("CosmosNetworks[%d].ChainName is required", i)
 		}
-		if cosmosNetwork.TxFee < 0 {
-			return fmt.Errorf("CosmosNetworks[%d].TxFee is invalid", i)
+		if cosmosNetwork.TxFee == 0 {
+			logger.Warnf("CosmosNetworks[%d].TxFee is 0", i)
 		}
 		if cosmosNetwork.Bech32Prefix == "" {
 			return fmt.Errorf("CosmosNetworks[%d].Bech32Prefix is required", i)
@@ -201,31 +202,31 @@ func validateConfig(config models.Config) error {
 		multisigPk := multisig.NewLegacyAminoPubKey(int(cosmosNetwork.MultisigThreshold), pKeys)
 		multisigBech32, err := bech32.ConvertAndEncode(cosmosNetwork.Bech32Prefix, multisigPk.Address().Bytes())
 		if err != nil {
-			log.Fatalf("CosmosNetworks[%d].MultisigAddress could not be converted to bech32: %s", i, err)
+			logger.Fatalf("CosmosNetworks[%d].MultisigAddress could not be converted to bech32: %s", i, err)
 		}
 		if !strings.EqualFold(cosmosNetwork.MultisigAddress, multisigBech32) {
 			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is not valid for the given public keys and threshold", i)
 		}
-		if err := validateServiceConfig("CosmosNetworks[%d].MessageMonitor", cosmosNetwork.MessageMonitor); err != nil {
+		if err := validateServiceConfig(fmt.Sprintf("CosmosNetworks[%d].MessageMonitor", i), cosmosNetwork.MessageMonitor); err != nil {
 			return err
 		}
-		if err := validateServiceConfig("CosmosNetworks[%d].MessageSigner", cosmosNetwork.MessageSigner); err != nil {
+		if err := validateServiceConfig(fmt.Sprintf("CosmosNetworks[%d].MessageSigner", i), cosmosNetwork.MessageSigner); err != nil {
 			return err
 		}
-		if err := validateServiceConfig("CosmosNetworks[%d].MessageRelayer", cosmosNetwork.MessageRelayer); err != nil {
+		if err := validateServiceConfig(fmt.Sprintf("CosmosNetworks[%d].MessageRelayer", i), cosmosNetwork.MessageRelayer); err != nil {
 			return err
 		}
 	}
 
-	log.Debug("[CONFIG] Cosmos validated")
+	logger.Debug("Cosmos validated")
 
 	if config.HealthCheck.IntervalMS == 0 {
 		return fmt.Errorf("HealthCheck.Interval is required")
 	}
 
-	log.Debug("[CONFIG] HealthCheck validated")
+	logger.Debug("HealthCheck validated")
 
-	log.Debug("[CONFIG] config validated")
+	logger.Debug("Config validated")
 	return nil
 }
 

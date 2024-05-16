@@ -15,6 +15,8 @@ type HealthService struct {
 	runner   *HealthCheckRunner
 	stop     chan bool
 	wg       *sync.WaitGroup
+
+	logger *log.Entry
 }
 
 type HealthServiceInterface interface {
@@ -27,18 +29,18 @@ func (x *HealthService) Start(
 	services []service.ChainServiceInterface,
 ) {
 	x.runner.AddServices(services)
-	log.Infof("[HEALTH] HealthService started")
+	x.logger.Infof("HealthService started")
 	stop := false
 	for !stop {
-		log.Infof("[HEALTH] Run started")
+		x.logger.Infof("Run started")
 
 		x.runner.Run()
 
-		log.Infof("[HEALTH] Run complete, next run in %s", x.interval)
+		x.logger.Infof("Run complete, next run in %s", x.interval)
 
 		select {
 		case <-x.stop:
-			log.Infof("[HEALTH] HealthService stopped")
+			x.logger.Infof("HealthService stopped")
 			x.wg.Done()
 			stop = true
 		case <-time.After(x.interval):
@@ -51,7 +53,7 @@ func (x *HealthService) GetLastHealth() (models.Node, error) {
 }
 
 func (x *HealthService) Stop() {
-	log.Debugf("[HEALTH] Stopping")
+	x.logger.Debugf("HealthService stopping")
 	close(x.stop)
 }
 
@@ -66,5 +68,7 @@ func NewHealthService(
 		interval: interval,
 		stop:     make(chan bool, 1),
 		wg:       wg,
+
+		logger: log.WithField("module", "health").WithField("service", "health"),
 	}
 }

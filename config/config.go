@@ -1,12 +1,19 @@
 package config
 
 import (
-	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/dan13ram/wpokt-oracle/models"
 )
 
+var logger *log.Entry
+
+func init() {
+	logger = log.WithFields(log.Fields{"module": "config"})
+}
+
 func InitConfig(yamlFile string, envFile string) models.Config {
-	log.Debug("[CONFIG] Initializing config")
+	logger.Debug("Initializing config")
 	yamlConfig := loadConfigFromYamlFile(yamlFile)
 	envConfig := loadConfigFromEnv(envFile)
 	mergedConfig := mergeConfigs(yamlConfig, envConfig)
@@ -14,8 +21,10 @@ func InitConfig(yamlFile string, envFile string) models.Config {
 	err := validateConfig(gsmConfig)
 
 	if err != nil {
-		log.Fatal("[CONFIG] Config validation failed: ", err)
+		logger.
+			WithFields(log.Fields{"error": err}).
+			Fatal("Config validation failed")
 	}
-	log.Info("[CONFIG] Config initialized")
+	logger.Info("Config initialized")
 	return gsmConfig
 }

@@ -1,15 +1,13 @@
 package config
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 // Function to merge two Config structs, prioritizing non-empty configurations from the envConfig
 func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Config {
 
-	log.Debug("[CONFIG] Merging configs from YAML and ENV")
+	logger.Debug("Merging configs from YAML and ENV")
 	// Create a new Config instance to store the merged values
 	mergedConfig := yamlConfig
 
@@ -161,6 +159,6 @@ func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 		}
 	}
 
-	log.Debug("[CONFIG] Config merged successfully")
+	logger.Debug("Config merged successfully")
 	return mergedConfig
 }

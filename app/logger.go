@@ -9,7 +9,8 @@ import (
 
 func InitLogger(config models.LoggerConfig) {
 	logLevel := strings.ToLower(config.Level)
-	log.Debug("[LOGGER] Initializing logger with level: ", logLevel)
+	logger := log.WithField("module", "logger")
+	logger.Debug("Initializing logger with level: ", logLevel)
 
 	if logLevel == "debug" {
 		log.SetLevel(log.DebugLevel)
@@ -19,5 +20,5 @@ func InitLogger(config models.LoggerConfig) {
 		log.SetLevel(log.WarnLevel)
 	}
 
-	log.Info("[LOGGER] Logger initialized with level: ", logLevel)
+	logger.Info("Logger initialized with level: ", logLevel)
 }

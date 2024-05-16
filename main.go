@@ -40,18 +40,24 @@ func main() {
 	if yamlPath != "" {
 		absYamlPath, err = filepath.Abs(yamlPath)
 		if err != nil {
-			logger.Fatal("Error getting absolute path for yaml file: ", err)
+			logger.
+				WithFields(log.Fields{"error": err}).
+				Fatal("Could not get absolute path for yaml file")
+			return
 		}
-		logger.Debug("Yaml file: ", absYamlPath)
+		logger.
+			WithFields(log.Fields{"yaml": absYamlPath}).
+			Debug("Found yaml file")
 	}
 
 	var absEnvPath string
 	if envPath != "" {
 		absEnvPath, err = filepath.Abs(envPath)
 		if err != nil {
-			logger.Fatal("Error getting absolute path for env file: ", err)
+			logger.WithFields(log.Fields{"error": err}).Fatal("Could not get absolute path for env file")
+			return
 		}
-		logger.Debug("Env file: ", absEnvPath)
+		logger.WithFields(log.Fields{"env": absEnvPath}).Debug("Found env file")
 	}
 
 	config := cfg.InitConfig(absYamlPath, absEnvPath)
@@ -67,7 +73,9 @@ func main() {
 
 	nodeHealth, err := healthService.GetLastHealth()
 	if err != nil {
-		logger.Info("Error getting last health: ", err)
+		logger.
+			WithFields(log.Fields{"error": err}).
+			Warn("Could not get last health")
 	}
 
 	for _, ethNetwork := range config.EthereumNetworks {
@@ -116,4 +124,3 @@ func waitForExitSignals(gracefulStop chan os.Signal, done chan bool) {
 	logger.Debug("Caught signal: ", sig)
 	done <- true
 }
-

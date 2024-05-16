@@ -18,7 +18,8 @@ type ChainService struct {
 	signerService  RunnerServiceInterface
 	relayerService RunnerServiceInterface
 
-	stop chan bool
+	stop   chan bool
+	logger *log.Entry
 }
 
 type ChainServiceInterface interface {
@@ -33,11 +34,11 @@ func (x *ChainService) Name() string {
 
 func (x *ChainService) Start() {
 	if !x.monitorService.Enabled() && !x.signerService.Enabled() && !x.relayerService.Enabled() {
-		log.Debugf("[%s] ChainService not enabled", x.Name())
+		x.logger.Debugf("ChainService not enabled")
 		x.wg.Done()
 		return
 	}
-	log.Infof("[%s] ChainService started", x.Name())
+	x.logger.Infof("ChainService started")
 
 	var wg sync.WaitGroup
 
@@ -58,7 +59,7 @@ func (x *ChainService) Start() {
 
 	<-x.stop
 
-	log.Debugf("[%s] ChainService stopping", x.Name())
+	x.logger.Debugf("ChainService stopping")
 
 	if x.monitorService.Enabled() {
 		x.monitorService.Stop()
@@ -71,7 +72,7 @@ func (x *ChainService) Start() {
 	}
 
 	wg.Wait()
-	log.Infof("[%s] ChainService stopped", x.Name())
+	x.logger.Infof("ChainService stopped")
 
 	x.wg.Done()
 }
@@ -88,7 +89,7 @@ func (x *ChainService) Health() models.ChainServiceHealth {
 }
 
 func (x *ChainService) Stop() {
-	log.Debugf("[%s] Stopping", x.Name())
+	x.logger.Debugf("ChainService Stopping")
 	close(x.stop)
 }
 
@@ -99,8 +100,13 @@ func NewChainService(
 	relayerService RunnerServiceInterface,
 	wg *sync.WaitGroup,
 ) ChainServiceInterface {
+	logger := log.
+		WithField("module", "service").
+		WithField("service", "chain").
+		WithField("chain_name", strings.ToLower(chain.ChainName)).
+		WithField("chain_id", strings.ToLower(chain.ChainID))
 	if chain.ChainName == "" || monitorService == nil || signerService == nil || relayerService == nil || wg == nil {
-		log.Debug("[CHAIN_SERVICE] Invalid parameters")
+		logger.Debug("Invalid parameters")
 		return nil
 	}
 
@@ -111,5 +117,6 @@ func NewChainService(
 		relayerService: relayerService,
 		wg:             wg,
 		stop:           make(chan bool, 1),
+		logger:     logger,
 	}
 }

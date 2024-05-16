@@ -32,6 +32,8 @@ type RunnerService struct {
 
 	statusMu sync.RWMutex
 	status   models.RunnerServiceStatus
+
+	logger *log.Entry
 }
 
 func (x *RunnerService) Enabled() bool {
@@ -40,30 +42,30 @@ func (x *RunnerService) Enabled() bool {
 
 func (x *RunnerService) Start(wg *sync.WaitGroup) {
 	if !x.enabled {
-		log.Debugf("[%s] RunnerService is disabled", x.name)
+		x.logger.Debugf("RunnerService is disabled")
 		wg.Done()
 		return
 	}
 	if x.runner == nil {
-		log.Debugf("[%s] RunnerService not started, runner is nil", x.name)
+		x.logger.Debugf("RunnerService not started, runner is nil")
 		wg.Done()
 		return
 	}
 
-	log.Infof("[%s] RunnerService started", x.name)
+	x.logger.Infof("RunnerService started")
 	stop := false
 	for !stop {
-		log.Infof("[%s] Run started", x.name)
+		x.logger.Infof("Run started")
 
 		x.runner.Run()
 
 		x.updateStatus(x.runner.Height())
 
-		log.Infof("[%s] Run complete, next run in %s", x.name, x.interval)
+		x.logger.Infof("Run complete, next run in %s", x.interval)
 
 		select {
 		case <-x.stop:
-			log.Infof("[%s] RunnerService stopped", x.name)
+			x.logger.Infof("RunnerService stopped")
 			wg.Done()
 			stop = true
 		case <-time.After(x.interval):
@@ -100,7 +102,7 @@ func (x *RunnerService) updateStatus(blockHeight uint64) {
 }
 
 func (x *RunnerService) Stop() {
-	log.Debugf("[%s] Stopping", x.name)
+	x.logger.Debugf("RunnerService stopping")
 	close(x.stop)
 }
 
@@ -110,8 +112,13 @@ func NewRunnerService(
 	enabled bool,
 	interval time.Duration,
 ) RunnerServiceInterface {
+	logger := log.
+		WithField("module", "service").
+		WithField("service", "runner").
+		WithField("name", strings.ToLower(name))
 	if (runner == nil) || (interval == 0) {
-		log.Debug("[RUNNER_SERVICE] Invalid parameters")
+		logger.
+				Debug("Invalid parameters")
 		return nil
 	}
 
@@ -122,5 +129,6 @@ func NewRunnerService(
 		interval: interval,
 		stop:     make(chan bool, 1),
 		status:   models.RunnerServiceStatus{},
+		logger:   logger,
 	}
 }

@@ -5,10 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 func loadConfigFromEnv(envFile string) models.Config {
@@ -17,15 +16,17 @@ func loadConfigFromEnv(envFile string) models.Config {
 	if envFile != "" {
 		err := godotenv.Load(envFile)
 		if err != nil {
-			log.Warn("[CONFIG] Error loading env file: ", err.Error())
+			logger.
+				WithFields(log.Fields{"error": err}).
+				Warn("Error loading env file")
 		} else {
-			log.Debug("[CONFIG] Loading env file: ", envFile)
+			logger.Debug("Loading env file")
 		}
 	} else {
-		log.Debug("[CONFIG] No env file provided")
+		logger.Debug("No env file provided")
 	}
 
-	log.Debug("[CONFIG] Loading config from env")
+	logger.Debug("Loading config from env")
 
 	var config models.Config
 
@@ -85,7 +86,7 @@ func loadConfigFromEnv(envFile string) models.Config {
 			ChainName:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			TxFee:              getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_TX_FEE"),
 			Bech32Prefix:       getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_BECH32_PREFIX"),
-			CoinDenom:               getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_COIN_DENOM"),
+			CoinDenom:          getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_COIN_DENOM"),
 			MultisigAddress:    getStringEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_ADDRESS"),
 			MultisigPublicKeys: getStringArrayEnv("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_PUBLIC_KEYS"),
 			MultisigThreshold:  getUint64Env("COSMOS_NETWORKS_" + strconv.Itoa(i) + "_MULTISIG_THRESHOLD"),
@@ -104,7 +105,7 @@ func loadConfigFromEnv(envFile string) models.Config {
 		}
 	}
 
-	log.Debug("[CONFIG] Config loaded from env")
+	logger.Debug("Config loaded from env")
 
 	return config
 }

@@ -96,6 +96,7 @@ func (x *HealthCheckRunner) PostHealth() bool {
 func newHealthCheck(config models.Config) *HealthCheckRunner {
 	logger := log.WithFields(log.Fields{
 		"module": "health",
+		"runner": "health",
 	})
 	logger.Debug("Initializing health")
 

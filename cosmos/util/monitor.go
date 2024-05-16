@@ -2,11 +2,14 @@ package util
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
@@ -37,6 +40,39 @@ func CreateTransaction(tx *sdk.TxResponse, senderAddress []byte) (models.Transac
 	}, nil
 }
 
+var SupportedChainIDs = map[string]bool{
+	"1":        true,
+	"11155111": true,
+	"31337":    true,
+}
+
+func ValidateMemo(txMemo string) (models.MintMemo, error) {
+	var memo models.MintMemo
+
+	err := json.Unmarshal([]byte(txMemo), &memo)
+	if err != nil {
+		return memo, fmt.Errorf("failed to unmarshal memo: %s", err)
+	}
+
+	memo.Address = strings.Trim(strings.ToLower(memo.Address), " ")
+	memo.ChainID = strings.Trim(strings.ToLower(memo.ChainID), " ")
+
+	address := common.HexToAddress(memo.Address).Hex()
+	if !strings.EqualFold(address, memo.Address) {
+		return memo, fmt.Errorf("invalid address: %s", memo.Address)
+	}
+
+	if address == common.HexToAddress("").Hex() {
+		return memo, fmt.Errorf("zero address: %s", memo.Address)
+	}
+
+	if !SupportedChainIDs[memo.ChainID] {
+		return memo, fmt.Errorf("unsupported chain id: %s", memo.ChainID)
+	}
+
+	return memo, nil
+}
+
 /*
 // func CreateMint(sdk *pokt.TxResponse, memo models.MintMemo, wpoktAddress string, vaultAddress string) models.Mint {
 // 	return models.Mint{
@@ -44,9 +80,9 @@ func CreateTransaction(tx *sdk.TxResponse, senderAddress []byte) (models.Transac
 // 		Confirmations:   "0",
 // 		TransactionHash: strings.ToLower(tx.Hash),
 // 		SenderAddress:   strings.ToLower(tx.StdTx.Msg.Value.FromAddress),
-// 		// SenderChainId:       app.Config.Pocket.ChainId,
+// 		// SenderChainID:       app.Config.Pocket.ChainID,
 // 		RecipientAddress:    strings.ToLower(memo.Address),
-// 		RecipientChainId:    memo.ChainId,
+// 		RecipientChainID:    memo.ChainID,
 // 		WPOKTAddress:        strings.ToLower(wpoktAddress),
 // 		VaultAddress:        strings.ToLower(vaultAddress),
 // 		Amount:              tx.StdTx.Msg.Value.Amount,
@@ -61,47 +97,13 @@ func CreateTransaction(tx *sdk.TxResponse, senderAddress []byte) (models.Transac
 // 	}
 // }
 //
-// func ValidateMemo(txMemo string) (models.MintMemo, bool) {
-// 	var memo models.MintMemo
-//
-// 	err := json.Unmarshal([]byte(txMemo), &memo)
-// 	if err != nil {
-// 		return memo, false
-// 	}
-//
-// 	address := common.HexToAddress(memo.Address).Hex()
-// 	if !strings.EqualFold(address, memo.Address) {
-// 		return memo, false
-// 	}
-//
-// 	if address == common.HexToAddress("").Hex() {
-// 		return memo, false
-// 	}
-// 	memo.Address = address
-//
-// 	memoChainId, err := strconv.Atoi(memo.ChainId)
-// 	if err != nil {
-// 		return memo, false
-// 	}
-//
-// 	appChainId, err := strconv.Atoi("1")
-// 	if err != nil {
-// 		return memo, false
-// 	}
-//
-// 	if memoChainId != appChainId {
-// 		return memo, false
-// 	}
-// 	memo.ChainId = "1"
-// 	return memo, true
-// }
 // func CreateInvalidMint(tx *pokt.TxResponse, vaultAddress string) models.InvalidMint {
 // 	return models.InvalidMint{
 // 		Height:          strconv.FormatInt(tx.Height, 10),
 // 		Confirmations:   "0",
 // 		TransactionHash: strings.ToLower(tx.Hash),
 // 		SenderAddress:   strings.ToLower(tx.StdTx.Msg.Value.FromAddress),
-// 		// SenderChainId:   app.Config.Pocket.ChainId,
+// 		// SenderChainID:   app.Config.Pocket.ChainID,
 // 		Memo:         tx.StdTx.Memo,
 // 		Amount:       tx.StdTx.Msg.Value.Amount,
 // 		VaultAddress: strings.ToLower(vaultAddress),

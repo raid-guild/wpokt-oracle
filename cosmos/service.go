@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dan13ram/wpokt-oracle/app/service"
+	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
@@ -50,11 +51,7 @@ func NewCosmosChainService(
 	)
 
 	return service.NewChainService(
-		models.Chain{
-			ChainName: config.ChainName,
-			ChainID:   config.ChainID,
-			ChainType: models.ChainTypeCosmos,
-		},
+		util.ParseChain(config),
 		monitorRunnerService,
 		signerRunnerService,
 		relayerRunnerService,

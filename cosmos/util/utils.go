@@ -12,11 +12,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
+	"github.com/dan13ram/wpokt-oracle/models"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -163,4 +166,20 @@ func ParseCoinsSpentEvents(
 		}
 	}
 	return spender, total, nil
+}
+
+// hash the string chainID to get a uint64 chainDomain
+func getChainDomain(chainID string) uint64 {
+	chainHash := ethcrypto.Keccak256([]byte(chainID))
+	chainDomain := new(big.Int).SetBytes(chainHash).Uint64()
+	return chainDomain
+}
+
+func ParseChain(config models.CosmosNetworkConfig) models.Chain {
+	return models.Chain{
+		ChainID:     config.ChainID,
+		ChainDomain: getChainDomain(config.ChainID),
+		ChainName:   config.ChainName,
+		ChainType:   models.ChainTypeCosmos,
+	}
 }

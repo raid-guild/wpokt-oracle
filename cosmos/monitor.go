@@ -21,16 +21,20 @@ import (
 )
 
 type MessageMonitorRunner struct {
+	name string
+
 	startBlockHeight   uint64
 	currentBlockHeight uint64
-	name               string
-	multisigAddress    string
-	bech32Prefix       string
-	coinDenom          string
 
-	client        cosmos.CosmosClient
-	multisigPk    *multisig.LegacyAminoPubKey
+	multisigAddress string
+	multisigPk      *multisig.LegacyAminoPubKey
+
+	bech32Prefix  string
+	coinDenom     string
 	minimumAmount sdk.Coin
+
+	chain  models.Chain
+	client cosmos.CosmosClient
 }
 
 func (x *MessageMonitorRunner) Run() {
@@ -51,6 +55,30 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 	x.currentBlockHeight = uint64(height)
 
 	log.Infof("[%s] Current height: %d", x.name, x.currentBlockHeight)
+}
+
+// transaction has failed
+func (x *MessageMonitorRunner) HandleFailedTransaction(tx *sdk.TxResponse) bool {
+	log.Debugf("[%s] Handling failed tx: %s", x.name, tx.TxHash)
+	return true
+}
+
+// transaction was successful but invalid
+func (x *MessageMonitorRunner) HandleInvalidTransaction(tx *sdk.TxResponse) bool {
+	log.Debugf("[%s] Handling invalid tx: %s", x.name, tx.TxHash)
+	return true
+}
+
+// transaction was successful but cannot be processed and needs to be refunded
+func (x *MessageMonitorRunner) HandleRefundTransaction(tx *sdk.TxResponse) bool {
+	log.Debugf("[%s] Handling refund tx: %s", x.name, tx.TxHash)
+	return true
+}
+
+// transaction was successful and valid and can be processed
+func (x *MessageMonitorRunner) HandleValidTransaction(tx *sdk.TxResponse, memo models.MintMemo) bool {
+	log.Debugf("[%s] Handling valid tx: %s", x.name, tx.TxHash)
+	return true
 }
 
 // func (x *MessageMonitorRunner) HandleInvalidMint(tx *pokt.TxResponse) bool {
@@ -116,65 +144,67 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 	for _, txResponse := range txResponses {
 		if txResponse.Code != 0 {
 			log.Infof("[%s] Found tx with error: %s", x.name, txResponse.TxHash)
+			success = x.HandleFailedTransaction(txResponse) && success
 			continue
 		}
-		log.Debugf("[%s] Found tx: %s", x.name, txResponse.TxHash)
+		log.Debugf("[%s] Found successful tx: %s", x.name, txResponse.TxHash)
 
 		tx := &tx.Tx{}
 		err := tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			log.Errorf("[%s] Error unmarshalling tx: %s", x.name, err)
+			success = x.HandleInvalidTransaction(txResponse) && success
 			continue
 		}
-
-		log.Infof("[%s] Found tx memo: %s", x.name, tx.Body.Memo)
 
 		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
 			log.Errorf("[%s] Error parsing coins received events: %s", x.name, err)
+			success = x.HandleInvalidTransaction(txResponse) && success
 			continue
 		}
 
-		log.Infof("[%s] Found tx coins received: %v", x.name, coinsReceived)
+		log.Debugf("[%s] Found tx coins received: %v", x.name, coinsReceived)
 
 		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
 			log.Errorf("[%s] Error parsing coins spent events: %s", x.name, err)
+			success = x.HandleInvalidTransaction(txResponse) && success
 			continue
 		}
 
-		log.Infof("[%s] Found tx coins spent: %v", x.name, coinsSpent)
-		log.Infof("[%s] Found tx coins spent sender: %s", x.name, coinsSpentSender)
+		log.Debugf("[%s] Found tx coins spent: %v", x.name, coinsSpent)
+		log.Debugf("[%s] Found tx coins spent sender: %s", x.name, coinsSpentSender)
 
 		if coinsReceived.IsZero() || coinsSpent.IsZero() {
-			log.Infof("[%s] Found tx with zero coins: %s", x.name, txResponse.TxHash)
+			log.Debugf("[%s] Found tx with zero coins: %s", x.name, txResponse.TxHash)
+			success = x.HandleInvalidTransaction(txResponse) && success
 			continue
 		}
 
 		if coinsReceived.IsLTE(x.minimumAmount) {
-			log.Infof("[%s] Found tx with too low amount: %s", x.name, txResponse.TxHash)
+			log.Debugf("[%s] Found tx with too low amount: %s", x.name, txResponse.TxHash)
+			success = x.HandleInvalidTransaction(txResponse) && success
 			continue
 		}
 
 		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
-			log.Infof("[%s] Found tx with invalid coins: %s", x.name, txResponse.TxHash)
+			log.Debugf("[%s] Found tx with invalid coins: %s", x.name, txResponse.TxHash)
+			success = x.HandleRefundTransaction(txResponse) && success
+			continue
 		}
 
-		// amount, ok := new(big.Int).SetString(tx.StdTx.Msg.Value.Amount, 10)
-		// if tx.Tx == "" || tx.TxResult.Code != 0 || !strings.EqualFold(tx.TxResult.Recipient, x.vaultAddress) || tx.TxResult.MessageType != "send" || !ok || amount.Cmp(x.minimumAmount) != 1 {
-		// 	log.Info("[MINT MONITOR] Found failed mint tx: ", tx.Hash, " with code: ", tx.TxResult.Code)
-		// 	success = x.HandleFailedMint(tx) && success
-		// 	continue
-		// }
-		// memo, ok := util.ValidateMemo(tx.StdTx.Memo)
-		// if !ok {
-		// 	log.Info("[MINT MONITOR] Found invalid mint tx: ", tx.Hash, " with memo: ", "\""+tx.StdTx.Memo+"\"")
-		// 	success = x.HandleInvalidMint(tx) && success
-		// 	continue
-		// }
-		//
-		// log.Info("[MINT MONITOR] Found valid mint tx: ", tx.Hash, " with memo: ", tx.StdTx.Memo)
-		// success = x.HandleValidMint(tx, memo) && success
+		log.Debugf("[%s] Found tx memo: %s", x.name, tx.Body.Memo)
+
+		memo, err := util.ValidateMemo(tx.Body.Memo)
+		if err != nil {
+			log.Debugf("[%s] Found invalid memo: %s", x.name, err)
+			success = x.HandleRefundTransaction(txResponse) && success
+			continue
+		}
+
+		log.Infof("[%s] Found tx with valid memo: %v", x.name, memo)
+		success = x.HandleValidTransaction(txResponse, memo) && success
 	}
 
 	if success {
@@ -237,7 +267,7 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth *models.Run
 	x := &MessageMonitorRunner{
 		name:       name,
 		multisigPk: multisigPk,
-		// wpoktAddress:  strings.ToLower(app.Config.Ethereum.WrappedPocketAddress),
+
 		multisigAddress:    multisigAddress,
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,

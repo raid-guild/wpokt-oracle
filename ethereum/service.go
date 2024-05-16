@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dan13ram/wpokt-oracle/app/service"
+	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
@@ -50,11 +51,7 @@ func NewEthereumChainService(
 	)
 
 	return service.NewChainService(
-		models.Chain{
-			ChainName: config.ChainName,
-			ChainID:   fmt.Sprintf("%d", config.ChainID),
-			ChainType: models.ChainTypeEthereum,
-		},
+		util.ParseChain(config),
 		monitorRunnerService,
 		signerRunnerService,
 		relayerRunnerService,

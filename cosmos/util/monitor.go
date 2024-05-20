@@ -13,28 +13,30 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func CreateTransaction(tx *sdk.TxResponse, chain models.Chain, senderAddress []byte) (models.Transaction, error) {
-	hash0x := fmt.Sprintf("0x%s", strings.ToLower(tx.TxHash))
-	hashBytes, err := hex.DecodeString(hash0x)
+func HexToBytes(hexStr string) ([]byte, error) {
+	hexStr = strings.TrimPrefix(hexStr, "0x")
+	return hex.DecodeString(hexStr)
+}
+
+func CreateTransaction(
+	tx *sdk.TxResponse,
+	chain models.Chain,
+	senderAddress []byte,
+	status models.TxStatus,
+) (models.Transaction, error) {
+	hashBytes, err := HexToBytes(tx.TxHash)
 	if err != nil {
 		return models.Transaction{}, fmt.Errorf("failed to decode tx hash: %s", err)
 	}
 
 	return models.Transaction{
-		Hash:               hashBytes,
-		Sender:             senderAddress,
-		BlockHeight:        uint64(tx.Height),
-		BlockConfirmations: 0,
-		Chain:              chain,
-		TxStatus:           "failed",
-		IsValid:            false,
-		Refund: models.RefundInfo{
-			Required:     false,
-			Refunded:     false,
-			RefundTxHash: []byte{},
-		},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Hash:        hashBytes,
+		Sender:      senderAddress,
+		BlockHeight: uint64(tx.Height),
+		Chain:       chain,
+		TxStatus:    status,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}, nil
 }
 

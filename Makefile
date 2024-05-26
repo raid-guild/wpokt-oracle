@@ -2,7 +2,7 @@
 
 all: run
 
-debug :; LOGGER_LEVEL=debug go run . --yaml config.test.yml
+debug :; LOGGER_FORMAT=text LOGGER_LEVEL=debug go run . --yaml config.test.yml
 
 run :; go run . --yaml config.test.yml
 

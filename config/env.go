@@ -34,6 +34,7 @@ func loadConfigFromEnv(envFile string) models.Config {
 	config.HealthCheck.IntervalMS = getUint64Env("HEALTH_CHECK_INTERVAL_MS")
 	config.HealthCheck.ReadLastHealth = getBoolEnv("HEALTH_CHECK_READ_LAST_HEALTH")
 	config.Logger.Level = getStringEnv("LOGGER_LEVEL")
+	config.Logger.Format = getStringEnv("LOGGER_FORMAT")
 	config.MongoDB.URI = getStringEnv("MONGODB_URI")
 	config.MongoDB.Database = getStringEnv("MONGODB_DATABASE")
 	config.MongoDB.TimeoutMS = getUint64Env("MONGODB_TIMEOUT_MS")

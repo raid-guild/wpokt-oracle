@@ -16,19 +16,18 @@ import (
 	"github.com/dan13ram/wpokt-oracle/cosmos"
 	"github.com/dan13ram/wpokt-oracle/ethereum"
 	"github.com/dan13ram/wpokt-oracle/health"
+	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
 var logger *log.Entry
 
 func main() {
-	// log.SetFormatter(&log.JSONFormatter{})
-
-	appENV := strings.ToLower(os.Getenv("APP_ENV"))
-	if appENV == "production" {
-		log.SetFormatter(&log.JSONFormatter{})
+	logFormat := strings.ToLower(os.Getenv("LOGGER_FORMAT"))
+	if logFormat == "text" {
+		log.SetFormatter(&log.TextFormatter{})
 	} else {
-		log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	logLevel := strings.ToLower(os.Getenv("LOGGER_LEVEL"))
@@ -82,11 +81,15 @@ func main() {
 
 	healthService := health.NewHealthService(config, &wg)
 
-	nodeHealth, err := healthService.GetLastHealth()
-	if err != nil {
-		logger.
-			WithFields(log.Fields{"error": err}).
-			Warn("Could not get last health")
+	var nodeHealth *models.Node
+
+	if config.HealthCheck.ReadLastHealth {
+		nodeHealth, err = healthService.GetLastHealth()
+		if err != nil {
+			logger.
+				WithFields(log.Fields{"error": err}).
+				Warn("Could not get last health")
+		}
 	}
 
 	for _, ethNetwork := range config.EthereumNetworks {

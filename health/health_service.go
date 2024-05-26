@@ -21,7 +21,7 @@ type HealthService struct {
 
 type HealthServiceInterface interface {
 	Start(services []service.ChainServiceInterface)
-	GetLastHealth() (models.Node, error)
+	GetLastHealth() (*models.Node, error)
 	Stop()
 }
 
@@ -48,7 +48,7 @@ func (x *HealthService) Start(
 	}
 }
 
-func (x *HealthService) GetLastHealth() (models.Node, error) {
+func (x *HealthService) GetLastHealth() (*models.Node, error) {
 	return x.runner.GetLastHealth()
 }
 

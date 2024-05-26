@@ -1,11 +1,13 @@
 package cosmos
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/tx"
+	"go.mongodb.org/mongo-driver/bson"
 
 	log "github.com/sirupsen/logrus"
 
@@ -30,6 +32,8 @@ type MessageMonitorRunner struct {
 	coinDenom     string
 	minimumAmount sdk.Coin
 
+	confirmations uint64
+
 	chain  models.Chain
 	client cosmos.CosmosClient
 
@@ -38,7 +42,8 @@ type MessageMonitorRunner struct {
 
 func (x *MessageMonitorRunner) Run() {
 	x.UpdateCurrentHeight()
-	x.SyncTxs()
+	x.SyncNewTxs()
+	x.ConfirmTxs()
 }
 
 func (x *MessageMonitorRunner) Height() uint64 {
@@ -59,78 +64,75 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 		Info("updated current block height")
 }
 
-// transaction has failed
-func (x *MessageMonitorRunner) HandleFailedTransaction(tx *sdk.TxResponse) bool {
-	x.logger.Debugf("Handling failed tx: %s", tx.TxHash)
+func (x *MessageMonitorRunner) CreateTransactionWithSpender(
+	tx *sdk.TxResponse,
+	txStatus models.TxStatus,
+	coinsSpentSender string,
+) bool {
+
+	sender, err := util.ParseMessageSenderEvent(tx.Events)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error parsing message sender")
+		return false
+	}
+	senderAddress, err := util.AddressBytesFromBech32(x.bech32Prefix, sender)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error parsing sender address")
+		return false
+	}
+
+	if coinsSpentSender != "" {
+		spenderAddress, err := util.AddressBytesFromBech32(x.bech32Prefix, coinsSpentSender)
+		if err != nil {
+			x.logger.WithError(err).Errorf("Error parsing spender address")
+			return false
+		}
+		if bytes.Compare(senderAddress, spenderAddress) != 0 {
+			x.logger.Errorf("Sender address does not match spender address")
+			txStatus = models.TxStatusInvalid
+		}
+	}
+
+	transaction, err := util.CreateTransaction(tx, x.chain, senderAddress, txStatus)
+	if err != nil {
+		x.logger.WithError(err).
+			WithField("tx_status", txStatus).
+			WithField("tx_hash", tx.TxHash).
+			Errorf("Error creating transaction")
+		return false
+	}
+	err = util.InsertTransaction(transaction)
+	if err != nil {
+		x.logger.WithError(err).
+			WithField("tx_status", txStatus).
+			WithField("tx_hash", tx.TxHash).
+			Errorf("Error inserting transaction")
+		return false
+	}
 	return true
 }
 
-// transaction was successful but invalid
-func (x *MessageMonitorRunner) HandleInvalidTransaction(tx *sdk.TxResponse) bool {
-	x.logger.Debugf("Handling invalid tx: %s", tx.TxHash)
+func (x *MessageMonitorRunner) CreateTransaction(
+	tx *sdk.TxResponse,
+	txStatus models.TxStatus,
+) bool {
+	return x.CreateTransactionWithSpender(tx, txStatus, "")
+}
+
+func (x *MessageMonitorRunner) UpdateTransaction(
+	tx *models.Transaction,
+	update bson.M,
+) bool {
+	err := util.UpdateTransaction(tx, update)
+	if err != nil {
+		x.logger.Errorf("Error updating transaction: %s", err)
+		return false
+	}
 	return true
 }
 
-// transaction was successful but cannot be processed and needs to be refunded
-func (x *MessageMonitorRunner) HandleRefundTransaction(tx *sdk.TxResponse) bool {
-	x.logger.Debugf("Handling refund tx: %s", tx.TxHash)
-	return true
-}
-
-// transaction was successful and valid and can be processed
-func (x *MessageMonitorRunner) HandleValidTransaction(tx *sdk.TxResponse, memo models.MintMemo) bool {
-	x.logger.Debugf("Handling valid tx: %s", tx.TxHash)
-	return true
-}
-
-// func (x *MessageMonitorRunner) HandleInvalidMint(tx *pokt.TxResponse) bool {
-// if tx == nil {
-// 	x.logger.Debug("[MINT MONITOR] Invalid tx response")
-// 	return false
-// }
-//
-// doc := util.CreateInvalidMint(tx, x.vaultAddress)
-//
-// x.logger.Debug("[MINT MONITOR] Storing invalid mint tx")
-// err := app.DB.InsertOne(models.CollectionInvalidMints, doc)
-// if err != nil {
-// 	if mongo.IsDuplicateKeyError(err) {
-// 		x.logger.Info("[MINT MONITOR] Found duplicate invalid mint tx")
-// 		return true
-// 	}
-// 	x.logger.Error("[MINT MONITOR] Error storing invalid mint tx: ", err)
-// 	return false
-// }
-//
-// x.logger.Info("[MINT MONITOR] Stored invalid mint tx")
-// 	return true
-// }
-
-// func (x *MessageMonitorRunner) HandleValidMint(tx *pokt.TxResponse, memo models.MintMemo) bool {
-// if tx == nil {
-// 	x.logger.Debug("[MINT MONITOR] Invalid tx response")
-// 	return false
-// }
-//
-// doc := util.CreateMint(tx, memo, x.wpoktAddress, x.vaultAddress)
-//
-// x.logger.Debug("[MINT MONITOR] Storing mint tx")
-// err := app.DB.InsertOne(models.CollectionMints, doc)
-// if err != nil {
-// 	if mongo.IsDuplicateKeyError(err) {
-// 		x.logger.Info("[MINT MONITOR] Found duplicate mint tx")
-// 		return true
-// 	}
-// 	x.logger.Error("[MINT MONITOR] Error storing mint tx: ", err)
-// 	return false
-// }
-//
-// x.logger.Info("[MINT MONITOR] Stored mint tx")
-// 	return true
-// }
-
-func (x *MessageMonitorRunner) SyncTxs() bool {
-	x.logger.Infof("Syncing txs")
+func (x *MessageMonitorRunner) SyncNewTxs() bool {
+	x.logger.Infof("Syncing new txs")
 	if x.currentBlockHeight <= x.startBlockHeight {
 		x.logger.Infof("No new blocks to sync")
 		return true
@@ -144,25 +146,111 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 	x.logger.Infof("Found %d txs to sync", len(txResponses))
 	success := true
 	for _, txResponse := range txResponses {
+		logger := x.logger.WithField("tx_hash", txResponse.TxHash)
+
+		if txResponse.Code != 0 {
+			logger.Infof("Found tx with non-zero code")
+			success = success && x.CreateTransaction(txResponse, models.TxStatusFailed)
+			continue
+		}
+		logger.Debugf("Found successful tx")
+
+		tx := &tx.Tx{}
+		err = tx.Unmarshal(txResponse.Tx.Value)
+		if err != nil {
+			logger.WithError(err).Errorf("Error unmarshalling tx")
+			success = success && x.CreateTransaction(txResponse, models.TxStatusInvalid)
+			continue
+		}
+
+		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
+		if err != nil {
+			logger.WithError(err).Errorf("Error parsing coins received events")
+			success = x.CreateTransaction(txResponse, models.TxStatusInvalid) && success
+			continue
+		}
+
+		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
+		if err != nil {
+			logger.WithError(err).Errorf("Error parsing coins spent events")
+			success = x.CreateTransaction(txResponse, models.TxStatusInvalid) && success
+			continue
+		}
+
+		if coinsReceived.IsZero() || coinsSpent.IsZero() {
+			logger.Debugf("Found tx with zero coins")
+			success = x.CreateTransaction(txResponse, models.TxStatusInvalid) && success
+			continue
+		}
+
+		if coinsReceived.IsLTE(x.minimumAmount) {
+			logger.Debugf("Found tx with amount too low")
+			success = x.CreateTransaction(txResponse, models.TxStatusInvalid) && success
+			continue
+		}
+
+		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
+			logger.Debugf("Found tx with invalid coins")
+			// refund
+			success = x.CreateTransactionWithSpender(txResponse, models.TxStatusPending, coinsSpentSender) && success
+			continue
+		}
+
+		memo, err := util.ValidateMemo(tx.Body.Memo)
+		if err != nil {
+			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
+			// refund
+			success = x.CreateTransactionWithSpender(txResponse, models.TxStatusPending, coinsSpentSender) && success
+			continue
+		}
+
+		logger.WithField("memo", memo).Debugf("Found valid memo")
+		success = x.CreateTransactionWithSpender(txResponse, models.TxStatusPending, coinsSpentSender) && success
+	}
+
+	if success {
+		x.startBlockHeight = x.currentBlockHeight
+	}
+
+	return success
+}
+
+func (x *MessageMonitorRunner) ConfirmTxs() bool {
+	x.logger.Infof("Confirming txs")
+	txs, err := util.GetPendingTransactions()
+	if err != nil {
+		x.logger.Errorf("Error getting pending txs: %s", err)
+		return false
+	}
+	x.logger.Infof("Found %d pending txs", len(txs))
+	success := true
+	for _, txDoc := range txs {
+		logger := x.logger.WithField("tx_hash", txDoc.Hash)
+		txResponse, err := x.client.GetTx(txDoc.Hash)
+		if err != nil {
+			logger.WithError(err).Errorf("Error getting tx")
+			success = false
+			continue
+		}
 		if txResponse.Code != 0 {
 			x.logger.Infof("Found tx with error: %s", txResponse.TxHash)
-			success = x.HandleFailedTransaction(txResponse) && success
+			success = success && x.UpdateTransaction(&txDoc, bson.M{"tx_status": models.TxStatusFailed})
 			continue
 		}
 		x.logger.Debugf("Found successful tx: %s", txResponse.TxHash)
 
 		tx := &tx.Tx{}
-		err := tx.Unmarshal(txResponse.Tx.Value)
+		err = tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			x.logger.Errorf("Error unmarshalling tx: %s", err)
-			success = x.HandleInvalidTransaction(txResponse) && success
+			success = success && x.UpdateTransaction(&txDoc, bson.M{"tx_status": models.TxStatusInvalid})
 			continue
 		}
 
 		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
 			x.logger.Errorf("Error parsing coins received events: %s", err)
-			success = x.HandleInvalidTransaction(txResponse) && success
+			success = success && x.UpdateTransaction(&txDoc, bson.M{"tx_status": models.TxStatusInvalid})
 			continue
 		}
 
@@ -171,7 +259,7 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
 			x.logger.Errorf("Error parsing coins spent events: %s", err)
-			success = x.HandleInvalidTransaction(txResponse) && success
+			success = success && x.UpdateTransaction(&txDoc, bson.M{"tx_status": models.TxStatusInvalid})
 			continue
 		}
 
@@ -180,33 +268,34 @@ func (x *MessageMonitorRunner) SyncTxs() bool {
 
 		if coinsReceived.IsZero() || coinsSpent.IsZero() {
 			x.logger.Debugf("Found tx with zero coins: %s", txResponse.TxHash)
-			success = x.HandleInvalidTransaction(txResponse) && success
+			success = success && x.UpdateTransaction(&txDoc, bson.M{"tx_status": models.TxStatusInvalid})
 			continue
 		}
 
 		if coinsReceived.IsLTE(x.minimumAmount) {
 			x.logger.Debugf("Found tx with too low amount: %s", txResponse.TxHash)
-			success = x.HandleInvalidTransaction(txResponse) && success
+			success = success && x.UpdateTransaction(&txDoc, bson.M{"tx_status": models.TxStatusInvalid})
 			continue
 		}
 
-		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
-			x.logger.Debugf("Found tx with invalid coins: %s", txResponse.TxHash)
-			success = x.HandleRefundTransaction(txResponse) && success
+		txHeight := txResponse.Height
+		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
+			x.logger.Debugf("Found tx with invalid height: %s", txResponse.TxHash)
+			success = success && x.UpdateTransaction(&txDoc, bson.M{"tx_status": models.TxStatusInvalid})
 			continue
 		}
 
-		x.logger.Debugf("Found tx memo: %s", tx.Body.Memo)
+		confirmations := x.currentBlockHeight - uint64(txHeight)
 
-		memo, err := util.ValidateMemo(tx.Body.Memo)
-		if err != nil {
-			x.logger.Debugf("Found invalid memo: %s", err)
-			success = x.HandleRefundTransaction(txResponse) && success
-			continue
+		update := bson.M{
+			"tx_status":     models.TxStatusPending,
+			"confirmations": confirmations,
+		}
+		if confirmations >= x.confirmations {
+			update["tx_status"] = models.TxStatusConfirmed
 		}
 
-		x.logger.Infof("Found tx with valid memo: %v", memo)
-		success = x.HandleValidTransaction(txResponse, memo) && success
+		success = success && x.UpdateTransaction(&txDoc, update)
 	}
 
 	if success {
@@ -277,6 +366,9 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth *models.Run
 		currentBlockHeight: 0,
 		client:             client,
 		minimumAmount:      feeAmount,
+
+		chain:         util.ParseChain(config),
+		confirmations: config.Confirmations,
 
 		bech32Prefix: config.Bech32Prefix,
 		coinDenom:    config.CoinDenom,

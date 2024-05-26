@@ -12,13 +12,38 @@ func InitLogger(config models.LoggerConfig) {
 	logger := log.WithField("module", "logger")
 	logger.Debug("Initializing logger with level: ", logLevel)
 
-	if logLevel == "debug" {
+	switch logLevel {
+	case "trace":
+		log.SetLevel(log.TraceLevel)
+	case "debug":
 		log.SetLevel(log.DebugLevel)
-	} else if logLevel == "info" {
+	case "info":
 		log.SetLevel(log.InfoLevel)
-	} else if logLevel == "warn" {
+	case "warn":
 		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	case "panic":
+		log.SetLevel(log.PanicLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
 	}
 
-	logger.Info("Logger initialized with level: ", logLevel)
+	logFormat := strings.ToLower(config.Format)
+
+	switch logFormat {
+	case "text":
+		log.SetFormatter(&log.TextFormatter{})
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{})
+	default:
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	logger.
+		WithField("level", logLevel).
+		WithField("format", logFormat).
+		Info("Logger initialized")
 }

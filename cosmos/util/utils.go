@@ -106,6 +106,22 @@ func CoinsToBigInt(coins sdk.Coins) (*big.Int, error) {
 	return bigIntAmount, nil
 }
 
+func ParseMessageSenderEvent(
+	events []abci.Event,
+) (string, error) {
+	for _, event := range events {
+		if strings.EqualFold(event.Type, "message") {
+			for _, attr := range event.Attributes {
+				if strings.EqualFold(string(attr.Key), "sender") {
+					sender := string(attr.Value)
+					return sender, nil
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("no sender found in message events")
+}
+
 func ParseCoinsReceivedEvents(
 	denom string,
 	receiver string, events []abci.Event,

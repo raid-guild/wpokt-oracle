@@ -36,7 +36,7 @@ func (x *HealthCheckRunner) AddServices(services []service.ChainServiceInterface
 	x.services = services
 }
 
-func (x *HealthCheckRunner) GetLastHealth() (models.Node, error) {
+func (x *HealthCheckRunner) GetLastHealth() (*models.Node, error) {
 	var health models.Node
 	filter := bson.M{
 		"cosmos_address": x.cosmosAddress,
@@ -45,7 +45,7 @@ func (x *HealthCheckRunner) GetLastHealth() (models.Node, error) {
 		"oracle_id":      x.oracleId,
 	}
 	err := app.DB.FindOne(common.CollectionNodes, filter, &health)
-	return health, err
+	return &health, err
 }
 
 func (x *HealthCheckRunner) ServiceHealths() []models.ChainServiceHealth {

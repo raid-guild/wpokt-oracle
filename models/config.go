@@ -15,7 +15,8 @@ type HealthCheckConfig struct {
 }
 
 type LoggerConfig struct {
-	Level string `yaml:"level" json:"level"`
+	Level  string `yaml:"level" json:"level"`
+	Format string `yaml:"format" json:"format"` // json or text
 }
 
 type MongoConfig struct {

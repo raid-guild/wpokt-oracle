@@ -9,6 +9,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
@@ -22,22 +26,59 @@ func CreateTransaction(
 	tx *sdk.TxResponse,
 	chain models.Chain,
 	senderAddress []byte,
-	status models.TxStatus,
+	txStatus models.TxStatus,
 ) (models.Transaction, error) {
-	hashBytes, err := HexToBytes(tx.TxHash)
-	if err != nil {
-		return models.Transaction{}, fmt.Errorf("failed to decode tx hash: %s", err)
+
+	txHash := strings.TrimPrefix(tx.TxHash, "0x")
+	if len(txHash) != 64 {
+		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", tx.TxHash)
+	}
+
+	senderAddressStr := strings.ToLower(hex.EncodeToString(senderAddress))
+	if len(senderAddressStr) != 40 {
+		return models.Transaction{}, fmt.Errorf("invalid sender address: %s", senderAddressStr)
 	}
 
 	return models.Transaction{
-		Hash:        hashBytes,
-		Sender:      senderAddress,
+		Hash:        strings.ToLower(tx.TxHash),
+		Sender:      senderAddressStr,
 		BlockHeight: uint64(tx.Height),
 		Chain:       chain,
-		TxStatus:    status,
+		TxStatus:    txStatus,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}, nil
+}
+
+func InsertTransaction(tx models.Transaction) error {
+	err := app.DB.InsertOne(common.CollectionTransactions, tx)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+func UpdateTransaction(tx *models.Transaction, update bson.M) error {
+	if tx == nil {
+		return fmt.Errorf("tx is nil")
+	}
+	return app.DB.UpdateOne(
+		common.CollectionTransactions,
+		bson.M{"_id": tx.ID, "hash": tx.Hash},
+		bson.M{"$set": update},
+	)
+}
+
+func GetPendingTransactions() ([]models.Transaction, error) {
+	txs := []models.Transaction{}
+
+	err := app.DB.FindMany(common.CollectionTransactions, bson.M{"tx_status": models.TxStatusPending}, &txs)
+
+	return txs, err
 }
 
 func ValidateMemo(txMemo string) (models.MintMemo, error) {

@@ -23,6 +23,9 @@ func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 	if envConfig.Logger.Level != "" {
 		mergedConfig.Logger.Level = envConfig.Logger.Level
 	}
+	if envConfig.Logger.Format != "" {
+		mergedConfig.Logger.Format = envConfig.Logger.Format
+	}
 
 	// Merge MongoDB
 	if envConfig.MongoDB.URI != "" {

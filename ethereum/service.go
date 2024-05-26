@@ -13,14 +13,16 @@ import (
 func NewEthereumChainService(
 	config models.EthereumNetworkConfig,
 	wg *sync.WaitGroup,
-	nodeHealth models.Node,
+	nodeHealth *models.Node,
 ) service.ChainServiceInterface {
 
 	var chainHealth models.ChainServiceHealth
-	for _, health := range nodeHealth.Health {
-		if health.Chain.ChainID == fmt.Sprintf("%d", config.ChainID) && health.Chain.ChainType == models.ChainTypeCosmos {
-			chainHealth = health
-			break
+	if nodeHealth != nil {
+		for _, health := range nodeHealth.Health {
+			if health.Chain.ChainID == fmt.Sprintf("%d", config.ChainID) && health.Chain.ChainType == models.ChainTypeCosmos {
+				chainHealth = health
+				break
+			}
 		}
 	}
 

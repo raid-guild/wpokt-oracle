@@ -185,10 +185,10 @@ func ParseCoinsSpentEvents(
 }
 
 // hash the string chainID to get a uint64 chainDomain
-func getChainDomain(chainID string) uint64 {
+func getChainDomain(chainID string) uint32 {
 	chainHash := ethcrypto.Keccak256([]byte(chainID))
 	chainDomain := new(big.Int).SetBytes(chainHash).Uint64()
-	return chainDomain
+	return uint32(chainDomain)
 }
 
 func ParseChain(config models.CosmosNetworkConfig) models.Chain {

@@ -16,7 +16,7 @@ const (
 )
 
 type Transaction struct {
-	ID            *primitive.ObjectID `json:"id" bson:"_id"`
+	ID            *primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Hash          string              `json:"hash" bson:"hash"`
 	Sender        string              `json:"sender" bson:"sender"`
 	BlockHeight   uint64              `json:"block_height" bson:"block_height"`

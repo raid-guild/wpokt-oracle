@@ -10,7 +10,7 @@ func ParseChain(config models.EthereumNetworkConfig) models.Chain {
 	return models.Chain{
 		ChainName:   config.ChainName,
 		ChainID:     fmt.Sprintf("%d", config.ChainID),
-		ChainDomain: config.ChainID,
+		ChainDomain: uint32(config.ChainID),
 		ChainType:   models.ChainTypeEthereum,
 	}
 }

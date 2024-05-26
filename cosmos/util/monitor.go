@@ -73,10 +73,10 @@ func UpdateTransaction(tx *models.Transaction, update bson.M) error {
 	)
 }
 
-func GetPendingTransactions() ([]models.Transaction, error) {
+func GetPendingTransactions(chain models.Chain) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
-	err := app.DB.FindMany(common.CollectionTransactions, bson.M{"tx_status": models.TxStatusPending}, &txs)
+	err := app.DB.FindMany(common.CollectionTransactions, bson.M{"tx_status": models.TxStatusPending, "chain": chain}, &txs)
 
 	return txs, err
 }

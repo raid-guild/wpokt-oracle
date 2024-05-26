@@ -217,7 +217,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 
 func (x *MessageMonitorRunner) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
-	txs, err := util.GetPendingTransactions()
+	txs, err := util.GetPendingTransactions(x.chain)
 	if err != nil {
 		x.logger.Errorf("Error getting pending txs: %s", err)
 		return false

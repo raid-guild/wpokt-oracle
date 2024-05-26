@@ -7,8 +7,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -66,7 +68,6 @@ func (d *MongoDatabase) Connect() error {
 
 // SetupLocker sets up the locker
 func (d *MongoDatabase) SetupLocker() error {
-	/* TODO: setup the locker
 	d.logger.Debug("Setting up locker")
 
 	var locker *lock.Client
@@ -74,7 +75,7 @@ func (d *MongoDatabase) SetupLocker() error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
-	locker = lock.NewClient(d.db.Collection("locks"))
+	locker = lock.NewClient(d.db.Collection(common.CollectionLocks))
 	err := locker.CreateIndexes(ctx)
 	if err != nil {
 		return err
@@ -83,7 +84,6 @@ func (d *MongoDatabase) SetupLocker() error {
 	d.locker = locker
 
 	d.logger.Info("Locker setup")
-	*/
 	return nil
 }
 
@@ -142,58 +142,57 @@ func (d *MongoDatabase) Unlock(lockID string) error {
 
 // Setup Indexes
 func (d *MongoDatabase) SetupIndexes() error {
-	/* TODO: setup the right indexes
 	d.logger.Debug("Setting up indexes")
 
-	// setup unique index for mints
-	d.logger.Debug("Setting up indexes for mints")
+	d.logger.Debug("Setting up indexes for transactions")
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
-	_, err := d.db.Collection(models.CollectionMints).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "transaction_hash", Value: 1}},
+	_, err := d.db.Collection(common.CollectionTransactions).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "hash", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
 	if err != nil {
 		return err
 	}
 
-	// setup unique index for invalid mints
-	d.logger.Debug("Setting up indexes for invalid mints")
-	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
-	defer cancel()
-	_, err = d.db.Collection(models.CollectionInvalidMints).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "transaction_hash", Value: 1}},
-		Options: options.Index().SetUnique(true),
-	})
-	if err != nil {
-		return err
-	}
+	/*
+		// setup unique index for invalid mints
+		d.logger.Debug("Setting up indexes for invalid mints")
+		ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+		defer cancel()
+		_, err = d.db.Collection(models.CollectionInvalidMints).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "transaction_hash", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		})
+		if err != nil {
+			return err
+		}
 
-	// setup unique index for burns
-	d.logger.Debug("Setting up indexes for burns")
-	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
-	defer cancel()
-	_, err = d.db.Collection(models.CollectionBurns).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "transaction_hash", Value: 1}, {Key: "log_index", Value: 1}},
-		Options: options.Index().SetUnique(true),
-	})
-	if err != nil {
-		return err
-	}
+		// setup unique index for burns
+		d.logger.Debug("Setting up indexes for burns")
+		ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+		defer cancel()
+		_, err = d.db.Collection(models.CollectionBurns).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "transaction_hash", Value: 1}, {Key: "log_index", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		})
+		if err != nil {
+			return err
+		}
 
-	// setup unique index for healthchecks
-	d.logger.Debug("Setting up indexes for healthchecks")
-	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
-	defer cancel()
-	_, err = d.db.Collection(models.CollectionHealthChecks).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "validator_id", Value: 1}, {Key: "hostname", Value: 1}},
-		Options: options.Index().SetUnique(true),
-	})
-	if err != nil {
-		return err
-	}
+		// setup unique index for healthchecks
+		d.logger.Debug("Setting up indexes for healthchecks")
+		ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+		defer cancel()
+		_, err = d.db.Collection(models.CollectionHealthChecks).Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "validator_id", Value: 1}, {Key: "hostname", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		})
+		if err != nil {
+			return err
+		}
 
-	d.logger.Info("Indexes setup")
+		d.logger.Info("Indexes setup")
 	*/
 
 	return nil

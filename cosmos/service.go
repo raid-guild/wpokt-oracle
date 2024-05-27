@@ -46,7 +46,7 @@ func NewCosmosChainService(
 
 	signerRunnerService := service.NewRunnerService(
 		"signer",
-		&service.EmptyRunner{},
+		signerRunner,
 		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
 	)

@@ -187,6 +187,11 @@ func (x *MessageSignerRunner) SignRefund(
 	spender string,
 	amount sdk.Coin,
 ) bool {
+
+	return false
+}
+
+/*
 	logger := x.logger.
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "sign-refund")
@@ -314,6 +319,7 @@ func (x *MessageSignerRunner) SignRefund(
 	return true
 
 }
+*/
 
 func SignWithPrivKey(
 	ctx context.Context,
@@ -322,11 +328,10 @@ func SignWithPrivKey(
 	txBuilder client.TxBuilder,
 	priv crypto.PrivKey,
 	txConfig client.TxConfig,
-	// accSeq uint64,
+	accSeq uint64,
 ) (signingtypes.SignatureV2, error) {
 	var sigV2 signingtypes.SignatureV2
 	signMode := signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
-	accSeq := 0
 
 	// Generate the bytes to be signed.
 	signBytes, err := authsigning.GetSignBytesAdapter(
@@ -515,6 +520,14 @@ func NewMessageSigner(mnemonic string, config models.CosmosNetworkConfig, lastHe
 	if err != nil {
 		logger.WithError(err).Fatalf("Error getting private key from mnemonic")
 	}
+
+	account, err := client.GetAccount(multisigAddress)
+	if err != nil {
+		logger.WithError(err).Fatalf("Error getting account")
+	}
+
+	logger.Infof("Account Number %d", account.AccountNumber)
+	logger.Infof("Account Sequence %d", account.Sequence)
 
 	x := &MessageSignerRunner{
 		multisigPk: multisigPk,

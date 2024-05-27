@@ -22,8 +22,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-func NewTxDecoder(bech32Prefix string) sdk.TxDecoder {
-
+func NewProtoCodec(bech32Prefix string) *codec.ProtoCodec {
 	codecOptions := testutil.CodecOptions{
 		AccAddressPrefix: bech32Prefix,
 	}
@@ -36,6 +35,12 @@ func NewTxDecoder(bech32Prefix string) sdk.TxDecoder {
 	// TODO: add more modules' interfaces
 
 	codec := codec.NewProtoCodec(reg)
+
+	return codec
+}
+
+func NewTxDecoder(bech32Prefix string) sdk.TxDecoder {
+	codec := NewProtoCodec(bech32Prefix)
 
 	return authtx.DefaultTxDecoder(codec)
 }

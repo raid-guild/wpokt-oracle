@@ -281,13 +281,8 @@ func (c *cosmosClient) getAccountGRPC(address string) (*auth.BaseAccount, error)
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
-	accAddress, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid bech32 address: %s", err)
-	}
-
 	req := auth.QueryAccountRequest{
-		Address: sdk.AccAddress(accAddress).String(),
+		Address: address,
 	}
 
 	resp, err := client.Account(ctx, &req)
@@ -310,24 +305,32 @@ func (c *cosmosClient) getAccountRPC(address string) (*auth.BaseAccount, error) 
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
-	data := hex.EncodeToString([]byte(address))
+	reqBz, err := NewProtoCodec(c.Bech32Prefix).Marshal(&auth.QueryAccountRequest{Address: address})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal account request: %s", err)
+	}
 
-	res, err := c.rpcClient.ABCIQuery(ctx, "/cosmos.auth.v1beta1.Query/Account", []byte(data))
+	res, err := c.rpcClient.ABCIQuery(ctx, "/cosmos.auth.v1beta1.Query/Account", reqBz)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get account: %s", err)
 	}
 
 	if res.Response.Code != 0 {
-		return nil, fmt.Errorf("failed to get account: %s", res.Response.Log)
+		return nil, fmt.Errorf("failed to get account, got code %d: %s", res.Response.Code, res.Response.Log)
 	}
 
-	var account auth.BaseAccount
+	var account auth.QueryAccountResponse
 	if err := account.Unmarshal(res.Response.Value); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal account: %s", err)
 	}
 
-	return &account, nil
+	var baseAccount auth.BaseAccount
+	if err := baseAccount.Unmarshal(account.Account.Value); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal base account: %s", err)
+	}
+
+	return &baseAccount, nil
 }
 
 func (c *cosmosClient) GetAccount(address string) (*auth.BaseAccount, error) {

@@ -22,7 +22,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-func getTxDecoder(bech32Prefix string) sdk.TxDecoder {
+func NewTxDecoder(bech32Prefix string) sdk.TxDecoder {
 
 	codecOptions := testutil.CodecOptions{
 		AccAddressPrefix: bech32Prefix,
@@ -73,7 +73,7 @@ func formatTxResults(bech32Prefix string, resTxs []*rpctypes.ResultTx, resBlocks
 }
 
 func mkTxResult(bech32Prefix string, resTx *rpctypes.ResultTx, resBlock *rpctypes.ResultBlock) (*sdk.TxResponse, error) {
-	txDecoder := getTxDecoder(bech32Prefix)
+	txDecoder := NewTxDecoder(bech32Prefix)
 	txb, err := txDecoder(resTx.Tx)
 	if err != nil {
 		return nil, fmt.Errorf("decoding tx: %w", err)

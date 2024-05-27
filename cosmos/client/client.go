@@ -262,6 +262,7 @@ func (c *cosmosClient) getTxRPC(hash string) (*sdk.TxResponse, error) {
 }
 
 func (c *cosmosClient) GetTx(hash string) (*sdk.TxResponse, error) {
+	hash = strings.TrimPrefix(hash, "0x")
 	if c.GRPCEnabled {
 		return c.getTxGRPC(hash)
 	}

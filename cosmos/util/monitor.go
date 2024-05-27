@@ -22,29 +22,110 @@ func HexToBytes(hexStr string) ([]byte, error) {
 	return hex.DecodeString(hexStr)
 }
 
+func Ensure0xPrefix(str string) string {
+	str = strings.ToLower(str)
+	if !strings.HasPrefix(str, "0x") {
+		return "0x" + str
+	}
+	return str
+}
+
+/*
+
+type Refund struct {
+	ID                    *primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	OriginTransaction     *primitive.ObjectID `json:"origin_transaction" bson:"origin_transaction"`
+	OriginTransactionHash string              `json:"origin_transaction_hash" bson:"origin_transaction_hash"`
+	Recipient             string              `json:"recipient" bson:"recipient"`
+	Amount                uint64              `json:"amount" bson:"amount"`
+	RefundTransactionBody string              `json:"refund_transaction_body" bson:"refund_transaction_body"`
+	RefundSignatures      []Signature         `json:"refund_signatures" bson:"refund_signatures"`
+	RefundTransaction     *primitive.ObjectID `json:"refund_transaction" bson:"refund_transaction"`
+	RefundStatus          RefundStatus        `json:"refund_status" bson:"refund_status"`
+	CreatedAt             time.Time           `bson:"created_at" json:"created_at"`
+	UpdatedAt             time.Time           `bson:"updated_at" json:"updated_at"`
+}
+*/
+
+// func createRefundTransaction(
+// 	recipentAddress []byte,
+// 	amountCoin sdk.Coin,
+// ) (sdk.Msg, error) {
+// }
+
+func CreateRefund(
+	txRes *sdk.TxResponse,
+	txDoc *models.Transaction,
+	recipientAddress []byte,
+	amountCoin sdk.Coin,
+	txBody string,
+) (models.Refund, error) {
+
+	if txRes == nil || txDoc == nil {
+		return models.Refund{}, fmt.Errorf("txRes or txDoc is nil")
+	}
+
+	txHash := Ensure0xPrefix(txRes.TxHash)
+	if txHash != txDoc.Hash {
+		return models.Refund{}, fmt.Errorf("tx hash mismatch: %s != %s", txHash, txDoc.Hash)
+	}
+
+	recipient := Ensure0xPrefix(hex.EncodeToString(recipientAddress))
+	if len(recipient) != 42 {
+		return models.Refund{}, fmt.Errorf("invalid recipient address: %s", recipient)
+	}
+
+	amount := amountCoin.Amount.Uint64()
+
+	return models.Refund{
+		OriginTransaction:     txDoc.ID,
+		OriginTransactionHash: txDoc.Hash,
+		Recipient:             recipient,
+		Amount:                amount,
+		TransactionBody:       txBody,
+		Signatures:            []models.Signature{},
+		Transaction:           nil,
+		Status:                models.RefundStatusPending,
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
+	}, nil
+}
+
+func InsertRefund(tx models.Refund) error {
+	err := app.DB.InsertOne(common.CollectionRefunds, tx)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
 func CreateTransaction(
 	tx *sdk.TxResponse,
 	chain models.Chain,
 	senderAddress []byte,
-	txStatus models.TxStatus,
+	txStatus models.TransactionStatus,
 ) (models.Transaction, error) {
 
-	txHash := strings.TrimPrefix(tx.TxHash, "0x")
-	if len(txHash) != 64 {
+	txHash := Ensure0xPrefix(tx.TxHash)
+	if len(txHash) != 66 {
 		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", tx.TxHash)
 	}
 
-	senderAddressStr := strings.ToLower(hex.EncodeToString(senderAddress))
-	if len(senderAddressStr) != 40 {
-		return models.Transaction{}, fmt.Errorf("invalid sender address: %s", senderAddressStr)
+	txSender := Ensure0xPrefix(hex.EncodeToString(senderAddress))
+	if len(txSender) != 42 {
+		return models.Transaction{}, fmt.Errorf("invalid sender address: %s", txSender)
 	}
 
 	return models.Transaction{
-		Hash:        strings.ToLower(tx.TxHash),
-		Sender:      senderAddressStr,
+		Hash:        txHash,
+		Sender:      txSender,
 		BlockHeight: uint64(tx.Height),
 		Chain:       chain,
-		TxStatus:    txStatus,
+		Status:      txStatus,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}, nil
@@ -76,7 +157,7 @@ func UpdateTransaction(tx *models.Transaction, update bson.M) error {
 func GetPendingTransactions(chain models.Chain) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
-	err := app.DB.FindMany(common.CollectionTransactions, bson.M{"tx_status": models.TxStatusPending, "chain": chain}, &txs)
+	err := app.DB.FindMany(common.CollectionTransactions, bson.M{"status": models.TransactionStatusPending, "chain": chain}, &txs)
 
 	return txs, err
 }

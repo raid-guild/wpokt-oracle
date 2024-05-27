@@ -11,6 +11,7 @@ var EthereumSupportedChainIDs = map[string]bool{
 const (
 	CollectionLocks        = "locks"
 	CollectionTransactions = "transactions"
+	CollectionRefunds      = "refunds"
 	CollectionMessages     = "messages"
 	CollectionNodes        = "nodes"
 )

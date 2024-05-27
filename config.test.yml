@@ -32,7 +32,7 @@ ethereum_networks:
       enabled: false
       interval_ms: 60000
 cosmos_networks:
-  - start_block_height: 1000
+  - start_block_height: 1
     confirmations: 0
     rpc_url: "http://localhost:36657"
     grpc_enabled: false

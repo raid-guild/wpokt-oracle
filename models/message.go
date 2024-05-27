@@ -6,30 +6,36 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type MessageContent struct {
+	Version           uint8       `json:"version" bson:"version"`
+	Nonce             uint32      `json:"nonce" bson:"nonce"`
+	OriginDomain      uint32      `json:"origin_domain" bson:"origin_domain"`
+	Sender            string      `json:"sender" bson:"sender"`
+	DestinationDomain uint32      `json:"destination_domain" bson:"destination_domain"`
+	Recipient         string      `json:"recipient" bson:"recipient"`
+	MessageBody       MessageBody `json:"message_body" bson:"message_body"`
+}
+
 type Message struct {
-	ID                     primitive.ObjectID `json:"id" bson:"_id"`
-	Version                uint8              `json:"version" bson:"version"`
-	Nonce                  uint32             `json:"nonce" bson:"nonce"`
-	OriginDomain           uint32             `json:"originDomain" bson:"originDomain"`
-	Sender                 []byte             `json:"sender" bson:"sender"`
-	DestinationDomain      uint32             `json:"destinationDomain" bson:"destinationDomain"`
-	Recipient              []byte             `json:"recipient" bson:"recipient"`
-	MessageBody            MessageBody        `json:"messageBody" bson:"messageBody"`
-	Signatures             []Signature        `json:"signatures" bson:"signatures"`
-	SignatureThreshold     int                `json:"signatureThreshold" bson:"signatureThreshold"`
-	OriginTransaction      primitive.ObjectID `json:"originTransaction" bson:"originTransaction"`
-	DestinationTransaction primitive.ObjectID `json:"destinationTransaction" bson:"destinationTransaction"`
-	CreatedAt              time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt              time.Time          `bson:"updated_at" json:"updated_at"`
+	ID                    *primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	OriginTransaction     *primitive.ObjectID `json:"origin_transaction" bson:"origin_transaction"`
+	OriginTransactionHash string              `json:"origin_transaction_hash" bson:"origin_transaction_hash"`
+	MessageID             string              `json:"message_id" bson:"message_id"`
+	Content               MessageContent      `json:"message_content" bson:"message_content"`
+	Signatures            []Signature         `json:"message_signatures" bson:"message_signatures"`
+	Transaction           primitive.ObjectID  `json:"transaction" bson:"transaction"`
+	TransactionHash       string              `json:"transaction_hash" bson:"transaction_hash"`
+	CreatedAt             time.Time           `bson:"created_at" json:"created_at"`
+	UpdatedAt             time.Time           `bson:"updated_at" json:"updated_at"`
 }
 
 type MessageBody struct {
-	SenderAddress    []byte `json:"senderAddress" bson:"senderAddress"`
+	SenderAddress    string `json:"sender_address" bson:"sender_address"`
 	Amount           uint64 `json:"amount" bson:"amount"`
-	RecipientAddress []byte `json:"recipientAddress" bson:"recipientAddress"`
+	RecipientAddress string `json:"recipient_address" bson:"recipient_address"`
 }
 
 type Signature struct {
-	Signer    []byte `json:"signer" bson:"signer"`
+	Signer    string `json:"signer" bson:"signer"`
 	Signature string `json:"signature" bson:"signature"` // Assuming signature is a string representation
 }

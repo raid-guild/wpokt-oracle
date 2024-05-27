@@ -6,13 +6,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type TxStatus string
+type TransactionStatus string
 
 const (
-	TxStatusPending   TxStatus = "pending"
-	TxStatusConfirmed TxStatus = "confirmed"
-	TxStatusFailed    TxStatus = "failed"
-	TxStatusInvalid   TxStatus = "invalid"
+	TransactionStatusPending   TransactionStatus = "pending"
+	TransactionStatusConfirmed TransactionStatus = "confirmed"
+	TransactionStatusFailed    TransactionStatus = "failed"
+	TransactionStatusInvalid   TransactionStatus = "invalid"
 )
 
 type Transaction struct {
@@ -22,7 +22,7 @@ type Transaction struct {
 	BlockHeight   uint64              `json:"block_height" bson:"block_height"`
 	Confirmations uint64              `json:"confirmations" bson:"confirmations"`
 	Chain         Chain               `bson:"chain" json:"chain"`
-	TxStatus      TxStatus            `json:"tx_status" bson:"tx_status"`
+	Status        TransactionStatus   `json:"status" bson:"status"`
 	CreatedAt     time.Time           `bson:"created_at" json:"created_at"`
 	UpdatedAt     time.Time           `bson:"updated_at" json:"updated_at"`
 	Refund        *primitive.ObjectID `json:"refund" bson:"refund"`

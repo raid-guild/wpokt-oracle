@@ -10,6 +10,7 @@ import (
 )
 
 func NewCosmosChainService(
+	mnemonic string,
 	config models.CosmosNetworkConfig,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
@@ -36,6 +37,12 @@ func NewCosmosChainService(
 		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
 	)
+
+	var signerRunner service.Runner
+	signerRunner = &service.EmptyRunner{}
+	if config.MessageSigner.Enabled {
+		signerRunner = NewMessageSigner(mnemonic, config, chainHealth.MessageSigner)
+	}
 
 	signerRunnerService := service.NewRunnerService(
 		"signer",

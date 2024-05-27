@@ -18,6 +18,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
+
 	"context"
 	"fmt"
 	"time"
@@ -34,6 +36,7 @@ type CosmosClient interface {
 	GetChainID() (string, error)
 	GetTxsSentFromAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
 	GetTxsSentToAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
+	GetAccount(address string) (*auth.BaseAccount, error)
 	// SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error)
 	GetTx(hash string) (*sdk.TxResponse, error)
 	ValidateNetwork() error
@@ -267,6 +270,75 @@ func (c *cosmosClient) GetTx(hash string) (*sdk.TxResponse, error) {
 		return c.getTxGRPC(hash)
 	}
 	return c.getTxRPC(hash)
+}
+
+func (c *cosmosClient) getAccountGRPC(address string) (*auth.BaseAccount, error) {
+	if !c.GRPCEnabled {
+		return nil, fmt.Errorf("grpc disabled")
+	}
+	client := auth.NewQueryClient(c.grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
+	accAddress, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
+	if err != nil {
+		return nil, fmt.Errorf("invalid bech32 address: %s", err)
+	}
+
+	req := auth.QueryAccountRequest{
+		Address: sdk.AccAddress(accAddress).String(),
+	}
+
+	resp, err := client.Account(ctx, &req)
+	if err != nil {
+		return nil, err
+	}
+
+	var account auth.BaseAccount
+	if err := account.Unmarshal(resp.Account.Value); err != nil {
+		return nil, err
+	}
+
+	return &account, nil
+}
+
+func (c *cosmosClient) getAccountRPC(address string) (*auth.BaseAccount, error) {
+	if c.GRPCEnabled {
+		return nil, fmt.Errorf("grpc enabled")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
+	data := hex.EncodeToString([]byte(address))
+
+	res, err := c.rpcClient.ABCIQuery(ctx, "/cosmos.auth.v1beta1.Query/Account", []byte(data))
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get account: %s", err)
+	}
+
+	if res.Response.Code != 0 {
+		return nil, fmt.Errorf("failed to get account: %s", res.Response.Log)
+	}
+
+	var account auth.BaseAccount
+	if err := account.Unmarshal(res.Response.Value); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal account: %s", err)
+	}
+
+	return &account, nil
+}
+
+func (c *cosmosClient) GetAccount(address string) (*auth.BaseAccount, error) {
+	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
+	if err != nil {
+		return nil, fmt.Errorf("invalid bech32 address: %s", err)
+	}
+	if c.GRPCEnabled {
+		return c.getAccountGRPC(address)
+	}
+	return c.getAccountRPC(address)
 }
 
 /*

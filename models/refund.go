@@ -9,10 +9,10 @@ import (
 type RefundStatus string
 
 const (
-	RefundStatusPending   RefundStatus = "pending"
-	RefundStatusConfirmed RefundStatus = "confirmed"
-	RefundStatusSigned    RefundStatus = "signed"
-	RefundStatusSuccess   RefundStatus = "success"
+	RefundStatusPending RefundStatus = "pending"
+	RefundStatusSigned  RefundStatus = "signed"
+	RefundStatusSuccess RefundStatus = "success"
+	RefundStatusInvalid RefundStatus = "invalid"
 )
 
 type Refund struct {

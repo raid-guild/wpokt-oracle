@@ -1,10 +1,12 @@
 package common
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 
 	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/crypto/types"
 
 	hdwallet "github.com/dan13ram/go-ethereum-hdwallet"
 )
@@ -76,6 +78,17 @@ func IsValidCosmosPublicKey(s string) bool {
 	return !has0xPrefix(s) && isHex(s) && len(s) == 2*CosmosPublicKeyLength && !isZeroHex(s)
 }
 
+func CosmosPrivateKeyFromMnemonic(mnemonic string) (types.PrivKey, error) {
+	derivedPriv, err := defaultAlgo.Derive()(mnemonic, DefaultBIP39Passphrase, DefaultCosmosHDPath)
+	if err != nil {
+		return nil, err
+	}
+
+	privKey := defaultAlgo.Generate()(derivedPriv)
+
+	return privKey, nil
+}
+
 func CosmosPublicKeyFromMnemonic(mnemonic string) (string, error) {
 	derivedPriv, err := defaultAlgo.Derive()(mnemonic, DefaultBIP39Passphrase, DefaultCosmosHDPath)
 	if err != nil {
@@ -87,6 +100,26 @@ func CosmosPublicKeyFromMnemonic(mnemonic string) (string, error) {
 	pubKey := privKey.PubKey()
 
 	return hex.EncodeToString(pubKey.Bytes()), nil
+}
+
+func EthereumPrivateKeyFromMnemonic(mnemonic string) (*ecdsa.PrivateKey, error) {
+	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	if err != nil {
+		return nil, err
+	}
+
+	path := hdwallet.MustParseDerivationPath(DefaultETHHDPath)
+	account, err := wallet.Derive(path, false)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := wallet.PrivateKey(account)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
 }
 
 func EthereumAddressFromMnemonic(mnemonic string) (string, error) {

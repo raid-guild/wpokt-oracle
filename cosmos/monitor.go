@@ -16,8 +16,6 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"cosmossdk.io/math"
@@ -69,7 +67,7 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 	tx *sdk.TxResponse,
 	txStatus models.TransactionStatus,
-	coinsSpentSender string,
+	coinsSpender string,
 ) bool {
 
 	sender, err := util.ParseMessageSenderEvent(tx.Events)
@@ -83,9 +81,9 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 		return false
 	}
 
-	if coinsSpentSender != "" {
+	if coinsSpender != "" {
 		var spenderAddress []byte
-		spenderAddress, err = util.AddressBytesFromBech32(x.bech32Prefix, coinsSpentSender)
+		spenderAddress, err = util.AddressBytesFromBech32(x.bech32Prefix, coinsSpender)
 		if err != nil {
 			x.logger.WithError(err).Errorf("Error parsing spender address")
 			return false
@@ -128,7 +126,7 @@ func (x *MessageMonitorRunner) UpdateTransaction(
 ) bool {
 	err := util.UpdateTransaction(tx, update)
 	if err != nil {
-		x.logger.Errorf("Error updating transaction: %s", err)
+		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
 	}
 	return true
@@ -147,33 +145,14 @@ func (x *MessageMonitorRunner) CreateRefund(
 		return false
 	}
 
-	msg := banktypes.NewMsgSend(x.multisigPk.Bytes(), toAddr, sdk.NewCoins(amount))
-
-	txConfig := util.NewTxConfig(x.bech32Prefix)
-
-	refundTx := txConfig.NewTxBuilder()
-
-	if err = refundTx.SetMsgs(msg); err != nil {
-		x.logger.WithError(err).Errorf("Error setting messages")
-		return false
-	}
-
-	refundTx.SetMemo("Refund for " + txRes.TxHash)
-	refundTx.SetFeeAmount(sdk.NewCoins(x.feeAmount))
-	refundTx.SetGasLimit(200000) // TODO: set gas limit from constants
-
-	txEncoder := txConfig.TxJSONEncoder()
-
-	if txEncoder == nil {
-		x.logger.Errorf("Error getting tx encoder")
-		return false
-	}
-
-	txBody, err := txEncoder(refundTx.GetTx())
-	if err != nil {
-		x.logger.WithError(err).Errorf("Error encoding tx")
-		return false
-	}
+	txBody, err := util.NewSendTx(
+		x.bech32Prefix,
+		x.multisigPk.Address().Bytes(),
+		toAddr,
+		amount,
+		"Refund for "+txRes.TxHash,
+		x.feeAmount,
+	)
 
 	refund, err := util.CreateRefund(txRes, txDoc, toAddr, amount, string(txBody))
 
@@ -210,13 +189,13 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 
 	txResponses, err := x.client.GetTxsSentToAddressAfterHeight(x.multisigAddress, x.startBlockHeight)
 	if err != nil {
-		x.logger.Errorf("Error getting txs: %s", err)
+		x.logger.WithError(err).Errorf("Error getting new txs")
 		return false
 	}
 	x.logger.Infof("Found %d txs to sync", len(txResponses))
 	success := true
 	for _, txResponse := range txResponses {
-		logger := x.logger.WithField("tx_hash", txResponse.TxHash)
+		logger := x.logger.WithField("tx_hash", txResponse.TxHash).WithField("section", "sync")
 
 		if txResponse.Code != 0 {
 			logger.Infof("Found tx with non-zero code")
@@ -289,13 +268,13 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
 	txs, err := util.GetPendingTransactions(x.chain)
 	if err != nil {
-		x.logger.Errorf("Error getting pending txs: %s", err)
+		x.logger.WithError(err).Errorf("Error getting pending txs")
 		return false
 	}
 	x.logger.Infof("Found %d pending txs", len(txs))
 	success := true
 	for _, txDoc := range txs {
-		logger := x.logger.WithField("tx_hash", txDoc.Hash)
+		logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "confirm")
 		txResponse, err := x.client.GetTx(txDoc.Hash)
 		if err != nil {
 			logger.WithError(err).Errorf("Error getting tx")
@@ -303,54 +282,52 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 			continue
 		}
 		if txResponse.Code != 0 {
-			x.logger.Infof("Found tx with error: %s", txResponse.TxHash)
+			logger.Infof("Found tx with error")
 			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusFailed})
 			continue
 		}
-		x.logger.Debugf("Found successful tx: %s", txResponse.TxHash)
+		logger.
+			Debugf("Found pending tx")
 
 		tx := &tx.Tx{}
 		err = tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
-			x.logger.Errorf("Error unmarshalling tx: %s", err)
+			logger.Errorf("Error unmarshalling tx")
 			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
 			continue
 		}
 
 		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
-			x.logger.Errorf("Error parsing coins received events: %s", err)
+			logger.WithError(err).Errorf("Error parsing coins received events")
 			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
 			continue
 		}
-
-		x.logger.Debugf("Found tx coins received: %v", coinsReceived)
 
 		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
-			x.logger.Errorf("Error parsing coins spent events: %s", err)
+			logger.WithError(err).Errorf("Error parsing coins spent events")
 			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
 			continue
 		}
 
-		x.logger.Debugf("Found tx coins spent: %v", coinsSpent)
-		x.logger.Debugf("Found tx coins spent sender: %s", coinsSpentSender)
-
 		if coinsReceived.IsZero() || coinsSpent.IsZero() {
-			x.logger.Debugf("Found tx with zero coins: %s", txResponse.TxHash)
+			logger.
+				Debugf("Found tx with zero coins")
 			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
 			continue
 		}
 
 		if coinsReceived.IsLTE(x.feeAmount) {
-			x.logger.Debugf("Found tx with too low amount: %s", txResponse.TxHash)
+			logger.
+				Debugf("Found tx with amount too low")
 			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
 			continue
 		}
 
 		txHeight := txResponse.Height
 		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
-			x.logger.Debugf("Found tx with invalid height: %s", txResponse.TxHash)
+			logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
 			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
 			continue
 		}
@@ -371,7 +348,6 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 
 		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
 			logger.Debugf("Found tx with invalid coins")
-			// refund
 			if refundCreated := x.CreateRefund(txResponse, &txDoc, coinsSpentSender, coinsSpent); refundCreated {
 				success = success && x.UpdateTransaction(&txDoc, update)
 			} else {
@@ -383,7 +359,6 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 		memo, err := util.ValidateMemo(tx.Body.Memo)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
-			// refund
 			if refundCreated := x.CreateRefund(txResponse, &txDoc, coinsSpentSender, coinsSpent); refundCreated {
 				success = success && x.UpdateTransaction(&txDoc, update)
 			} else {

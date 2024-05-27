@@ -98,7 +98,7 @@ func main() {
 	}
 
 	for _, cosmosNetwork := range config.CosmosNetworks {
-		chainService := cosmos.NewCosmosChainService(cosmosNetwork, &wg, nodeHealth)
+		chainService := cosmos.NewCosmosChainService(config.Mnemonic, cosmosNetwork, &wg, nodeHealth)
 		services = append(services, chainService)
 	}
 

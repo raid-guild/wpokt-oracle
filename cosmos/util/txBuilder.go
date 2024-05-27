@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/testutil"
 	"github.com/cosmos/cosmos-sdk/std"
@@ -11,6 +13,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func NewTxConfig(bech32Prefix string) client.TxConfig {
@@ -31,4 +34,66 @@ func NewTxConfig(bech32Prefix string) client.TxConfig {
 	txConfig := authtx.NewTxConfig(codec, authtx.DefaultSignModes)
 
 	return txConfig
+}
+
+const (
+	SendGasLimit = 200000
+)
+
+func NewSendTx(
+	bech32Prefix string,
+	fromAddr sdk.AccAddress,
+	toAddr sdk.AccAddress,
+	amountIncludingFees sdk.Coin,
+	memo string,
+	feeAmount sdk.Coin,
+) (string, error) {
+
+	finalAmount := amountIncludingFees.Sub(feeAmount)
+
+	msg := banktypes.NewMsgSend(fromAddr, toAddr, sdk.NewCoins(finalAmount))
+
+	txConfig := NewTxConfig(bech32Prefix)
+
+	refundTx := txConfig.NewTxBuilder()
+
+	err := refundTx.SetMsgs(msg)
+	if err != nil {
+		return "", fmt.Errorf("error setting msg: %s", err)
+	}
+
+	refundTx.SetMemo(memo)
+	refundTx.SetFeeAmount(sdk.NewCoins(feeAmount))
+	refundTx.SetGasLimit(SendGasLimit)
+
+	txEncoder := txConfig.TxJSONEncoder()
+
+	if txEncoder == nil {
+		return "", fmt.Errorf("error getting tx encoder")
+	}
+
+	txBody, err := txEncoder(refundTx.GetTx())
+	if err != nil {
+		return "", fmt.Errorf("error encoding tx: %s", err)
+	}
+	return string(txBody), nil
+}
+
+func ParseTxBody(
+	bech32Prefix string,
+	txBody string,
+) (sdk.Tx, error) {
+	txConfig := NewTxConfig(bech32Prefix)
+	txDecoder := txConfig.TxJSONDecoder()
+
+	if txDecoder == nil {
+		return nil, fmt.Errorf("error getting tx decoder")
+	}
+
+	tx, err := txDecoder([]byte(txBody))
+	if err != nil {
+		return nil, fmt.Errorf("error decoding tx: %s", err)
+	}
+
+	return tx, nil
 }

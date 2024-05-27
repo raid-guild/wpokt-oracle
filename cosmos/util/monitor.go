@@ -103,6 +103,17 @@ func InsertRefund(tx models.Refund) error {
 	return nil
 }
 
+func UpdateRefund(refund *models.Refund, update bson.M) error {
+	if refund == nil {
+		return fmt.Errorf("refund is nil")
+	}
+	return app.DB.UpdateOne(
+		common.CollectionRefunds,
+		bson.M{"_id": refund.ID, "origin_transaction_hash": refund.OriginTransactionHash},
+		bson.M{"$set": update},
+	)
+}
+
 func CreateTransaction(
 	tx *sdk.TxResponse,
 	chain models.Chain,
@@ -160,6 +171,14 @@ func GetPendingTransactions(chain models.Chain) ([]models.Transaction, error) {
 	err := app.DB.FindMany(common.CollectionTransactions, bson.M{"status": models.TransactionStatusPending, "chain": chain}, &txs)
 
 	return txs, err
+}
+
+func GetPendingRefunds() ([]models.Refund, error) {
+	refunds := []models.Refund{}
+
+	err := app.DB.FindMany(common.CollectionRefunds, bson.M{"status": models.RefundStatusPending}, &refunds)
+
+	return refunds, err
 }
 
 func ValidateMemo(txMemo string) (models.MintMemo, error) {

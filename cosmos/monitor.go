@@ -154,6 +154,11 @@ func (x *MessageMonitorRunner) CreateRefund(
 		x.feeAmount,
 	)
 
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error creating tx body")
+		return false
+	}
+
 	refund, err := util.CreateRefund(txRes, txDoc, toAddr, amount, string(txBody))
 
 	if err != nil {
@@ -374,10 +379,6 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 		} else {
 			success = false
 		}
-	}
-
-	if success {
-		x.startBlockHeight = x.currentBlockHeight
 	}
 
 	return success

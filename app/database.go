@@ -29,6 +29,10 @@ type Database interface {
 	InsertOne(collection string, data interface{}) error
 	FindOne(collection string, filter interface{}, result interface{}) error
 	FindMany(collection string, filter interface{}, result interface{}) error
+	FindManySorted(collection string, filter interface{}, sort interface{}, result interface{}) error
+	AggregateOne(collection string, pipeline interface{}, result interface{}) error
+	AggregateMany(collection string, pipeline interface{}, result interface{}) error
+
 	UpdateOne(collection string, filter interface{}, update interface{}) error
 	UpsertOne(collection string, filter interface{}, update interface{}) error
 
@@ -233,7 +237,84 @@ func (d *MongoDatabase) FindMany(collection string, filter interface{}, result i
 		return err
 	}
 	err = cursor.All(ctx, result)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	if err := cursor.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// method for find and sort multiple values in a collection
+func (d *MongoDatabase) FindManySorted(collection string, filter interface{}, sort interface{}, result interface{}) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+
+	opts := options.Find().SetSort(sort)
+	cursor, err := d.db.Collection(collection).Find(ctx, filter, opts)
+	if err != nil {
+		return err
+	}
+	err = cursor.All(ctx, result)
+
+	if err != nil {
+		return err
+	}
+
+	if err := cursor.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Aggregate One
+func (d *MongoDatabase) AggregateOne(collection string, pipeline interface{}, result interface{}) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+	cursor, err := d.db.Collection(collection).Aggregate(ctx, pipeline)
+	if err != nil {
+		return err
+	}
+
+	for cursor.Next(ctx) {
+		err := cursor.Decode(result)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := cursor.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Aggregate Many
+func (d *MongoDatabase) AggregateMany(collection string, pipeline interface{}, result interface{}) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+	cursor, err := d.db.Collection(collection).Aggregate(ctx, pipeline)
+	if err != nil {
+		return err
+	}
+
+	err = cursor.All(ctx, result)
+
+	if err != nil {
+		return err
+	}
+
+	if err := cursor.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // method for update single value in a collection

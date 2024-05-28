@@ -24,6 +24,7 @@ type Refund struct {
 	TransactionBody       string              `json:"transaction_body" bson:"transaction_body"`
 	Signatures            []Signature         `json:"signatures" bson:"signatures"`
 	Transaction           *primitive.ObjectID `json:"transaction" bson:"transaction"`
+	Sequence              uint64              `json:"sequence" bson:"sequence"` // account sequence for submitting the transaction
 	TransactionHash       string              `json:"transaction_hash" bson:"transaction_hash"`
 	Status                RefundStatus        `json:"status" bson:"status"`
 	CreatedAt             time.Time           `bson:"created_at" json:"created_at"`

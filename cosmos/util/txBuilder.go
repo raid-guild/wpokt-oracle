@@ -42,8 +42,8 @@ const (
 
 func NewSendTx(
 	bech32Prefix string,
-	fromAddr sdk.AccAddress,
-	toAddr sdk.AccAddress,
+	fromAddr []byte,
+	toAddr []byte,
 	amountIncludingFees sdk.Coin,
 	memo string,
 	feeAmount sdk.Coin,
@@ -51,7 +51,10 @@ func NewSendTx(
 
 	finalAmount := amountIncludingFees.Sub(feeAmount)
 
-	msg := banktypes.NewMsgSend(fromAddr, toAddr, sdk.NewCoins(finalAmount))
+	fromAddress, _ := Bech32FromAddressBytes(bech32Prefix, fromAddr)
+	toAddress, _ := Bech32FromAddressBytes(bech32Prefix, toAddr)
+
+	msg := &banktypes.MsgSend{FromAddress: fromAddress, ToAddress: toAddress, Amount: sdk.NewCoins(finalAmount)}
 
 	txConfig := NewTxConfig(bech32Prefix)
 

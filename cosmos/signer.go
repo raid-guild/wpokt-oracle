@@ -24,6 +24,7 @@ import (
 	"cosmossdk.io/math"
 
 	"context"
+
 	"github.com/cosmos/cosmos-sdk/client"
 
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
@@ -34,8 +35,9 @@ type MessageSignerRunner struct {
 	startBlockHeight   uint64
 	currentBlockHeight uint64
 
-	multisigAddress string
-	multisigPk      *multisig.LegacyAminoPubKey
+	multisigAddress   string
+	multisigThreshold uint64
+	multisigPk        *multisig.LegacyAminoPubKey
 
 	signerKey crypto.PrivKey
 
@@ -107,7 +109,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	recipientAddress, err := util.AddressBytesFromBech32(x.bech32Prefix, refundDoc.Recipient)
+	recipientAddress, err := util.AddressBytesFromHexString(refundDoc.Recipient)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing recipient address")
 		return false
@@ -188,10 +190,6 @@ func (x *MessageSignerRunner) SignRefund(
 	amount sdk.Coin,
 ) bool {
 
-	return false
-}
-
-/*
 	logger := x.logger.
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "sign-refund")
@@ -201,12 +199,28 @@ func (x *MessageSignerRunner) SignRefund(
 		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
 	}
 
+	for _, sig := range refundDoc.Signatures {
+		signer, err := util.AddressBytesFromHexString(sig.Signer)
+		if err != nil {
+			logger.WithError(err).Errorf("Error parsing signer")
+			return false
+		}
+		if bytes.Equal(signer, x.signerKey.PubKey().Address().Bytes()) {
+			logger.Infof("Already signed")
+			return true
+		}
+	}
+
 	// can ignore error here because we already validated
 	tx, _ := util.ParseTxBody(x.bech32Prefix, refundDoc.TransactionBody)
 
 	txConfig := util.NewTxConfig(x.bech32Prefix)
 
 	txBuilder, err := txConfig.WrapTxBuilder(tx)
+	if err != nil {
+		logger.WithError(err).Error("Error wrapping tx builder")
+		return false
+	}
 
 	// check whether the address is a signer
 	signers, err := txBuilder.GetTx().GetSigners()
@@ -215,91 +229,57 @@ func (x *MessageSignerRunner) SignRefund(
 		return false
 	}
 
-	{
-
-		addr := x.multisigPk.Address().Bytes()
-
-		if !isTxSigner(addr, signers) {
-			logger.Errorf("Address is not a signer")
-			return false
-		}
+	if !isTxSigner(x.multisigPk.Address().Bytes(), signers) {
+		logger.Errorf("Address is not a signer")
+		return false
 	}
 
-	//////////
+	sequence, err := util.FindMaxSequence(x.chain)
+
+	if err != nil {
+		logger.WithError(err).Error("Error getting sequence")
+		return false
+	}
+
+	account, err := x.client.GetAccount(x.multisigAddress)
+
+	if err != nil {
+		logger.WithError(err).Error("Error getting account")
+		return false
+	}
 
 	overwriteSig := false
 
 	pubKey := x.signerKey.PubKey()
 
 	signerData := authsigning.SignerData{
-		ChainID:       txf.chainID,
-		AccountNumber: txf.accountNumber,
-		Sequence:      txf.sequence,
+		ChainID:       x.chain.ChainID,
+		AccountNumber: account.AccountNumber,
+		Sequence:      sequence,
 		PubKey:        pubKey,
 		Address:       sdk.AccAddress(pubKey.Address()).String(),
-	}
-
-	// For SIGN_MODE_DIRECT, calling SetSignatures calls setSignerInfos on
-	// TxBuilder under the hood, and SignerInfos is needed to generated the
-	// sign bytes. This is the reason for setting SetSignatures here, with a
-	// nil signature.
-	//
-	// Note: this line is not needed for SIGN_MODE_LEGACY_AMINO, but putting it
-	// also doesn't affect its generated sign bytes, so for code's simplicity
-	// sake, we put it here.
-	sigData := signingtypes.SingleSignatureData{
-		SignMode:  signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON,
-		Signature: nil,
-	}
-	sig := signingtypes.SignatureV2{
-		PubKey:   pubKey,
-		Data:     &sigData,
-		Sequence: txf.Sequence(),
 	}
 
 	var prevSignatures []signingtypes.SignatureV2
 	if !overwriteSig {
 		prevSignatures, err = txBuilder.GetTx().GetSignaturesV2()
 		if err != nil {
-			return err
+			logger.WithError(err).Error("Error getting signatures")
+			return false
 		}
 	}
-	// Overwrite or append signer infos.
-	var sigs []signingtypes.SignatureV2
-	if overwriteSig {
-		sigs = []signingtypes.SignatureV2{sig}
-	} else {
-		sigs = append(sigs, prevSignatures...)
-		sigs = append(sigs, sig)
-	}
-	if err := txBuilder.SetSignatures(sigs...); err != nil {
-		return err
-	}
 
-	if err := checkMultipleSigners(txBuilder.GetTx()); err != nil {
-		return err
-	}
-
-	bytesToSign, err := authsigningtypes.GetSignBytesAdapter(ctx, txf.txConfig.SignModeHandler(), signMode, signerData, txBuilder.GetTx())
+	sig, err := SignWithPrivKey(
+		context.Background(),
+		signerData,
+		txBuilder,
+		x.signerKey,
+		txConfig,
+		sequence,
+	)
 	if err != nil {
-		return err
-	}
-
-	// Sign those bytes
-	sigBytes, _, err := txf.keybase.Sign(name, bytesToSign, signMode)
-	if err != nil {
-		return err
-	}
-
-	// Construct the SignatureV2 struct
-	sigData = signingtypes.SingleSignatureData{
-		SignMode:  signMode,
-		Signature: sigBytes,
-	}
-	sig = signingtypes.SignatureV2{
-		PubKey:   pubKey,
-		Data:     &sigData,
-		Sequence: txf.Sequence(),
+		logger.WithError(err).Error("Error signing")
+		return false
 	}
 
 	if overwriteSig {
@@ -310,29 +290,58 @@ func (x *MessageSignerRunner) SignRefund(
 	}
 
 	if err != nil {
-		return fmt.Errorf("unable to set signatures on payload: %w", err)
+		logger.WithError(err).Errorf("unable to set signatures on payload")
+		return false
 	}
 
-	///////////
+	txBody, err := txConfig.TxJSONEncoder()(txBuilder.GetTx())
+	if err != nil {
+		logger.WithError(err).Errorf("unable to encode tx")
+		return false
+	}
 
-	// Sign
+	signatures := []models.Signature{}
+
+	for _, sig := range prevSignatures {
+		signer := util.HexFromBytes(sig.PubKey.Address().Bytes())
+		signature := util.HexFromBytes(sig.Data.(*signingtypes.SingleSignatureData).Signature)
+
+		signatures = append(signatures, models.Signature{
+			Signer:    signer,
+			Signature: signature,
+		})
+	}
+
+	update := bson.M{
+		"status":           models.RefundStatusPending,
+		"transaction_body": string(txBody),
+		"signatures":       signatures,
+	}
+
+	if len(signatures) >= int(x.multisigThreshold) {
+		update["status"] = models.RefundStatusSigned
+	}
+
+	err = util.UpdateRefund(refundDoc, update)
+	if err != nil {
+		logger.WithError(err).Errorf("Error updating refund")
+		return false
+	}
+
 	return true
-
 }
-*/
 
 func SignWithPrivKey(
 	ctx context.Context,
-	// signMode signingtypes.SignMode,
 	signerData authsigning.SignerData,
 	txBuilder client.TxBuilder,
 	priv crypto.PrivKey,
 	txConfig client.TxConfig,
 	accSeq uint64,
 ) (signingtypes.SignatureV2, error) {
-	var sigV2 signingtypes.SignatureV2
 	signMode := signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
 
+	var sigV2 signingtypes.SignatureV2
 	// Generate the bytes to be signed.
 	signBytes, err := authsigning.GetSignBytesAdapter(
 		ctx, txConfig.SignModeHandler(), signMode, signerData, txBuilder.GetTx())
@@ -363,7 +372,8 @@ func SignWithPrivKey(
 
 func (x *MessageSignerRunner) SignRefunds() bool {
 	x.logger.Infof("Signing refunds")
-	refunds, err := util.GetPendingRefunds()
+	addressHex := util.HexFromBytes(x.signerKey.PubKey().Address().Bytes())
+	refunds, err := util.GetPendingRefunds(addressHex)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending refunds")
 		return false
@@ -521,18 +531,11 @@ func NewMessageSigner(mnemonic string, config models.CosmosNetworkConfig, lastHe
 		logger.WithError(err).Fatalf("Error getting private key from mnemonic")
 	}
 
-	account, err := client.GetAccount(multisigAddress)
-	if err != nil {
-		logger.WithError(err).Fatalf("Error getting account")
-	}
-
-	logger.Infof("Account Number %d", account.AccountNumber)
-	logger.Infof("Account Sequence %d", account.Sequence)
-
 	x := &MessageSignerRunner{
-		multisigPk: multisigPk,
+		multisigPk:        multisigPk,
+		multisigThreshold: config.MultisigThreshold,
+		multisigAddress:   multisigAddress,
 
-		multisigAddress:    multisigAddress,
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 		client:             client,

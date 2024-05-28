@@ -51,7 +51,7 @@ cosmos_networks:
       - "02cae233806460db75a941a269490ca5165a620b43241edb8bc72e169f4143a6df"
     multisig_threshold: 2
     message_monitor:
-      enabled: false
+      enabled: true
       interval_ms: 10000
     message_signer:
       enabled: true

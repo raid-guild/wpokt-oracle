@@ -30,28 +30,9 @@ func Ensure0xPrefix(str string) string {
 	return str
 }
 
-/*
-
-type Refund struct {
-	ID                    *primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	OriginTransaction     *primitive.ObjectID `json:"origin_transaction" bson:"origin_transaction"`
-	OriginTransactionHash string              `json:"origin_transaction_hash" bson:"origin_transaction_hash"`
-	Recipient             string              `json:"recipient" bson:"recipient"`
-	Amount                uint64              `json:"amount" bson:"amount"`
-	RefundTransactionBody string              `json:"refund_transaction_body" bson:"refund_transaction_body"`
-	RefundSignatures      []Signature         `json:"refund_signatures" bson:"refund_signatures"`
-	RefundTransaction     *primitive.ObjectID `json:"refund_transaction" bson:"refund_transaction"`
-	RefundStatus          RefundStatus        `json:"refund_status" bson:"refund_status"`
-	CreatedAt             time.Time           `bson:"created_at" json:"created_at"`
-	UpdatedAt             time.Time           `bson:"updated_at" json:"updated_at"`
+func HexFromBytes(address []byte) string {
+	return Ensure0xPrefix(hex.EncodeToString(address))
 }
-*/
-
-// func createRefundTransaction(
-// 	recipentAddress []byte,
-// 	amountCoin sdk.Coin,
-// ) (sdk.Msg, error) {
-// }
 
 func CreateRefund(
 	txRes *sdk.TxResponse,
@@ -101,6 +82,64 @@ func InsertRefund(tx models.Refund) error {
 	}
 
 	return nil
+}
+
+type ResultMaxSequence struct {
+	MaxSequence int `bson:"max_sequence"`
+}
+
+func FindMaxSequenceFromRefunds() (uint64, error) {
+	pipeline := mongo.Pipeline{
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: nil},
+			{Key: "max_sequence", Value: bson.D{{Key: "$max", Value: "$sequence"}}},
+		}}},
+	}
+
+	var result ResultMaxSequence
+	err := app.DB.AggregateOne(common.CollectionRefunds, pipeline, &result)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(result.MaxSequence), nil
+}
+
+func FindMaxSequenceFromMessages(chain models.Chain) (uint64, error) {
+	filter := bson.M{"chain": chain}
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: filter}},
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: nil},
+			{Key: "max_sequence", Value: bson.D{{Key: "$max", Value: "$sequence"}}},
+		}}},
+	}
+
+	var result ResultMaxSequence
+	err := app.DB.AggregateOne(common.CollectionMessages, pipeline, &result)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(result.MaxSequence), nil
+}
+
+func FindMaxSequence(chain models.Chain) (uint64, error) {
+	maxSequenceRefunds, err := FindMaxSequenceFromRefunds()
+	if err != nil {
+		return 0, err
+	}
+
+	maxSequenceMessages, err := FindMaxSequenceFromMessages(chain)
+	if err != nil {
+		return 0, err
+	}
+
+	if maxSequenceRefunds > maxSequenceMessages {
+		return maxSequenceRefunds, nil
+	}
+
+	return maxSequenceMessages, nil
 }
 
 func UpdateRefund(refund *models.Refund, update bson.M) error {
@@ -173,10 +212,23 @@ func GetPendingTransactions(chain models.Chain) ([]models.Transaction, error) {
 	return txs, err
 }
 
-func GetPendingRefunds() ([]models.Refund, error) {
+func GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {
 	refunds := []models.Refund{}
+	filter := bson.M{
+		"$and": []bson.M{
+			{"$or": []bson.M{
+				{"status": models.RefundStatusPending},
+				{"status": models.RefundStatusSigned},
+			}},
+			{"$nor": []bson.M{
+				{"signatures": bson.M{
+					"$elemMatch": bson.M{"signer": signerToExclude},
+				}},
+			}},
+		},
+	}
 
-	err := app.DB.FindMany(common.CollectionRefunds, bson.M{"status": models.RefundStatusPending}, &refunds)
+	err := app.DB.FindMany(common.CollectionRefunds, filter, &refunds)
 
 	return refunds, err
 }

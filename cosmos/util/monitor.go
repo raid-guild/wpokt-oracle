@@ -148,13 +148,24 @@ func FindMaxSequence(chain models.Chain) (uint64, error) {
 	return maxSequenceMessages, nil
 }
 
-func UpdateRefund(refund *models.Refund, update bson.M) error {
-	if refund == nil {
-		return fmt.Errorf("refund is nil")
+func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
+	if messageID == nil {
+		return fmt.Errorf("messageID is nil")
+	}
+	return app.DB.UpdateOne(
+		common.CollectionMessages,
+		bson.M{"_id": messageID},
+		bson.M{"$set": update},
+	)
+}
+
+func UpdateRefund(refundID *primitive.ObjectID, update bson.M) error {
+	if refundID == nil {
+		return fmt.Errorf("refundID is nil")
 	}
 	return app.DB.UpdateOne(
 		common.CollectionRefunds,
-		bson.M{"_id": refund.ID, "origin_transaction_hash": refund.OriginTransactionHash},
+		bson.M{"_id": refundID},
 		bson.M{"$set": update},
 	)
 }
@@ -194,16 +205,21 @@ func CreateTransaction(
 	}, nil
 }
 
-func InsertTransaction(tx models.Transaction) error {
-	_, err := app.DB.InsertOne(common.CollectionTransactions, tx)
+func InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
+	insertedID, err := app.DB.InsertOne(common.CollectionTransactions, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return nil
+			var refundDoc models.Transaction
+			err := app.DB.FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, refundDoc)
+			if err != nil {
+				return insertedID, err
+			}
+			return *refundDoc.ID, nil
 		}
-		return err
+		return insertedID, err
 	}
 
-	return nil
+	return insertedID, nil
 }
 
 func UpdateTransaction(tx *models.Transaction, update bson.M) error {
@@ -282,6 +298,15 @@ func GetSignedRefunds() ([]models.Refund, error) {
 	sort := bson.M{"sequence": 1}
 
 	err := app.DB.FindManySorted(common.CollectionRefunds, filter, sort, &refunds)
+
+	return refunds, err
+}
+
+func GetBroadcastedRefunds() ([]models.Refund, error) {
+	refunds := []models.Refund{}
+	filter := bson.M{"status": models.RefundStatusBroadcasted}
+
+	err := app.DB.FindMany(common.CollectionRefunds, filter, &refunds)
 
 	return refunds, err
 }

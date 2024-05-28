@@ -87,10 +87,10 @@ func (x *MessageSignerRunner) SignMessages() bool {
 }
 
 func (x *MessageSignerRunner) UpdateRefund(
-	tx *models.Refund,
+	refund *models.Refund,
 	update bson.M,
 ) bool {
-	err := util.UpdateRefund(tx, update)
+	err := util.UpdateRefund(refund.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -327,7 +327,7 @@ func (x *MessageSignerRunner) SignRefund(
 		update["status"] = models.RefundStatusSigned
 	}
 
-	err = util.UpdateRefund(refundDoc, update)
+	err = util.UpdateRefund(refundDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -434,45 +434,6 @@ func (x *MessageSignerRunner) ValidateSignatures(
 	return true
 }
 
-func (x *MessageSignerRunner) CreateTransaction(
-	refundDoc *models.Refund,
-) bool {
-
-	logger := x.logger.
-		WithField("tx_hash", refundDoc.OriginTransactionHash).
-		WithField("section", "create-transaction")
-
-	txStatus := models.TransactionStatusPending
-
-	toAddress, err := util.AddressBytesFromHexString(refundDoc.Recipient)
-	if err != nil {
-		logger.WithError(err).Errorf("Error parsing recipient address")
-		return false
-	}
-
-	txHash := util.Ensure0xPrefix(refundDoc.TransactionHash)
-
-	tx, err := x.client.GetTx(txHash)
-	if err != nil {
-		logger.WithError(err).Errorf("Error getting tx")
-		return false
-	}
-
-	transaction, err := util.CreateTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
-	if err != nil {
-		x.logger.WithError(err).
-			Errorf("Error creating transaction")
-		return false
-	}
-	err = util.InsertTransaction(transaction)
-	if err != nil {
-		x.logger.WithError(err).
-			Errorf("Error inserting transaction")
-		return false
-	}
-	return true
-}
-
 func (x *MessageSignerRunner) BroadcastRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
@@ -556,7 +517,7 @@ func (x *MessageSignerRunner) BroadcastRefund(
 		refundDoc.Status = models.RefundStatusBroadcasted
 	}
 
-	return x.CreateTransaction(refundDoc)
+	return true
 }
 
 func (x *MessageSignerRunner) BroadcastRefunds() bool {

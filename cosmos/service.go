@@ -55,9 +55,15 @@ func NewCosmosChainService(
 		chain,
 	)
 
+	var relayerRunner service.Runner
+	relayerRunner = &service.EmptyRunner{}
+	if config.MessageRelayer.Enabled {
+		relayerRunner = NewMessageRelayer(config, chainHealth.MessageRelayer)
+	}
+
 	relayerRunnerService := service.NewRunnerService(
 		"relayer",
-		&service.EmptyRunner{},
+		relayerRunner,
 		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
 		chain,

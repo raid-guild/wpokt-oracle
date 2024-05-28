@@ -102,7 +102,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 			Errorf("Error creating transaction")
 		return false
 	}
-	err = util.InsertTransaction(transaction)
+	_, err = util.InsertTransaction(transaction)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("status", txStatus).

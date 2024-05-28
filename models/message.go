@@ -16,6 +16,16 @@ type MessageContent struct {
 	MessageBody       MessageBody `json:"message_body" bson:"message_body"`
 }
 
+type MessageStatus string
+
+const (
+	MessageStatusPending     MessageStatus = "pending"
+	MessageStatusSigned      MessageStatus = "signed"
+	MessageStatusBroadcasted MessageStatus = "broadcasted"
+	MessageStatusSuccess     MessageStatus = "success"
+	MessageStatusInvalid     MessageStatus = "invalid"
+)
+
 type Message struct {
 	ID                    *primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	OriginTransaction     *primitive.ObjectID `json:"origin_transaction" bson:"origin_transaction"`
@@ -25,6 +35,7 @@ type Message struct {
 	Signatures            []Signature         `json:"signatures" bson:"signatures"`
 	Transaction           primitive.ObjectID  `json:"transaction" bson:"transaction"`
 	Sequence              uint64              `json:"sequence" bson:"sequence"` // account sequence for submitting the transaction
+	Status                MessageStatus       `json:"status" bson:"status"`
 	TransactionHash       string              `json:"transaction_hash" bson:"transaction_hash"`
 	CreatedAt             time.Time           `bson:"created_at" json:"created_at"`
 	UpdatedAt             time.Time           `bson:"updated_at" json:"updated_at"`

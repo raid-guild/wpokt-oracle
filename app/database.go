@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -160,45 +161,40 @@ func (d *MongoDatabase) SetupIndexes() error {
 		return err
 	}
 
-	/*
-		// setup unique index for invalid mints
-		d.logger.Debug("Setting up indexes for invalid mints")
-		ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
-		defer cancel()
-		_, err = d.db.Collection(models.CollectionInvalidMints).Indexes().CreateOne(ctx, mongo.IndexModel{
-			Keys:    bson.D{{Key: "transaction_hash", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		})
-		if err != nil {
-			return err
-		}
+	d.logger.Debug("Setting up indexes for refunds")
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+	_, err = d.db.Collection(common.CollectionRefunds).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "origin_transaction_hash", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		return err
+	}
 
-		// setup unique index for burns
-		d.logger.Debug("Setting up indexes for burns")
-		ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
-		defer cancel()
-		_, err = d.db.Collection(models.CollectionBurns).Indexes().CreateOne(ctx, mongo.IndexModel{
-			Keys:    bson.D{{Key: "transaction_hash", Value: 1}, {Key: "log_index", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		})
-		if err != nil {
-			return err
-		}
+	d.logger.Debug("Setting up indexes for messages")
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+	_, err = d.db.Collection(common.CollectionMessages).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "origin_transaction_hash", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		return err
+	}
 
-		// setup unique index for healthchecks
-		d.logger.Debug("Setting up indexes for healthchecks")
-		ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
-		defer cancel()
-		_, err = d.db.Collection(models.CollectionHealthChecks).Indexes().CreateOne(ctx, mongo.IndexModel{
-			Keys:    bson.D{{Key: "validator_id", Value: 1}, {Key: "hostname", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		})
-		if err != nil {
-			return err
-		}
+	d.logger.Debug("Setting up indexes for nodes")
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+	_, err = d.db.Collection(common.CollectionNodes).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "hostname", Value: 1}, {Key: "oracle_id", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		return err
+	}
 
-		d.logger.Info("Indexes setup")
-	*/
+	d.logger.Info("Indexes setup")
 
 	return nil
 }
@@ -285,11 +281,17 @@ func (d *MongoDatabase) AggregateOne(collection string, pipeline interface{}, re
 		return err
 	}
 
+	var num int
 	for cursor.Next(ctx) {
+		num++
 		err := cursor.Decode(result)
 		if err != nil {
 			return err
 		}
+	}
+
+	if num != 1 {
+		return fmt.Errorf("expected 1 result, got %d", num)
 	}
 
 	if err := cursor.Err(); err != nil {

@@ -26,6 +26,8 @@ func NewEthereumChainService(
 		}
 	}
 
+	chain := util.ParseChain(config)
+
 	var monitorRunner service.Runner
 	monitorRunner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
@@ -36,6 +38,7 @@ func NewEthereumChainService(
 		monitorRunner,
 		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
+		chain,
 	)
 
 	signerRunnerService := service.NewRunnerService(
@@ -43,6 +46,7 @@ func NewEthereumChainService(
 		&service.EmptyRunner{},
 		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
+		chain,
 	)
 
 	relayerRunnerService := service.NewRunnerService(
@@ -50,10 +54,11 @@ func NewEthereumChainService(
 		&service.EmptyRunner{},
 		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
+		chain,
 	)
 
 	return service.NewChainService(
-		util.ParseChain(config),
+		chain,
 		monitorRunnerService,
 		signerRunnerService,
 		relayerRunnerService,

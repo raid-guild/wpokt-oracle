@@ -10,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/dan13ram/wpokt-oracle/app"
@@ -72,16 +73,21 @@ func CreateRefund(
 	}, nil
 }
 
-func InsertRefund(tx models.Refund) error {
-	err := app.DB.InsertOne(common.CollectionRefunds, tx)
+func InsertRefund(tx models.Refund) (primitive.ObjectID, error) {
+	insertedID, err := app.DB.InsertOne(common.CollectionRefunds, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return nil
+			var refundDoc models.Refund
+			err := app.DB.FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, refundDoc)
+			if err != nil {
+				return insertedID, err
+			}
+			return *refundDoc.ID, nil
 		}
-		return err
+		return insertedID, err
 	}
 
-	return nil
+	return insertedID, nil
 }
 
 type ResultMaxSequence struct {
@@ -156,7 +162,8 @@ func UpdateRefund(refund *models.Refund, update bson.M) error {
 func CreateTransaction(
 	tx *sdk.TxResponse,
 	chain models.Chain,
-	senderAddress []byte,
+	fromAddress []byte,
+	toAddress []byte,
 	txStatus models.TransactionStatus,
 ) (models.Transaction, error) {
 
@@ -165,14 +172,20 @@ func CreateTransaction(
 		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", tx.TxHash)
 	}
 
-	txSender := Ensure0xPrefix(hex.EncodeToString(senderAddress))
-	if len(txSender) != 42 {
-		return models.Transaction{}, fmt.Errorf("invalid sender address: %s", txSender)
+	txFrom := Ensure0xPrefix(hex.EncodeToString(fromAddress))
+	if len(txFrom) != 42 {
+		return models.Transaction{}, fmt.Errorf("invalid from address: %s", txFrom)
+	}
+
+	txTo := Ensure0xPrefix(hex.EncodeToString(toAddress))
+	if len(txTo) != 42 {
+		return models.Transaction{}, fmt.Errorf("invalid to address: %s", txTo)
 	}
 
 	return models.Transaction{
 		Hash:        txHash,
-		Sender:      txSender,
+		FromAddress: txFrom,
+		ToAddress:   txTo,
 		BlockHeight: uint64(tx.Height),
 		Chain:       chain,
 		Status:      txStatus,
@@ -182,7 +195,7 @@ func CreateTransaction(
 }
 
 func InsertTransaction(tx models.Transaction) error {
-	err := app.DB.InsertOne(common.CollectionTransactions, tx)
+	_, err := app.DB.InsertOne(common.CollectionTransactions, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			return nil
@@ -204,10 +217,40 @@ func UpdateTransaction(tx *models.Transaction, update bson.M) error {
 	)
 }
 
-func GetPendingTransactions(chain models.Chain) ([]models.Transaction, error) {
+func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
-	err := app.DB.FindMany(common.CollectionTransactions, bson.M{"status": models.TransactionStatusPending, "chain": chain}, &txs)
+	txTo := Ensure0xPrefix(hex.EncodeToString(toAddress))
+	if len(txTo) != 42 {
+		return txs, fmt.Errorf("invalid to address: %s", txTo)
+	}
+
+	filter := bson.M{
+		"status":     models.TransactionStatusPending,
+		"chain":      chain,
+		"to_address": txTo,
+	}
+
+	err := app.DB.FindMany(common.CollectionTransactions, filter, &txs)
+
+	return txs, err
+}
+
+func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]models.Transaction, error) {
+	txs := []models.Transaction{}
+
+	txFrom := Ensure0xPrefix(hex.EncodeToString(fromAddress))
+	if len(txFrom) != 42 {
+		return txs, fmt.Errorf("invalid from address: %s", txFrom)
+	}
+
+	filter := bson.M{
+		"status":       models.TransactionStatusPending,
+		"chain":        chain,
+		"from_address": txFrom,
+	}
+
+	err := app.DB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }
@@ -229,6 +272,16 @@ func GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {
 	}
 
 	err := app.DB.FindMany(common.CollectionRefunds, filter, &refunds)
+
+	return refunds, err
+}
+
+func GetSignedRefunds() ([]models.Refund, error) {
+	refunds := []models.Refund{}
+	filter := bson.M{"status": models.RefundStatusSigned}
+	sort := bson.M{"sequence": 1}
+
+	err := app.DB.FindManySorted(common.CollectionRefunds, filter, sort, &refunds)
 
 	return refunds, err
 }

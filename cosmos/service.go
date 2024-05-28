@@ -26,6 +26,8 @@ func NewCosmosChainService(
 		}
 	}
 
+	chain := util.ParseChain(config)
+
 	var monitorRunner service.Runner
 	monitorRunner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
@@ -36,12 +38,13 @@ func NewCosmosChainService(
 		monitorRunner,
 		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
+		chain,
 	)
 
 	var signerRunner service.Runner
 	signerRunner = &service.EmptyRunner{}
 	if config.MessageSigner.Enabled {
-		signerRunner = NewMessageSigner(mnemonic, config, chainHealth.MessageSigner)
+		signerRunner = NewMessageSigner(mnemonic, config)
 	}
 
 	signerRunnerService := service.NewRunnerService(
@@ -49,6 +52,7 @@ func NewCosmosChainService(
 		signerRunner,
 		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
+		chain,
 	)
 
 	relayerRunnerService := service.NewRunnerService(
@@ -56,10 +60,11 @@ func NewCosmosChainService(
 		&service.EmptyRunner{},
 		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
+		chain,
 	)
 
 	return service.NewChainService(
-		util.ParseChain(config),
+		chain,
 		monitorRunnerService,
 		signerRunnerService,
 		relayerRunnerService,

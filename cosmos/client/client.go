@@ -37,6 +37,7 @@ type CosmosClient interface {
 	GetTxsSentFromAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
 	GetTxsSentToAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
 	GetAccount(address string) (*auth.BaseAccount, error)
+	BroadcastTx(txBytes []byte) (string, error)
 	// SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error)
 	GetTx(hash string) (*sdk.TxResponse, error)
 	ValidateNetwork() error
@@ -344,23 +345,59 @@ func (c *cosmosClient) GetAccount(address string) (*auth.BaseAccount, error) {
 	return c.getAccountRPC(address)
 }
 
-/*
-
-	func (c *cosmosClient) SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error) {
-		j, err := json.Marshal(params)
-		if err != nil {
-			return nil, err
-		}
-		res, err := queryRPC(sendRawTxPath, j)
-		if err != nil {
-			return nil, err
-		}
-		var obj SubmitRawTxResponse
-		err = json.Unmarshal([]byte(res), &obj)
-		return &obj, err
+func (c *cosmosClient) broadcastTxGRPC(txBytes []byte) (string, error) {
+	if !c.GRPCEnabled {
+		return "", fmt.Errorf("grpc disabled")
 	}
 
-*/
+	client := tx.NewServiceClient(c.grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
+	req := &tx.BroadcastTxRequest{
+		TxBytes: txBytes,
+		Mode:    tx.BroadcastMode_BROADCAST_MODE_SYNC,
+	}
+
+	resp, err := client.BroadcastTx(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("failed to broadcast tx: %s", err)
+	}
+
+	if resp.TxResponse.Code != 0 {
+		return "", fmt.Errorf("failed to broadcast tx, got code %d: %s", resp.TxResponse.Code, resp.TxResponse.RawLog)
+	}
+
+	return resp.TxResponse.TxHash, nil
+}
+
+func (c *cosmosClient) broadcastTxRPC(txBytes []byte) (string, error) {
+	if c.GRPCEnabled {
+		return "", fmt.Errorf("grpc enabled")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
+	res, err := c.rpcClient.BroadcastTxSync(ctx, txBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to broadcast tx: %s", err)
+	}
+
+	if res.Code != 0 {
+		return "", fmt.Errorf("failed to broadcast tx, got code %d: %s", res.Code, res.Log)
+	}
+
+	return res.Hash.String(), nil
+}
+
+func (c *cosmosClient) BroadcastTx(txBytes []byte) (string, error) {
+	if c.GRPCEnabled {
+		return c.broadcastTxGRPC(txBytes)
+	}
+	return c.broadcastTxRPC(txBytes)
+}
 
 func (c *cosmosClient) GetChainID() (string, error) {
 	var chainID string

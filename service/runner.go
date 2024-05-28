@@ -111,11 +111,15 @@ func NewRunnerService(
 	runner Runner,
 	enabled bool,
 	interval time.Duration,
+	chain models.Chain,
 ) RunnerServiceInterface {
 	logger := log.
 		WithField("module", "service").
 		WithField("service", "runner").
-		WithField("name", strings.ToLower(name))
+		WithField("name", strings.ToLower(name)).
+		WithField("chain_name", strings.ToLower(chain.ChainName)).
+		WithField("chain_id", strings.ToLower(chain.ChainID))
+
 	if (runner == nil) || (interval == 0) {
 		logger.
 			Debug("Invalid parameters")

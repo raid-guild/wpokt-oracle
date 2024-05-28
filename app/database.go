@@ -11,6 +11,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -26,7 +27,7 @@ type Database interface {
 	Connect() error
 	Disconnect() error
 
-	InsertOne(collection string, data interface{}) error
+	InsertOne(collection string, data interface{}) (primitive.ObjectID, error)
 	FindOne(collection string, filter interface{}, result interface{}) error
 	FindMany(collection string, filter interface{}, result interface{}) error
 	FindManySorted(collection string, filter interface{}, sort interface{}, result interface{}) error
@@ -213,11 +214,14 @@ func (d *MongoDatabase) Disconnect() error {
 }
 
 // method for insert single value in a collection
-func (d *MongoDatabase) InsertOne(collection string, data interface{}) error {
+func (d *MongoDatabase) InsertOne(collection string, data interface{}) (primitive.ObjectID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
-	_, err := d.db.Collection(collection).InsertOne(ctx, data)
-	return err
+	result, err := d.db.Collection(collection).InsertOne(ctx, data)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	return result.InsertedID.(primitive.ObjectID), err
 }
 
 // method for find single value in a collection

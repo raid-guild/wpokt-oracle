@@ -94,7 +94,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 		}
 	}
 
-	transaction, err := util.CreateTransaction(tx, x.chain, senderAddress, txStatus)
+	transaction, err := util.CreateTransaction(tx, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("status", txStatus).
@@ -166,9 +166,15 @@ func (x *MessageMonitorRunner) CreateRefund(
 		return false
 	}
 
-	err = util.InsertRefund(refund)
+	insertedID, err := util.InsertRefund(refund)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error inserting refund")
+		return false
+	}
+
+	err = util.UpdateTransaction(txDoc, bson.M{"refund": insertedID})
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
 	}
 
@@ -271,7 +277,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 
 func (x *MessageMonitorRunner) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
-	txs, err := util.GetPendingTransactions(x.chain)
+	txs, err := util.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending txs")
 		return false

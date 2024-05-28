@@ -2,13 +2,13 @@
 
 all: run
 
-debug :; LOGGER_FORMAT=text LOGGER_LEVEL=debug go run . --yaml config.test.yml
+debug :; LOGGER_FORMAT=text LOGGER_LEVEL=debug go run . --yaml config.one.yml
 
 run-one :; LOGGER_FORMAT=text go run . --yaml config.one.yml
 run-two :; LOGGER_FORMAT=text go run . --yaml config.two.yml
 run-three :; LOGGER_FORMAT=text go run . --yaml config.three.yml
 
-run :; go run . --yaml config.test.yml
+run :; go run . --yaml config.one.yml
 
 build :; go build -o wpokt-oracle .
 

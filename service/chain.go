@@ -59,8 +59,6 @@ func (x *ChainService) Start() {
 
 	<-x.stop
 
-	x.logger.Debugf("ChainService stopping")
-
 	if x.monitorService.Enabled() {
 		x.monitorService.Stop()
 	}
@@ -72,8 +70,8 @@ func (x *ChainService) Start() {
 	}
 
 	wg.Wait()
-	x.logger.Infof("ChainService stopped")
 
+	x.logger.Infof("ChainService stopped")
 	x.wg.Done()
 }
 
@@ -89,7 +87,7 @@ func (x *ChainService) Health() models.ChainServiceHealth {
 }
 
 func (x *ChainService) Stop() {
-	x.logger.Debugf("ChainService Stopping")
+	x.logger.Debugf("ChainService stopping")
 	close(x.stop)
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
+	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 )
@@ -69,7 +70,7 @@ func (x *MessageRelayerRunner) UpdateRefund(
 	refundID *primitive.ObjectID,
 	update bson.M,
 ) bool {
-	err := util.UpdateRefund(refundID, update)
+	err := db.UpdateRefund(refundID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -81,7 +82,7 @@ func (x *MessageRelayerRunner) UpdateMessage(
 	messageID *primitive.ObjectID,
 	update bson.M,
 ) bool {
-	err := util.UpdateMessage(messageID, update)
+	err := db.UpdateMessage(messageID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating message")
 		return false
@@ -113,7 +114,7 @@ func (x *MessageRelayerRunner) CreateTransaction(
 		return false
 	}
 
-	transaction, err := util.NewTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
+	transaction, err := db.NewTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error creating transaction")
@@ -121,7 +122,7 @@ func (x *MessageRelayerRunner) CreateTransaction(
 	}
 
 	transaction.Refund = refundDoc.ID
-	insertedID, err := util.InsertTransaction(transaction)
+	insertedID, err := db.InsertTransaction(transaction)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error inserting transaction")
@@ -133,7 +134,7 @@ func (x *MessageRelayerRunner) CreateTransaction(
 
 func (x *MessageRelayerRunner) SyncRefunds() bool {
 	x.logger.Infof("Relaying refunds")
-	refunds, err := util.GetBroadcastedRefunds()
+	refunds, err := db.GetBroadcastedRefunds()
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting broadcasted refunds")
 		return false
@@ -155,7 +156,7 @@ func (x *MessageRelayerRunner) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := util.UpdateTransaction(tx, update)
+	err := db.UpdateTransaction(tx, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -201,7 +202,7 @@ func (x *MessageRelayerRunner) ResetMessage(
 
 func (x *MessageRelayerRunner) RelayTransactions() bool {
 	x.logger.Infof("Relaying transactions")
-	txs, err := util.GetPendingTransactionsFrom(x.chain, x.multisigPk.Address().Bytes())
+	txs, err := db.GetPendingTransactionsFrom(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending txs")
 		return false

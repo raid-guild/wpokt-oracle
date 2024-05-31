@@ -1,4 +1,4 @@
-package util
+package db
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
@@ -51,11 +50,11 @@ func NewTransaction(
 }
 
 func InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
-	insertedID, err := app.DB.InsertOne(common.CollectionTransactions, tx)
+	insertedID, err := mongoDB.InsertOne(common.CollectionTransactions, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			var refundDoc models.Transaction
-			err := app.DB.FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, refundDoc)
+			err := mongoDB.FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, refundDoc)
 			if err != nil {
 				return insertedID, err
 			}
@@ -71,7 +70,7 @@ func UpdateTransaction(tx *models.Transaction, update bson.M) error {
 	if tx == nil {
 		return fmt.Errorf("tx is nil")
 	}
-	return app.DB.UpdateOne(
+	return mongoDB.UpdateOne(
 		common.CollectionTransactions,
 		bson.M{"_id": tx.ID, "hash": tx.Hash},
 		bson.M{"$set": update},
@@ -92,7 +91,7 @@ func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Tr
 		"to_address": txTo,
 	}
 
-	err = app.DB.FindMany(common.CollectionTransactions, filter, &txs)
+	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }
@@ -111,7 +110,7 @@ func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]model
 		"from_address": txFrom,
 	}
 
-	err = app.DB.FindMany(common.CollectionTransactions, filter, &txs)
+	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }

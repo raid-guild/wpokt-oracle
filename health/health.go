@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/common"
+	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 
@@ -35,15 +35,14 @@ func (x *HealthCheckRunner) AddServices(services []service.ChainServiceInterface
 }
 
 func (x *HealthCheckRunner) GetLastHealth() (*models.Node, error) {
-	var health models.Node
 	filter := bson.M{
 		"cosmos_address": x.cosmosAddress,
 		"eth_address":    x.ethAddress,
 		"hostname":       x.hostname,
 		"oracle_id":      x.oracleID,
 	}
-	err := app.DB.FindOne(common.CollectionNodes, filter, &health)
-	return &health, err
+	health, err := db.FindNode(filter)
+	return health, err
 }
 
 func (x *HealthCheckRunner) ServiceHealths() []models.ChainServiceHealth {
@@ -79,9 +78,7 @@ func (x *HealthCheckRunner) PostHealth() bool {
 		"updated_at":      time.Now(),
 	}
 
-	update := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
-
-	err := app.DB.UpsertOne(common.CollectionNodes, filter, update)
+	err := db.UpsertNode(filter, onUpdate, onInsert)
 
 	if err != nil {
 		x.logger.Error("Error posting health: ", err)

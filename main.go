@@ -1,86 +1,31 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/dan13ram/wpokt-oracle/app"
 	cfg "github.com/dan13ram/wpokt-oracle/config"
 	"github.com/dan13ram/wpokt-oracle/cosmos"
+	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/ethereum"
 	"github.com/dan13ram/wpokt-oracle/health"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
-var logger *log.Entry
-
-func init() {
-	logFormat := strings.ToLower(os.Getenv("LOGGER_FORMAT"))
-	if logFormat == "text" {
-		log.SetFormatter(&log.TextFormatter{})
-	} else {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-
-	logLevel := strings.ToLower(os.Getenv("LOGGER_LEVEL"))
-	if logLevel == "debug" {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
-	}
-
-	logger = log.WithFields(log.Fields{"module": "main"})
-}
-
-func parseFlags() (string, string) {
-	var yamlPath string
-	var envPath string
-	flag.StringVar(&yamlPath, "yaml", "", "path to yaml file")
-	flag.StringVar(&envPath, "env", "", "path to env file")
-	flag.Parse()
-
-	var absYamlPath string
-	var err error
-	if yamlPath != "" {
-		absYamlPath, err = filepath.Abs(yamlPath)
-		if err != nil {
-			logger.
-				WithFields(log.Fields{"error": err}).
-				Fatal("Could not get absolute path for yaml file")
-			panic(err)
-		}
-		logger.
-			WithFields(log.Fields{"yaml": absYamlPath}).
-			Debug("Found yaml file")
-	}
-
-	var absEnvPath string
-	if envPath != "" {
-		absEnvPath, err = filepath.Abs(envPath)
-		if err != nil {
-			logger.WithFields(log.Fields{"error": err}).Fatal("Could not get absolute path for env file")
-			panic(err)
-		}
-		logger.WithFields(log.Fields{"env": absEnvPath}).Debug("Found env file")
-	}
-
-	return absYamlPath, absEnvPath
-}
-
 func main() {
 	absYamlPath, absEnvPath := parseFlags()
 
 	config := cfg.InitConfig(absYamlPath, absEnvPath)
-	app.InitLogger(config.Logger)
-	app.InitDB(config.MongoDB)
+
+	initLogger(config.Logger)
+
+	db.InitDB(config.MongoDB)
+	defer db.DisconnectDB()
 
 	logger.Debug("Starting server")
 
@@ -134,8 +79,6 @@ func main() {
 	healthService.Stop()
 
 	wg.Wait()
-
-	app.DB.Disconnect()
 
 	logger.Info("Server stopped")
 }

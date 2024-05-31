@@ -20,6 +20,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
+	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 
@@ -90,7 +91,7 @@ func (x *MessageSignerRunner) UpdateRefund(
 	refund *models.Refund,
 	update bson.M,
 ) bool {
-	err := util.UpdateRefund(refund.ID, update)
+	err := db.UpdateRefund(refund.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -210,7 +211,7 @@ func (x *MessageSignerRunner) SignRefund(
 		sequence = *refundDoc.Sequence
 	} else {
 		var err error
-		maxSequence, err := util.FindMaxSequence(x.chain)
+		maxSequence, err := db.FindMaxSequence(x.chain)
 		if err != nil {
 			logger.WithError(err).Error("Error getting sequence")
 			return false
@@ -328,7 +329,7 @@ func (x *MessageSignerRunner) SignRefund(
 		update["status"] = models.RefundStatusSigned
 	}
 
-	err = util.UpdateRefund(refundDoc.ID, update)
+	err = db.UpdateRefund(refundDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -523,7 +524,7 @@ func (x *MessageSignerRunner) BroadcastRefund(
 
 func (x *MessageSignerRunner) BroadcastRefunds() bool {
 	x.logger.Infof("Broadcasting refunds")
-	refunds, err := util.GetSignedRefunds()
+	refunds, err := db.GetSignedRefunds()
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting signed refunds")
 		return false
@@ -621,7 +622,7 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting address hex")
 	}
-	refunds, err := util.GetPendingRefunds(addressHex)
+	refunds, err := db.GetPendingRefunds(addressHex)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending refunds")
 		return false

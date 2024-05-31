@@ -1,4 +1,4 @@
-package app
+package db
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	DB Database
+	mongoDB Database
 )
 
 type Database interface {
@@ -370,5 +370,11 @@ func InitDB(config models.MongoConfig) {
 	}
 	d.logger.Info("Database initialized")
 
-	DB = d
+	mongoDB = d
+}
+
+func DisconnectDB() {
+	if mongoDB != nil {
+		mongoDB.Disconnect()
+	}
 }

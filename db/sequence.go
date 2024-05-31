@@ -1,10 +1,9 @@
-package util
+package db
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
@@ -22,7 +21,7 @@ func FindMaxSequenceFromRefunds() (uint64, error) {
 	}
 
 	var result ResultMaxSequence
-	err := app.DB.AggregateOne(common.CollectionRefunds, pipeline, &result)
+	err := mongoDB.AggregateOne(common.CollectionRefunds, pipeline, &result)
 	if err != nil {
 		return 0, err
 	}
@@ -41,7 +40,7 @@ func FindMaxSequenceFromMessages(chain models.Chain) (uint64, error) {
 	}
 
 	var result ResultMaxSequence
-	err := app.DB.AggregateOne(common.CollectionMessages, pipeline, &result)
+	err := mongoDB.AggregateOne(common.CollectionMessages, pipeline, &result)
 	if err != nil {
 		return 0, err
 	}

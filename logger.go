@@ -1,15 +1,37 @@
-package app
+package main
 
 import (
+	"os"
 	"strings"
 
-	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func InitLogger(config models.LoggerConfig) {
+var logger *log.Entry
+
+func init() {
+	logFormat := strings.ToLower(os.Getenv("LOGGER_FORMAT"))
+	if logFormat == "text" {
+		log.SetFormatter(&log.TextFormatter{})
+	} else {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	logLevel := strings.ToLower(os.Getenv("LOGGER_LEVEL"))
+	if logLevel == "debug" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
+	logger = log.WithFields(log.Fields{"module": "main"})
+}
+
+func initLogger(config models.LoggerConfig) {
 	logLevel := strings.ToLower(config.Level)
-	logger := log.WithField("module", "logger")
+
 	logger.Debug("Initializing logger with level: ", logLevel)
 
 	switch logLevel {
@@ -44,5 +66,5 @@ func InitLogger(config models.LoggerConfig) {
 
 	logger.
 		WithField("format", logFormat).
-		Info("Logger initialized")
+		Info("Logger initialized with level: ", logLevel)
 }

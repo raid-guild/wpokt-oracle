@@ -1,4 +1,4 @@
-package util
+package db
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
@@ -54,11 +53,11 @@ func NewRefund(
 }
 
 func InsertRefund(tx models.Refund) (primitive.ObjectID, error) {
-	insertedID, err := app.DB.InsertOne(common.CollectionRefunds, tx)
+	insertedID, err := mongoDB.InsertOne(common.CollectionRefunds, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			var refundDoc models.Refund
-			err := app.DB.FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, refundDoc)
+			err := mongoDB.FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, refundDoc)
 			if err != nil {
 				return insertedID, err
 			}
@@ -74,7 +73,7 @@ func UpdateRefund(refundID *primitive.ObjectID, update bson.M) error {
 	if refundID == nil {
 		return fmt.Errorf("refundID is nil")
 	}
-	return app.DB.UpdateOne(
+	return mongoDB.UpdateOne(
 		common.CollectionRefunds,
 		bson.M{"_id": refundID},
 		bson.M{"$set": update},
@@ -97,7 +96,7 @@ func GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {
 		},
 	}
 
-	err := app.DB.FindMany(common.CollectionRefunds, filter, &refunds)
+	err := mongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
 
 	return refunds, err
 }
@@ -107,7 +106,7 @@ func GetSignedRefunds() ([]models.Refund, error) {
 	filter := bson.M{"status": models.RefundStatusSigned}
 	sort := bson.M{"sequence": 1}
 
-	err := app.DB.FindManySorted(common.CollectionRefunds, filter, sort, &refunds)
+	err := mongoDB.FindManySorted(common.CollectionRefunds, filter, sort, &refunds)
 
 	return refunds, err
 }
@@ -116,7 +115,7 @@ func GetBroadcastedRefunds() ([]models.Refund, error) {
 	refunds := []models.Refund{}
 	filter := bson.M{"status": models.RefundStatusBroadcasted}
 
-	err := app.DB.FindMany(common.CollectionRefunds, filter, &refunds)
+	err := mongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
 
 	return refunds, err
 }

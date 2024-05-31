@@ -1,4 +1,4 @@
-package util
+package db
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"github.com/dan13ram/wpokt-oracle/app"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
@@ -74,7 +73,7 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	if messageID == nil {
 		return fmt.Errorf("messageID is nil")
 	}
-	return app.DB.UpdateOne(
+	return mongoDB.UpdateOne(
 		common.CollectionMessages,
 		bson.M{"_id": messageID},
 		bson.M{"$set": update},

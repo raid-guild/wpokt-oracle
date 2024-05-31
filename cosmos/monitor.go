@@ -14,6 +14,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
+	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 
@@ -95,7 +96,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 		}
 	}
 
-	transaction, err := util.NewTransaction(tx, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
+	transaction, err := db.NewTransaction(tx, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("status", txStatus).
@@ -103,7 +104,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 			Errorf("Error creating transaction")
 		return false
 	}
-	_, err = util.InsertTransaction(transaction)
+	_, err = db.InsertTransaction(transaction)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("status", txStatus).
@@ -125,7 +126,7 @@ func (x *MessageMonitorRunner) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := util.UpdateTransaction(tx, update)
+	err := db.UpdateTransaction(tx, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -160,20 +161,20 @@ func (x *MessageMonitorRunner) CreateRefund(
 		return false
 	}
 
-	refund, err := util.NewRefund(txRes, txDoc, toAddr, amount, string(txBody))
+	refund, err := db.NewRefund(txRes, txDoc, toAddr, amount, string(txBody))
 
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating refund")
 		return false
 	}
 
-	insertedID, err := util.InsertRefund(refund)
+	insertedID, err := db.InsertRefund(refund)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error inserting refund")
 		return false
 	}
 
-	err = util.UpdateTransaction(txDoc, bson.M{"refund": insertedID})
+	err = db.UpdateTransaction(txDoc, bson.M{"refund": insertedID})
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -290,7 +291,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 
 func (x *MessageMonitorRunner) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
-	txs, err := util.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
+	txs, err := db.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending txs")
 		return false

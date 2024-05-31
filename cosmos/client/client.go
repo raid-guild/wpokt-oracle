@@ -12,7 +12,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/types/tx"
 
-	"github.com/dan13ram/wpokt-oracle/cosmos/util"
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 
 	"google.golang.org/grpc"
@@ -112,9 +112,8 @@ func (c *cosmosClient) GetLatestBlockHeight() (int64, error) {
 }
 
 func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error) {
-	_, err := util.BytesFromBech32(c.Bech32Prefix, address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid bech32 address: %s", err)
+	if !common.IsValidBech32Address(c.Bech32Prefix, address) {
+		return nil, fmt.Errorf("invalid bech32 address")
 	}
 
 	query := fmt.Sprintf("transfer.recipient='%s' AND tx.height>=%d", address, height)
@@ -123,9 +122,8 @@ func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height uin
 }
 
 func (c *cosmosClient) GetTxsSentFromAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error) {
-	_, err := util.BytesFromBech32(c.Bech32Prefix, address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid bech32 address: %s", err)
+	if !common.IsValidBech32Address(c.Bech32Prefix, address) {
+		return nil, fmt.Errorf("invalid bech32 address")
 	}
 
 	query := fmt.Sprintf("transfer.sender='%s' AND tx.height>=%d", address, height)
@@ -335,9 +333,8 @@ func (c *cosmosClient) getAccountRPC(address string) (*auth.BaseAccount, error) 
 }
 
 func (c *cosmosClient) GetAccount(address string) (*auth.BaseAccount, error) {
-	_, err := util.BytesFromBech32(c.Bech32Prefix, address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid bech32 address: %s", err)
+	if !common.IsValidBech32Address(c.Bech32Prefix, address) {
+		return nil, fmt.Errorf("invalid bech32 address")
 	}
 	if c.GRPCEnabled {
 		return c.getAccountGRPC(address)

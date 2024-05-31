@@ -10,6 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
@@ -98,13 +99,13 @@ func (x *MessageRelayerRunner) CreateTransaction(
 
 	txStatus := models.TransactionStatusPending
 
-	toAddress, err := util.BytesFromHex(refundDoc.Recipient)
+	toAddress, err := common.BytesFromAddressHex(refundDoc.Recipient)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing recipient address")
 		return false
 	}
 
-	txHash := util.Ensure0xPrefix(refundDoc.TransactionHash)
+	txHash := common.Ensure0xPrefix(refundDoc.TransactionHash)
 
 	tx, err := x.client.GetTx(txHash)
 	if err != nil {
@@ -298,7 +299,7 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 
 	var pks []crypto.PubKey
 	for _, pk := range config.MultisigPublicKeys {
-		pKey, err := util.PubKeyFromHex(pk)
+		pKey, err := common.CosmosPublicKeyFromHex(pk)
 		if err != nil {
 			logger.WithError(err).Fatalf("Error parsing public key")
 		}
@@ -306,7 +307,7 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := util.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
+	multisigAddress, err := common.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Fatalf("Error creating multisig address")
 	}

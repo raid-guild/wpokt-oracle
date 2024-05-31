@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/cosmos/go-bip39"
 
 	"github.com/dan13ram/wpokt-oracle/common"
-	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
@@ -45,7 +45,8 @@ func validateConfig(config models.Config) error {
 		logger.WithError(err).Error("Failed to generate Cosmos public key from mnemonic")
 		return fmt.Errorf("failed to generate Cosmos public key from mnemonic")
 	}
-	if !common.IsValidCosmosPublicKey(cosmosPubKey) {
+	cosmosPubKeyHex := hex.EncodeToString(cosmosPubKey.Bytes())
+	if !common.IsValidCosmosPublicKey(cosmosPubKeyHex) {
 		return fmt.Errorf("cosmos public key is invalid")
 	}
 
@@ -180,10 +181,10 @@ func validateConfig(config models.Config) error {
 			if !common.IsValidCosmosPublicKey(publicKey) {
 				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
 			}
-			if strings.EqualFold(publicKey, cosmosPubKey) {
+			if strings.EqualFold(publicKey, cosmosPubKeyHex) {
 				foundPublicKey = true
 			}
-			pKey, err := cosmosUtil.PubKeyFromHex(publicKey)
+			pKey, err := common.CosmosPublicKeyFromHex(publicKey)
 			if err != nil {
 				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
 			}

@@ -12,8 +12,6 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 
-	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
-
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -22,7 +20,7 @@ type HealthCheckRunner struct {
 	cosmosAddress []byte
 	ethAddress    []byte
 	hostname      string
-	oracleId      string
+	oracleID      string
 	services      []service.ChainServiceInterface
 
 	logger *log.Entry
@@ -42,7 +40,7 @@ func (x *HealthCheckRunner) GetLastHealth() (*models.Node, error) {
 		"cosmos_address": x.cosmosAddress,
 		"eth_address":    x.ethAddress,
 		"hostname":       x.hostname,
-		"oracle_id":      x.oracleId,
+		"oracle_id":      x.oracleID,
 	}
 	err := app.DB.FindOne(common.CollectionNodes, filter, &health)
 	return &health, err
@@ -64,14 +62,14 @@ func (x *HealthCheckRunner) PostHealth() bool {
 		"cosmos_address": x.cosmosAddress,
 		"eth_address":    x.ethAddress,
 		"hostname":       x.hostname,
-		"oracle_id":      x.oracleId,
+		"oracle_id":      x.oracleID,
 	}
 
 	onInsert := bson.M{
 		"cosmos_address": x.cosmosAddress,
 		"eth_address":    x.ethAddress,
 		"hostname":       x.hostname,
-		"oracle_id":      x.oracleId,
+		"oracle_id":      x.oracleID,
 		"created_at":     time.Now(),
 	}
 
@@ -109,9 +107,9 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 		WithField("eth_address", ethAddressHex).
 		Debugf("Initialized ethereum address")
 
-	cosmosPubKeyHex, _ := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
+	cosmosPubKey, _ := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 
-	cosmosPubKey, _ := cosmosUtil.PubKeyFromHex(cosmosPubKeyHex)
+	cosmosPubKeyHex := hex.EncodeToString(cosmosPubKey.Bytes())
 
 	cosmosAddress := cosmosPubKey.Address().Bytes()
 
@@ -132,7 +130,7 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 		logger.Fatal("Multisig public keys do not contain signer")
 	}
 
-	oracleId := "oracle-" + fmt.Sprintf("%02d", signerIndex)
+	oracleID := "oracle-" + fmt.Sprintf("%02d", signerIndex)
 
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -143,7 +141,7 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 		cosmosAddress: cosmosAddress,
 		ethAddress:    ethAddress,
 		hostname:      hostname,
-		oracleId:      oracleId,
+		oracleID:      oracleID,
 		logger:        logger,
 	}
 

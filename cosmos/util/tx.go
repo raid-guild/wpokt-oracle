@@ -6,6 +6,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/testutil"
 	"github.com/cosmos/cosmos-sdk/std"
+	"github.com/dan13ram/wpokt-oracle/common"
 
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
@@ -51,8 +52,14 @@ func NewSendTx(
 
 	finalAmount := amountIncludingFees.Sub(feeAmount)
 
-	fromAddress, _ := Bech32FromBytes(bech32Prefix, fromAddr)
-	toAddress, _ := Bech32FromBytes(bech32Prefix, toAddr)
+	fromAddress, err := common.Bech32FromBytes(bech32Prefix, fromAddr)
+	if err != nil {
+		return "", fmt.Errorf("error converting from address: %s", err)
+	}
+	toAddress, err := common.Bech32FromBytes(bech32Prefix, toAddr)
+	if err != nil {
+		return "", fmt.Errorf("error converting to address: %s", err)
+	}
 
 	msg := &banktypes.MsgSend{FromAddress: fromAddress, ToAddress: toAddress, Amount: sdk.NewCoins(finalAmount)}
 
@@ -60,7 +67,7 @@ func NewSendTx(
 
 	refundTx := txConfig.NewTxBuilder()
 
-	err := refundTx.SetMsgs(msg)
+	err = refundTx.SetMsgs(msg)
 	if err != nil {
 		return "", fmt.Errorf("error setting msg: %s", err)
 	}

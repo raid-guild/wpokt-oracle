@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -28,13 +27,13 @@ func NewRefund(
 		return models.Refund{}, fmt.Errorf("txRes or txDoc is nil")
 	}
 
-	txHash := Ensure0xPrefix(txRes.TxHash)
+	txHash := common.Ensure0xPrefix(txRes.TxHash)
 	if txHash != txDoc.Hash {
 		return models.Refund{}, fmt.Errorf("tx hash mismatch: %s != %s", txHash, txDoc.Hash)
 	}
 
-	recipient := Ensure0xPrefix(hex.EncodeToString(recipientAddress))
-	if len(recipient) != 42 {
+	recipient, err := common.AddressHexFromBytes(recipientAddress)
+	if err != nil {
 		return models.Refund{}, fmt.Errorf("invalid recipient address: %s", recipient)
 	}
 

@@ -11,6 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
@@ -75,7 +76,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 		x.logger.WithError(err).Errorf("Error parsing message sender")
 		return false
 	}
-	senderAddress, err := util.BytesFromBech32(x.bech32Prefix, sender)
+	senderAddress, err := common.AddressBytesFromBech32(x.bech32Prefix, sender)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error parsing sender address")
 		return false
@@ -83,7 +84,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 
 	if coinsSpender != "" {
 		var spenderAddress []byte
-		spenderAddress, err = util.BytesFromBech32(x.bech32Prefix, coinsSpender)
+		spenderAddress, err = common.AddressBytesFromBech32(x.bech32Prefix, coinsSpender)
 		if err != nil {
 			x.logger.WithError(err).Errorf("Error parsing spender address")
 			return false
@@ -139,7 +140,7 @@ func (x *MessageMonitorRunner) CreateRefund(
 	amount sdk.Coin,
 ) bool {
 
-	toAddr, err := util.BytesFromBech32(x.bech32Prefix, spender)
+	toAddr, err := common.AddressBytesFromBech32(x.bech32Prefix, spender)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error parsing spender address")
 		return false
@@ -188,7 +189,7 @@ func (x *MessageMonitorRunner) CreateMessage(
 	amountCoin sdk.Coin,
 	memo models.MintMemo,
 ) bool {
-	// senderAddr, err := util.BytesFromBech32(x.bech32Prefix, spender)
+	// senderAddr, err := common.AddressBytesFromBech32(x.bech32Prefix, spender)
 	// if err != nil {
 	// 	x.logger.WithError(err).Errorf("Error parsing spender address")
 	// 	return false
@@ -434,7 +435,7 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth *models.Run
 
 	var pks []crypto.PubKey
 	for _, pk := range config.MultisigPublicKeys {
-		pKey, err := util.PubKeyFromHex(pk)
+		pKey, err := common.CosmosPublicKeyFromHex(pk)
 		if err != nil {
 			logger.Fatalf("Error parsing public key: %s", err)
 		}
@@ -442,7 +443,7 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth *models.Run
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := util.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
+	multisigAddress, err := common.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 	if err != nil {
 		logger.Fatalf("Error creating multisig address: %s", err)
 	}

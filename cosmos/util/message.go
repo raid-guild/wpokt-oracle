@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -54,9 +53,7 @@ func NewMessage(
 	status models.MessageStatus,
 	transactionHash string,
 ) *models.Message {
-	messageIDBytes := content.MessageID()
-	messageIDHex := hex.EncodeToString(messageIDBytes)
-	messageID := Ensure0xPrefix(messageIDHex)
+	messageID := common.HexFromBytes(content.MessageID())
 
 	return &models.Message{
 		OriginTransaction:     originTransaction,

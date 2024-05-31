@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -24,18 +23,18 @@ func NewTransaction(
 	txStatus models.TransactionStatus,
 ) (models.Transaction, error) {
 
-	txHash := Ensure0xPrefix(tx.TxHash)
+	txHash := common.Ensure0xPrefix(tx.TxHash)
 	if len(txHash) != 66 {
 		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", tx.TxHash)
 	}
 
-	txFrom := Ensure0xPrefix(hex.EncodeToString(fromAddress))
-	if len(txFrom) != 42 {
+	txFrom, err := common.AddressHexFromBytes(fromAddress)
+	if err != nil {
 		return models.Transaction{}, fmt.Errorf("invalid from address: %s", txFrom)
 	}
 
-	txTo := Ensure0xPrefix(hex.EncodeToString(toAddress))
-	if len(txTo) != 42 {
+	txTo, err := common.AddressHexFromBytes(toAddress)
+	if err != nil {
 		return models.Transaction{}, fmt.Errorf("invalid to address: %s", txTo)
 	}
 
@@ -82,8 +81,8 @@ func UpdateTransaction(tx *models.Transaction, update bson.M) error {
 func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
-	txTo := Ensure0xPrefix(hex.EncodeToString(toAddress))
-	if len(txTo) != 42 {
+	txTo, err := common.AddressHexFromBytes(toAddress)
+	if err != nil {
 		return txs, fmt.Errorf("invalid to address: %s", txTo)
 	}
 
@@ -93,7 +92,7 @@ func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Tr
 		"to_address": txTo,
 	}
 
-	err := app.DB.FindMany(common.CollectionTransactions, filter, &txs)
+	err = app.DB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }
@@ -101,8 +100,8 @@ func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Tr
 func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
-	txFrom := Ensure0xPrefix(hex.EncodeToString(fromAddress))
-	if len(txFrom) != 42 {
+	txFrom, err := common.AddressHexFromBytes(fromAddress)
+	if err != nil {
 		return txs, fmt.Errorf("invalid from address: %s", txFrom)
 	}
 
@@ -112,7 +111,7 @@ func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]model
 		"from_address": txFrom,
 	}
 
-	err := app.DB.FindMany(common.CollectionTransactions, filter, &txs)
+	err = app.DB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }

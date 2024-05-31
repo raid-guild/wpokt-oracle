@@ -108,13 +108,13 @@ func (x *MessageSignerRunner) ValidateRefund(
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "validate-refund")
 
-	spenderAddress, err := util.BytesFromBech32(x.bech32Prefix, spender)
+	spenderAddress, err := common.AddressBytesFromBech32(x.bech32Prefix, spender)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing spender address")
 		return false
 	}
 
-	recipientAddress, err := util.BytesFromHex(refundDoc.Recipient)
+	recipientAddress, err := common.BytesFromAddressHex(refundDoc.Recipient)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing recipient address")
 		return false
@@ -153,7 +153,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	fromAddress, err := util.BytesFromBech32(x.bech32Prefix, msg.FromAddress)
+	fromAddress, err := common.AddressBytesFromBech32(x.bech32Prefix, msg.FromAddress)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing from address")
 		return false
@@ -164,7 +164,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	toAddress, err := util.BytesFromBech32(x.bech32Prefix, msg.ToAddress)
+	toAddress, err := common.AddressBytesFromBech32(x.bech32Prefix, msg.ToAddress)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing to address")
 		return false
@@ -219,7 +219,7 @@ func (x *MessageSignerRunner) SignRefund(
 	}
 
 	for _, sig := range refundDoc.Signatures {
-		signer, err := util.BytesFromHex(sig.Signer)
+		signer, err := common.BytesFromAddressHex(sig.Signer)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing signer")
 			return false
@@ -305,8 +305,9 @@ func (x *MessageSignerRunner) SignRefund(
 
 	signatures := []models.Signature{}
 	for _, sig := range sigV2s {
-		signer := util.HexFromBytes(sig.PubKey.Address().Bytes())
-		signature := util.HexFromBytes(sig.Data.(*signingtypes.SingleSignatureData).Signature)
+		signer, _ := common.AddressHexFromBytes(sig.PubKey.Address().Bytes())
+
+		signature := common.HexFromBytes(sig.Data.(*signingtypes.SingleSignatureData).Signature)
 
 		signatures = append(signatures, models.Signature{
 			Signer:    signer,
@@ -501,7 +502,7 @@ func (x *MessageSignerRunner) BroadcastRefund(
 		return false
 	}
 
-	txHash0x := util.Ensure0xPrefix(txHash)
+	txHash0x := common.Ensure0xPrefix(txHash)
 
 	update := bson.M{
 		"status":           models.RefundStatusBroadcasted,
@@ -616,7 +617,10 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 
 func (x *MessageSignerRunner) SignRefunds() bool {
 	x.logger.Infof("Signing refunds")
-	addressHex := util.HexFromBytes(x.signerKey.PubKey().Address().Bytes())
+	addressHex, err := common.AddressHexFromBytes(x.signerKey.PubKey().Address().Bytes())
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error getting address hex")
+	}
 	refunds, err := util.GetPendingRefunds(addressHex)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending refunds")
@@ -724,7 +728,7 @@ func NewMessageSigner(mnemonic string, config models.CosmosNetworkConfig) servic
 
 	var pks []crypto.PubKey
 	for _, pk := range config.MultisigPublicKeys {
-		pKey, err := util.PubKeyFromHex(pk)
+		pKey, err := common.CosmosPublicKeyFromHex(pk)
 		if err != nil {
 			logger.WithError(err).Fatalf("Error parsing public key")
 		}
@@ -732,7 +736,7 @@ func NewMessageSigner(mnemonic string, config models.CosmosNetworkConfig) servic
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := util.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
+	multisigAddress, err := common.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Fatalf("Error creating multisig address")
 	}

@@ -39,7 +39,7 @@ func (content *MessageContent) EncodeToBytes() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, content.OriginDomain); err != nil { // 4 bytes
 		return nil, err
 	}
-	senderBytes, err := common.HexAddressToBytes32(content.Sender)
+	senderBytes, err := common.Bytes32FromAddressHex(content.Sender)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (content *MessageContent) EncodeToBytes() ([]byte, error) {
 	if err = binary.Write(buf, binary.BigEndian, content.DestinationDomain); err != nil { // 4 bytes
 		return nil, err
 	}
-	recipientBytes, err := common.HexAddressToBytes32(content.Recipient)
+	recipientBytes, err := common.Bytes32FromAddressHex(content.Recipient)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ type MessageBody struct {
 func (body *MessageBody) EncodeToBytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	recipientBytes, err := common.HexAddressToBytes32(body.RecipientAddress)
+	recipientBytes, err := common.Bytes32FromAddressHex(body.RecipientAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (body *MessageBody) EncodeToBytes() ([]byte, error) {
 	if _, err = buf.Write(amountBytes); err != nil { // 32 bytes
 		return nil, err
 	}
-	senderBytes, err := common.HexAddressToBytes32(body.SenderAddress)
+	senderBytes, err := common.Bytes32FromAddressHex(body.SenderAddress)
 	if err != nil {
 		return nil, err
 	}

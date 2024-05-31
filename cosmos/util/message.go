@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -25,7 +26,6 @@ func NewMessageBody(
 }
 
 func NewMessageContent(
-	version uint8,
 	nonce uint32,
 	originDomain uint32,
 	sender string,
@@ -34,7 +34,7 @@ func NewMessageContent(
 	messageBody models.MessageBody,
 ) models.MessageContent {
 	return models.MessageContent{
-		Version:           version,
+		Version:           common.HyperlaneVersion,
 		Nonce:             nonce,
 		OriginDomain:      originDomain,
 		Sender:            sender,
@@ -47,7 +47,6 @@ func NewMessageContent(
 func NewMessage(
 	originTransaction *primitive.ObjectID,
 	originTransactionHash string,
-	messageID string,
 	content models.MessageContent,
 	signatures []models.Signature,
 	transaction primitive.ObjectID,
@@ -55,6 +54,10 @@ func NewMessage(
 	status models.MessageStatus,
 	transactionHash string,
 ) *models.Message {
+	messageIDBytes := content.MessageID()
+	messageIDHex := hex.EncodeToString(messageIDBytes)
+	messageID := Ensure0xPrefix(messageIDHex)
+
 	return &models.Message{
 		OriginTransaction:     originTransaction,
 		OriginTransactionHash: originTransactionHash,

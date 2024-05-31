@@ -15,3 +15,7 @@ const (
 	CollectionMessages     = "messages"
 	CollectionNodes        = "nodes"
 )
+
+const (
+	HyperlaneVersion = 3
+)

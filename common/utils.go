@@ -3,6 +3,8 @@ package common
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
+	"math/big"
 	"strings"
 
 	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
@@ -24,6 +26,23 @@ const (
 var (
 	defaultAlgo = hd.Secp256k1
 )
+
+func HexAddressToBytes32(addr string) ([]byte, error) {
+	addr = strings.TrimPrefix(addr, "0x")
+	address, err := hex.DecodeString(addr)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	if len(address) != 20 {
+		return []byte{}, fmt.Errorf("invalid address length")
+	}
+
+	addressBig := new(big.Int).SetBytes(address)
+	addressBytes := addressBig.FillBytes(make([]byte, 32)) // pad address to 32 bytes
+
+	return addressBytes, nil
+}
 
 func isHexAddress(s string) bool {
 	s = strings.ToLower(s)

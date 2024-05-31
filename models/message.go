@@ -1,8 +1,15 @@
 package models
 
 import (
+	"bytes"
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"math/big"
 	"time"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -14,6 +21,100 @@ type MessageContent struct {
 	DestinationDomain uint32      `json:"destination_domain" bson:"destination_domain"`
 	Recipient         string      `json:"recipient" bson:"recipient"`
 	MessageBody       MessageBody `json:"message_body" bson:"message_body"`
+}
+
+func (content *MessageContent) MessageID() []byte {
+	return []byte{}
+}
+
+func (content *MessageContent) EncodeToBytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	if err := binary.Write(buf, binary.BigEndian, content.Version); err != nil { // 1 byte
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.BigEndian, content.Nonce); err != nil { // 4 bytes
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.BigEndian, content.OriginDomain); err != nil { // 4 bytes
+		return nil, err
+	}
+	senderBytes, err := common.HexAddressToBytes32(content.Sender)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = buf.Write(senderBytes[:]); err != nil { // 32 bytes
+		return nil, err
+	}
+	if err = binary.Write(buf, binary.BigEndian, content.DestinationDomain); err != nil { // 4 bytes
+		return nil, err
+	}
+	recipientBytes, err := common.HexAddressToBytes32(content.Recipient)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = buf.Write(recipientBytes[:]); err != nil { // 32 bytes
+		return nil, err
+	}
+	bodyBytes, err := content.MessageBody.EncodeToBytes()
+	if err != nil {
+		return nil, err
+	}
+	if _, err = buf.Write(bodyBytes); err != nil { // 96 bytes
+		return nil, err
+	}
+
+	// total 173 bytes
+
+	return buf.Bytes(), nil
+}
+
+func (content *MessageContent) DecodeFromBytes(data []byte) error {
+	*content = MessageContent{}
+
+	if len(data) != 173 {
+		return fmt.Errorf("invalid data length")
+	}
+
+	buf := bytes.NewReader(data)
+
+	if err := binary.Read(buf, binary.BigEndian, &content.Version); err != nil {
+		return err
+	}
+	if err := binary.Read(buf, binary.BigEndian, &content.Nonce); err != nil {
+		return err
+	}
+	if err := binary.Read(buf, binary.BigEndian, &content.OriginDomain); err != nil {
+		return err
+	}
+	senderBytes := make([]byte, 32)
+	if _, err := io.ReadFull(buf, senderBytes); err != nil {
+		return err
+	}
+	sender := "0x" + hex.EncodeToString(senderBytes[12:32])
+	content.Sender = sender
+	if err := binary.Read(buf, binary.BigEndian, &content.DestinationDomain); err != nil {
+		return err
+	}
+	recipientBytes := make([]byte, 32)
+	if _, err := io.ReadFull(buf, recipientBytes); err != nil {
+		return err
+	}
+	recipient := "0x" + hex.EncodeToString(recipientBytes[12:32])
+	content.Recipient = recipient
+	bodyBytes := make([]byte, 96)
+	if _, err := io.ReadFull(buf, bodyBytes); err != nil {
+		return err
+	}
+	if err := content.MessageBody.DecodeFromBytes(bodyBytes); err != nil {
+		return err
+	}
+
+	if buf.Len() != 0 {
+		return fmt.Errorf("unexpected data")
+	}
+
+	return nil
 }
 
 type MessageStatus string
@@ -45,6 +146,74 @@ type MessageBody struct {
 	SenderAddress    string `json:"sender_address" bson:"sender_address"`
 	Amount           uint64 `json:"amount" bson:"amount"`
 	RecipientAddress string `json:"recipient_address" bson:"recipient_address"`
+}
+
+func (body *MessageBody) EncodeToBytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+
+	recipientBytes, err := common.HexAddressToBytes32(body.RecipientAddress)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = buf.Write(recipientBytes[:]); err != nil { // 32 bytes
+		return nil, err
+	}
+	amount := new(big.Int).SetUint64(body.Amount)
+	amountBytes := amount.FillBytes(make([]byte, 32))
+	if _, err = buf.Write(amountBytes); err != nil { // 32 bytes
+		return nil, err
+	}
+	senderBytes, err := common.HexAddressToBytes32(body.SenderAddress)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := buf.Write(senderBytes[:]); err != nil { // 32 bytes
+		return nil, err
+	}
+
+	// total 96 bytes
+
+	return buf.Bytes(), nil
+}
+
+func (body *MessageBody) DecodeFromBytes(data []byte) error {
+	*body = MessageBody{}
+	if len(data) != 96 {
+		return fmt.Errorf("invalid data length")
+	}
+
+	buf := bytes.NewReader(data)
+
+	var recipientBytes [32]byte
+	if _, err := io.ReadFull(buf, recipientBytes[:]); err != nil {
+		return err
+	}
+
+	amountBytes := make([]byte, 32)
+	if _, err := io.ReadFull(buf, amountBytes); err != nil {
+		return err
+	}
+	amount := new(big.Int).SetBytes(amountBytes)
+
+	var senderBytes [32]byte
+	if _, err := io.ReadFull(buf, senderBytes[:]); err != nil {
+		return err
+	}
+
+	if buf.Len() != 0 {
+		return fmt.Errorf("unexpected data")
+	}
+
+	recipient := "0x" + hex.EncodeToString(recipientBytes[12:32])
+	sender := "0x" + hex.EncodeToString(senderBytes[12:32])
+
+	*body = MessageBody{
+		RecipientAddress: recipient,
+		Amount:           amount.Uint64(),
+		SenderAddress:    sender,
+	}
+
+	return nil
 }
 
 type Signature struct {

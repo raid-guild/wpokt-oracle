@@ -22,7 +22,7 @@ import (
 
 var logger *log.Entry
 
-func main() {
+func init() {
 	logFormat := strings.ToLower(os.Getenv("LOGGER_FORMAT"))
 	if logFormat == "text" {
 		log.SetFormatter(&log.TextFormatter{})
@@ -38,7 +38,9 @@ func main() {
 	}
 
 	logger = log.WithFields(log.Fields{"module": "main"})
+}
 
+func parseFlags() (string, string) {
 	var yamlPath string
 	var envPath string
 	flag.StringVar(&yamlPath, "yaml", "", "path to yaml file")
@@ -53,7 +55,7 @@ func main() {
 			logger.
 				WithFields(log.Fields{"error": err}).
 				Fatal("Could not get absolute path for yaml file")
-			return
+			panic(err)
 		}
 		logger.
 			WithFields(log.Fields{"yaml": absYamlPath}).
@@ -65,10 +67,16 @@ func main() {
 		absEnvPath, err = filepath.Abs(envPath)
 		if err != nil {
 			logger.WithFields(log.Fields{"error": err}).Fatal("Could not get absolute path for env file")
-			return
+			panic(err)
 		}
 		logger.WithFields(log.Fields{"env": absEnvPath}).Debug("Found env file")
 	}
+
+	return absYamlPath, absEnvPath
+}
+
+func main() {
+	absYamlPath, absEnvPath := parseFlags()
 
 	config := cfg.InitConfig(absYamlPath, absEnvPath)
 	app.InitLogger(config.Logger)
@@ -82,6 +90,7 @@ func main() {
 	healthService := health.NewHealthService(config, &wg)
 
 	var nodeHealth *models.Node
+	var err error
 
 	if config.HealthCheck.ReadLastHealth {
 		nodeHealth, err = healthService.GetLastHealth()
@@ -107,7 +116,6 @@ func main() {
 	for _, service := range services {
 		go service.Start()
 	}
-
 	go healthService.Start(services)
 
 	logger.Info("Server started")
@@ -123,12 +131,12 @@ func main() {
 	for _, service := range services {
 		service.Stop()
 	}
-
 	healthService.Stop()
 
 	wg.Wait()
 
 	app.DB.Disconnect()
+
 	logger.Info("Server stopped")
 }
 

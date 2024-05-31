@@ -51,8 +51,8 @@ func NewSendTx(
 
 	finalAmount := amountIncludingFees.Sub(feeAmount)
 
-	fromAddress, _ := Bech32FromAddressBytes(bech32Prefix, fromAddr)
-	toAddress, _ := Bech32FromAddressBytes(bech32Prefix, toAddr)
+	fromAddress, _ := Bech32FromBytes(bech32Prefix, fromAddr)
+	toAddress, _ := Bech32FromBytes(bech32Prefix, toAddr)
 
 	msg := &banktypes.MsgSend{FromAddress: fromAddress, ToAddress: toAddress, Amount: sdk.NewCoins(finalAmount)}
 

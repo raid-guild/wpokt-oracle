@@ -43,7 +43,6 @@ func InitLogger(config models.LoggerConfig) {
 	}
 
 	logger.
-		WithField("level", logLevel).
 		WithField("format", logFormat).
 		Info("Logger initialized")
 }

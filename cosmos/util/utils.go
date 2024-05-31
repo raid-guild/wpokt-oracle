@@ -12,14 +12,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
-	"github.com/dan13ram/wpokt-oracle/models"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-
-	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -32,27 +26,33 @@ var (
 	DefaultAlgo = hd.Secp256k1
 )
 
-func AddressBytesFromBech32(bech32Prefix string, address string) (addr []byte, err error) {
+func BytesFromBech32(bech32Prefix string, address string) (addr []byte, err error) {
 	addrCdc := addresscodec.NewBech32Codec(bech32Prefix)
 	return addrCdc.StringToBytes(address)
 }
 
-func AddressBytesFromHexString(address string) ([]byte, error) {
-	if len(address) == 0 {
-		return nil, errors.New("decoding address from hex string failed: empty address")
+func BytesFromHex(hexStr string) ([]byte, error) {
+	if len(hexStr) == 0 {
+		return nil, errors.New("decoding hex string failed: empty hex string")
 	}
-
-	if address[0:2] == "0x" || address[0:2] == "0X" {
-		address = address[2:]
-	}
-
-	return hex.DecodeString(address)
+	hexStr = strings.ToLower(hexStr)
+	hexStr = strings.TrimPrefix(hexStr, "0x")
+	return hex.DecodeString(hexStr)
 }
 
-// Bech32FromAddressBytes returns a bech32 representation of address bytes.
-// Returns an empty string if the byte slice is 0-length. Returns an error if the bech32 conversion
-// fails or the prefix is empty.
-func Bech32FromAddressBytes(bech32Prefix string, bs []byte) (string, error) {
+func Ensure0xPrefix(str string) string {
+	str = strings.ToLower(str)
+	if !strings.HasPrefix(str, "0x") {
+		return "0x" + str
+	}
+	return str
+}
+
+func HexFromBytes(address []byte) string {
+	return Ensure0xPrefix(hex.EncodeToString(address))
+}
+
+func Bech32FromBytes(bech32Prefix string, bs []byte) (string, error) {
 	if len(bs) == 0 {
 		return "", nil
 	}
@@ -60,8 +60,6 @@ func Bech32FromAddressBytes(bech32Prefix string, bs []byte) (string, error) {
 }
 
 func PrivKeyFromMnemonic(mnemonic string) (crypto.PrivKey, error) {
-
-	// create master key and derive first key for keyring
 	derivedPriv, err := DefaultAlgo.Derive()(mnemonic, DefaultBIP39Passphrase, DefaultCosmosHDPath)
 	if err != nil {
 		return nil, err
@@ -84,9 +82,7 @@ func PubKeyFromHex(pubKeyHex string) (crypto.PubKey, error) {
 	return pubKey, err
 }
 
-// CoinsToBigInt converts sdk.Coins to big.Int
 func CoinsToBigInt(coins sdk.Coins) (*big.Int, error) {
-	// For simplicity, assume coins contain only one type of coin
 	if coins.Len() == 0 {
 		return big.NewInt(0), nil
 	}
@@ -104,98 +100,4 @@ func CoinsToBigInt(coins sdk.Coins) (*big.Int, error) {
 	}
 
 	return bigIntAmount, nil
-}
-
-func ParseMessageSenderEvent(
-	events []abci.Event,
-) (string, error) {
-	for _, event := range events {
-		if strings.EqualFold(event.Type, "message") {
-			for _, attr := range event.Attributes {
-				if strings.EqualFold(string(attr.Key), "sender") {
-					sender := string(attr.Value)
-					return sender, nil
-				}
-			}
-		}
-	}
-	return "", fmt.Errorf("no sender found in message events")
-}
-
-func ParseCoinsReceivedEvents(
-	denom string,
-	receiver string, events []abci.Event,
-) (sdk.Coin, error) {
-	total := sdk.NewCoin(denom, math.NewInt(0))
-	for _, event := range events {
-		if strings.EqualFold(event.Type, "coin_received") {
-			for _, attr := range event.Attributes {
-				if strings.EqualFold(string(attr.Key), "receiver") && strings.EqualFold(string(attr.Value), receiver) {
-					for _, attr := range event.Attributes {
-						if strings.EqualFold(string(attr.Key), "amount") {
-							amountStr := string(attr.Value)
-							amount, err := sdk.ParseCoinNormalized(amountStr)
-							if err != nil {
-								return total, fmt.Errorf("unable to parse coin amount: %v", err)
-							}
-							if amount.Denom != denom {
-								return total, fmt.Errorf("invalid coin denom: %s", amount.Denom)
-							}
-							total = total.Add(amount)
-						}
-					}
-				}
-			}
-		}
-	}
-	return total, nil
-}
-
-func ParseCoinsSpentEvents(
-	denom string,
-	events []abci.Event,
-) (string, sdk.Coin, error) {
-	total := sdk.NewCoin(denom, math.NewInt(0))
-	spender := ""
-	for _, event := range events {
-		if strings.EqualFold(event.Type, "coin_spent") {
-			for _, attr := range event.Attributes {
-				if strings.EqualFold(string(attr.Key), "spender") {
-					newSpender := string(attr.Value)
-					if spender != "" && !strings.EqualFold(spender, newSpender) {
-						return spender, total, fmt.Errorf("multiple spenders found in coin spent events")
-					}
-					spender = newSpender
-				}
-				if strings.EqualFold(string(attr.Key), "amount") {
-					amountStr := string(attr.Value)
-					amount, err := sdk.ParseCoinNormalized(amountStr)
-					if err != nil {
-						return spender, total, err
-					}
-					if amount.Denom != denom {
-						return spender, total, fmt.Errorf("invalid coin denom: %s", amount.Denom)
-					}
-					total = total.Add(amount)
-				}
-			}
-		}
-	}
-	return spender, total, nil
-}
-
-// hash the string chainID to get a uint64 chainDomain
-func getChainDomain(chainID string) uint32 {
-	chainHash := ethcrypto.Keccak256([]byte(chainID))
-	chainDomain := new(big.Int).SetBytes(chainHash).Uint64()
-	return uint32(chainDomain)
-}
-
-func ParseChain(config models.CosmosNetworkConfig) models.Chain {
-	return models.Chain{
-		ChainID:     config.ChainID,
-		ChainDomain: getChainDomain(config.ChainID),
-		ChainName:   config.ChainName,
-		ChainType:   models.ChainTypeCosmos,
-	}
 }

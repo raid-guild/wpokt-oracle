@@ -3,6 +3,7 @@ package common
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"strings"
 
 	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
@@ -24,14 +25,9 @@ var (
 	defaultAlgo = hd.Secp256k1
 )
 
-func has0xPrefix(str string) bool {
-	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
-}
-
 func isHexAddress(s string) bool {
-	if has0xPrefix(s) {
-		s = s[2:]
-	}
+	s = strings.ToLower(s)
+	s = strings.TrimPrefix(s, "0x")
 	return len(s) == 2*AddressLength && isHex(s)
 }
 
@@ -53,9 +49,8 @@ func isHex(str string) bool {
 }
 
 func isZeroHex(s string) bool {
-	if has0xPrefix(s) {
-		s = s[2:]
-	}
+	s = strings.ToLower(s)
+	s = strings.TrimPrefix(s, "0x")
 	for _, c := range []byte(s) {
 		if c != '0' {
 			return false
@@ -64,8 +59,9 @@ func isZeroHex(s string) bool {
 	return true
 }
 
-func IsValidEthereumAddress(address string) bool {
-	return has0xPrefix(address) && isHexAddress(address) && !isZeroHex(address)
+func IsValidEthereumAddress(s string) bool {
+	s = strings.ToLower(s)
+	return strings.HasPrefix(s, "0x") && isHexAddress(s) && !isZeroHex(s)
 }
 
 func IsValidBech32Address(bech32Prefix string, address string) bool {
@@ -75,7 +71,8 @@ func IsValidBech32Address(bech32Prefix string, address string) bool {
 }
 
 func IsValidCosmosPublicKey(s string) bool {
-	return !has0xPrefix(s) && isHex(s) && len(s) == 2*CosmosPublicKeyLength && !isZeroHex(s)
+	s = strings.ToLower(s)
+	return !strings.HasPrefix(s, "0x") && isHex(s) && len(s) == 2*CosmosPublicKeyLength && !isZeroHex(s)
 }
 
 func CosmosPrivateKeyFromMnemonic(mnemonic string) (types.PrivKey, error) {
@@ -124,6 +121,9 @@ func EthereumPrivateKeyFromMnemonic(mnemonic string) (*ecdsa.PrivateKey, error) 
 
 func EthereumAddressFromMnemonic(mnemonic string) (string, error) {
 	wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+	if err != nil {
+		return "", err
+	}
 
 	path := hdwallet.MustParseDerivationPath(DefaultETHHDPath)
 	account, err := wallet.Derive(path, false)

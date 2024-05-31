@@ -75,7 +75,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 		x.logger.WithError(err).Errorf("Error parsing message sender")
 		return false
 	}
-	senderAddress, err := util.AddressBytesFromBech32(x.bech32Prefix, sender)
+	senderAddress, err := util.BytesFromBech32(x.bech32Prefix, sender)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error parsing sender address")
 		return false
@@ -83,7 +83,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 
 	if coinsSpender != "" {
 		var spenderAddress []byte
-		spenderAddress, err = util.AddressBytesFromBech32(x.bech32Prefix, coinsSpender)
+		spenderAddress, err = util.BytesFromBech32(x.bech32Prefix, coinsSpender)
 		if err != nil {
 			x.logger.WithError(err).Errorf("Error parsing spender address")
 			return false
@@ -94,7 +94,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 		}
 	}
 
-	transaction, err := util.CreateTransaction(tx, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
+	transaction, err := util.NewTransaction(tx, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("status", txStatus).
@@ -139,7 +139,7 @@ func (x *MessageMonitorRunner) CreateRefund(
 	amount sdk.Coin,
 ) bool {
 
-	toAddr, err := util.AddressBytesFromBech32(x.bech32Prefix, spender)
+	toAddr, err := util.BytesFromBech32(x.bech32Prefix, spender)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error parsing spender address")
 		return false
@@ -159,7 +159,7 @@ func (x *MessageMonitorRunner) CreateRefund(
 		return false
 	}
 
-	refund, err := util.CreateRefund(txRes, txDoc, toAddr, amount, string(txBody))
+	refund, err := util.NewRefund(txRes, txDoc, toAddr, amount, string(txBody))
 
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating refund")
@@ -185,9 +185,21 @@ func (x *MessageMonitorRunner) CreateMessage(
 	tx *sdk.TxResponse,
 	txDoc *models.Transaction,
 	spender string,
-	amount sdk.Coin,
+	amountCoin sdk.Coin,
 	memo models.MintMemo,
 ) bool {
+	// senderAddr, err := util.BytesFromBech32(x.bech32Prefix, spender)
+	// if err != nil {
+	// 	x.logger.WithError(err).Errorf("Error parsing spender address")
+	// 	return false
+	// }
+	// recipientAddr, err := util.BytesFromHex(memo.Address)
+	// if err != nil {
+	// 	x.logger.WithError(err).Errorf("Error parsing recipient address")
+	// 	return false
+	// }
+	// amount := amountCoin.Amount.Uint64()
+
 	return true
 }
 
@@ -430,7 +442,7 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, lastHealth *models.Run
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := util.Bech32FromAddressBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
+	multisigAddress, err := util.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 	if err != nil {
 		logger.Fatalf("Error creating multisig address: %s", err)
 	}

@@ -98,7 +98,7 @@ func (x *MessageRelayerRunner) CreateTransaction(
 
 	txStatus := models.TransactionStatusPending
 
-	toAddress, err := util.AddressBytesFromHexString(refundDoc.Recipient)
+	toAddress, err := util.BytesFromHex(refundDoc.Recipient)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing recipient address")
 		return false
@@ -112,7 +112,7 @@ func (x *MessageRelayerRunner) CreateTransaction(
 		return false
 	}
 
-	transaction, err := util.CreateTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
+	transaction, err := util.NewTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error creating transaction")
@@ -306,7 +306,7 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := util.Bech32FromAddressBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
+	multisigAddress, err := util.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Fatalf("Error creating multisig address")
 	}

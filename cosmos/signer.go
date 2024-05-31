@@ -108,13 +108,13 @@ func (x *MessageSignerRunner) ValidateRefund(
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "validate-refund")
 
-	spenderAddress, err := util.AddressBytesFromBech32(x.bech32Prefix, spender)
+	spenderAddress, err := util.BytesFromBech32(x.bech32Prefix, spender)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing spender address")
 		return false
 	}
 
-	recipientAddress, err := util.AddressBytesFromHexString(refundDoc.Recipient)
+	recipientAddress, err := util.BytesFromHex(refundDoc.Recipient)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing recipient address")
 		return false
@@ -153,7 +153,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	fromAddress, err := util.AddressBytesFromBech32(x.bech32Prefix, msg.FromAddress)
+	fromAddress, err := util.BytesFromBech32(x.bech32Prefix, msg.FromAddress)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing from address")
 		return false
@@ -164,7 +164,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	toAddress, err := util.AddressBytesFromBech32(x.bech32Prefix, msg.ToAddress)
+	toAddress, err := util.BytesFromBech32(x.bech32Prefix, msg.ToAddress)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing to address")
 		return false
@@ -219,7 +219,7 @@ func (x *MessageSignerRunner) SignRefund(
 	}
 
 	for _, sig := range refundDoc.Signatures {
-		signer, err := util.AddressBytesFromHexString(sig.Signer)
+		signer, err := util.BytesFromHex(sig.Signer)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing signer")
 			return false
@@ -732,7 +732,7 @@ func NewMessageSigner(mnemonic string, config models.CosmosNetworkConfig) servic
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := util.Bech32FromAddressBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
+	multisigAddress, err := util.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Fatalf("Error creating multisig address")
 	}

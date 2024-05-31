@@ -112,7 +112,7 @@ func (c *cosmosClient) GetLatestBlockHeight() (int64, error) {
 }
 
 func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error) {
-	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
+	_, err := util.BytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)
 	}
@@ -123,7 +123,7 @@ func (c *cosmosClient) GetTxsSentToAddressAfterHeight(address string, height uin
 }
 
 func (c *cosmosClient) GetTxsSentFromAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error) {
-	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
+	_, err := util.BytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)
 	}
@@ -335,7 +335,7 @@ func (c *cosmosClient) getAccountRPC(address string) (*auth.BaseAccount, error) 
 }
 
 func (c *cosmosClient) GetAccount(address string) (*auth.BaseAccount, error) {
-	_, err := util.AddressBytesFromBech32(c.Bech32Prefix, address)
+	_, err := util.BytesFromBech32(c.Bech32Prefix, address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid bech32 address: %s", err)
 	}

@@ -6,31 +6,54 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 func NewMessageBody(
-	senderAddress string,
+	senderAddress []byte,
 	amount uint64,
-	recipientAddress string,
-) models.MessageBody {
-	return models.MessageBody{
-		SenderAddress:    senderAddress,
-		Amount:           amount,
-		RecipientAddress: recipientAddress,
+	recipientAddress []byte,
+) (models.MessageBody, error) {
+
+	sender, err := common.AddressHexFromBytes(senderAddress)
+	if err != nil {
+		return models.MessageBody{}, err
 	}
+
+	recipient, err := common.AddressHexFromBytes(recipientAddress)
+	if err != nil {
+		return models.MessageBody{}, err
+	}
+
+	return models.MessageBody{
+		SenderAddress:    sender,
+		Amount:           amount,
+		RecipientAddress: recipient,
+	}, nil
 }
 
 func NewMessageContent(
 	nonce uint32,
 	originDomain uint32,
-	sender string,
+	senderAddress []byte,
 	destinationDomain uint32,
-	recipient string,
+	recipientAddress []byte,
 	messageBody models.MessageBody,
-) models.MessageContent {
+) (models.MessageContent, error) {
+
+	sender, err := common.AddressHexFromBytes(senderAddress)
+	if err != nil {
+		return models.MessageContent{}, err
+	}
+
+	recipient, err := common.AddressHexFromBytes(recipientAddress)
+	if err != nil {
+		return models.MessageContent{}, err
+	}
+
 	return models.MessageContent{
 		Version:           common.HyperlaneVersion,
 		Nonce:             nonce,
@@ -39,34 +62,33 @@ func NewMessageContent(
 		DestinationDomain: destinationDomain,
 		Recipient:         recipient,
 		MessageBody:       messageBody,
-	}
+	}, nil
 }
 
 func NewMessage(
-	originTransaction *primitive.ObjectID,
-	originTransactionHash string,
+	originTxDoc *models.Transaction,
 	content models.MessageContent,
-	signatures []models.Signature,
-	transaction primitive.ObjectID,
-	sequence uint64,
 	status models.MessageStatus,
-	transactionHash string,
-) *models.Message {
-	messageID := common.HexFromBytes(content.MessageID())
+) (models.Message, error) {
+	messageIDBytes, err := content.MessageID()
+	if err != nil {
+		return models.Message{}, err
+	}
+	messageID := common.HexFromBytes(messageIDBytes)
 
-	return &models.Message{
-		OriginTransaction:     originTransaction,
-		OriginTransactionHash: originTransactionHash,
+	return models.Message{
+		OriginTransaction:     originTxDoc.ID,
+		OriginTransactionHash: originTxDoc.Hash,
 		MessageID:             messageID,
 		Content:               content,
-		Signatures:            signatures,
-		Transaction:           transaction,
-		Sequence:              sequence,
+		Signatures:            []models.Signature{},
+		Transaction:           nil,
+		Sequence:              nil,
 		Status:                status,
-		TransactionHash:       transactionHash,
+		TransactionHash:       "",
 		CreatedAt:             time.Now(),
 		UpdatedAt:             time.Now(),
-	}
+	}, nil
 }
 
 func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
@@ -78,4 +100,20 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 		bson.M{"_id": messageID},
 		bson.M{"$set": update},
 	)
+}
+
+func InsertMessage(tx models.Message) (primitive.ObjectID, error) {
+	insertedID, err := mongoDB.InsertOne(common.CollectionMessages, tx)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			var messageDoc models.Message
+			if err = mongoDB.FindOne(common.CollectionMessages, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, &messageDoc); err != nil {
+				return insertedID, err
+			}
+			return *messageDoc.ID, nil
+		}
+		return insertedID, err
+	}
+
+	return insertedID, nil
 }

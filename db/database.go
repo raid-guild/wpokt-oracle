@@ -290,8 +290,11 @@ func (d *MongoDatabase) AggregateOne(collection string, pipeline interface{}, re
 		}
 	}
 
-	if num != 1 {
+	if num > 1 {
 		return fmt.Errorf("expected 1 result, got %d", num)
+	}
+	if num == 0 {
+		return mongo.ErrNoDocuments
 	}
 
 	if err := cursor.Err(); err != nil {

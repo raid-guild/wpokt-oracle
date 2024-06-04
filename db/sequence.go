@@ -9,11 +9,13 @@ import (
 )
 
 type ResultMaxSequence struct {
-	MaxSequence int `bson:"max_sequence"`
+	MaxSequence uint64 `bson:"max_sequence"`
 }
 
-func FindMaxSequenceFromRefunds() (uint64, error) {
+func FindMaxSequenceFromRefunds() (*uint64, error) {
+	filter := bson.M{"sequence": bson.M{"$ne": nil}}
 	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: filter}},
 		{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: nil},
 			{Key: "max_sequence", Value: bson.D{{Key: "$max", Value: "$sequence"}}},
@@ -23,14 +25,19 @@ func FindMaxSequenceFromRefunds() (uint64, error) {
 	var result ResultMaxSequence
 	err := mongoDB.AggregateOne(common.CollectionRefunds, pipeline, &result)
 	if err != nil {
-		return 0, err
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
 	}
 
-	return uint64(result.MaxSequence), nil
+	maxSequence := uint64(result.MaxSequence)
+
+	return &maxSequence, nil
 }
 
-func FindMaxSequenceFromMessages(chain models.Chain) (uint64, error) {
-	filter := bson.M{"chain": chain}
+func FindMaxSequenceFromMessages(chain models.Chain) (*uint64, error) {
+	filter := bson.M{"chain": chain, "sequence": bson.M{"$ne": nil}}
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: filter}},
 		{{Key: "$group", Value: bson.D{
@@ -42,24 +49,41 @@ func FindMaxSequenceFromMessages(chain models.Chain) (uint64, error) {
 	var result ResultMaxSequence
 	err := mongoDB.AggregateOne(common.CollectionMessages, pipeline, &result)
 	if err != nil {
-		return 0, err
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
 	}
 
-	return uint64(result.MaxSequence), nil
+	maxSequence := uint64(result.MaxSequence)
+
+	return &maxSequence, nil
 }
 
-func FindMaxSequence(chain models.Chain) (uint64, error) {
+func FindMaxSequence(chain models.Chain) (*uint64, error) {
 	maxSequenceRefunds, err := FindMaxSequenceFromRefunds()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	maxSequenceMessages, err := FindMaxSequenceFromMessages(chain)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	if maxSequenceRefunds > maxSequenceMessages {
+	if maxSequenceRefunds == nil && maxSequenceMessages == nil {
+		return nil, nil
+	}
+
+	if maxSequenceRefunds == nil {
+		return maxSequenceMessages, nil
+	}
+
+	if maxSequenceMessages == nil {
+		return maxSequenceRefunds, nil
+	}
+
+	if *maxSequenceRefunds > *maxSequenceMessages {
 		return maxSequenceRefunds, nil
 	}
 

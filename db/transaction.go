@@ -53,12 +53,11 @@ func InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
 	insertedID, err := mongoDB.InsertOne(common.CollectionTransactions, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			var refundDoc models.Transaction
-			err := mongoDB.FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, refundDoc)
-			if err != nil {
+			var txDoc models.Transaction
+			if err = mongoDB.FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, &txDoc); err != nil {
 				return insertedID, err
 			}
-			return *refundDoc.ID, nil
+			return *txDoc.ID, nil
 		}
 		return insertedID, err
 	}
@@ -87,6 +86,25 @@ func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Tr
 
 	filter := bson.M{
 		"status":     models.TransactionStatusPending,
+		"chain":      chain,
+		"to_address": txTo,
+	}
+
+	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)
+
+	return txs, err
+}
+
+func GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
+	txs := []models.Transaction{}
+
+	txTo, err := common.AddressHexFromBytes(toAddress)
+	if err != nil {
+		return txs, fmt.Errorf("invalid to address: %s", txTo)
+	}
+
+	filter := bson.M{
+		"status":     models.TransactionStatusConfirmed,
 		"chain":      chain,
 		"to_address": txTo,
 	}

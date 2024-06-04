@@ -251,6 +251,7 @@ func (x *MessageRelayerRunner) RelayTransactions() bool {
 		update["status"] = models.TransactionStatusConfirmed
 		confirmed := x.UpdateTransaction(&txDoc, update)
 
+		// TODO: Handle updating refund and message status in a separate function ?
 		if confirmed {
 			if txDoc.Refund != nil {
 				success = success && x.UpdateRefund(txDoc.Refund, bson.M{"status": models.RefundStatusSuccess})

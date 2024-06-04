@@ -7,65 +7,72 @@ import (
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
+	log "github.com/sirupsen/logrus"
 )
 
 func NewCosmosChainService(
-	mnemonic string,
-	config models.CosmosNetworkConfig,
+	config models.Config,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
 ) service.ChainServiceInterface {
 
+	if len(config.CosmosNetworks) != 1 {
+		log.Fatal("Only one cosmos network is supported")
+		return nil
+	}
+
+	cosmosConfig := config.CosmosNetworks[0]
+
 	var chainHealth models.ChainServiceHealth
 	if nodeHealth != nil {
 		for _, health := range nodeHealth.Health {
-			if health.Chain.ChainID == config.ChainID && health.Chain.ChainType == models.ChainTypeCosmos {
+			if health.Chain.ChainID == cosmosConfig.ChainID && health.Chain.ChainType == models.ChainTypeCosmos {
 				chainHealth = health
 				break
 			}
 		}
 	}
 
-	chain := util.ParseChain(config)
+	chain := util.ParseChain(cosmosConfig)
 
 	var monitorRunner service.Runner
 	monitorRunner = &service.EmptyRunner{}
-	if config.MessageMonitor.Enabled {
-		monitorRunner = NewMessageMonitor(config, chainHealth.MessageMonitor)
+	if cosmosConfig.MessageMonitor.Enabled {
+		monitorRunner = NewMessageMonitor(cosmosConfig, config.EthereumNetworks, chainHealth.MessageMonitor)
 	}
 	monitorRunnerService := service.NewRunnerService(
 		"monitor",
 		monitorRunner,
-		config.MessageMonitor.Enabled,
-		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
+		cosmosConfig.MessageMonitor.Enabled,
+		time.Duration(cosmosConfig.MessageMonitor.IntervalMS)*time.Millisecond,
 		chain,
 	)
 
 	var signerRunner service.Runner
 	signerRunner = &service.EmptyRunner{}
-	if config.MessageSigner.Enabled {
-		signerRunner = NewMessageSigner(mnemonic, config)
+	if cosmosConfig.MessageSigner.Enabled {
+		signerRunner = NewMessageSigner(config.Mnemonic, cosmosConfig)
 	}
 
 	signerRunnerService := service.NewRunnerService(
 		"signer",
 		signerRunner,
-		config.MessageSigner.Enabled,
-		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
+		cosmosConfig.MessageSigner.Enabled,
+		time.Duration(cosmosConfig.MessageSigner.IntervalMS)*time.Millisecond,
 		chain,
 	)
 
 	var relayerRunner service.Runner
 	relayerRunner = &service.EmptyRunner{}
-	if config.MessageRelayer.Enabled {
-		relayerRunner = NewMessageRelayer(config, chainHealth.MessageRelayer)
+	if cosmosConfig.MessageRelayer.Enabled {
+		relayerRunner = NewMessageRelayer(cosmosConfig, chainHealth.MessageRelayer)
 	}
 
 	relayerRunnerService := service.NewRunnerService(
 		"relayer",
 		relayerRunner,
-		config.MessageRelayer.Enabled,
-		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
+		cosmosConfig.MessageRelayer.Enabled,
+		time.Duration(cosmosConfig.MessageRelayer.IntervalMS)*time.Millisecond,
 		chain,
 	)
 

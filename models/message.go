@@ -11,6 +11,8 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 type MessageContent struct {
@@ -23,8 +25,14 @@ type MessageContent struct {
 	MessageBody       MessageBody `json:"message_body" bson:"message_body"`
 }
 
-func (content *MessageContent) MessageID() []byte {
-	return []byte{}
+func (content *MessageContent) MessageID() ([]byte, error) {
+	encoded, err := content.EncodeToBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	hash := ethcrypto.Keccak256(encoded)
+	return hash, nil
 }
 
 func (content *MessageContent) EncodeToBytes() ([]byte, error) {
@@ -133,11 +141,12 @@ type Message struct {
 	OriginTransactionHash string              `json:"origin_transaction_hash" bson:"origin_transaction_hash"`
 	MessageID             string              `json:"message_id" bson:"message_id"`
 	Content               MessageContent      `json:"content" bson:"content"`
+	TransactionBody       string              `json:"transaction_body" bson:"transaction_body"`
 	Signatures            []Signature         `json:"signatures" bson:"signatures"`
-	Transaction           primitive.ObjectID  `json:"transaction" bson:"transaction"`
-	Sequence              uint64              `json:"sequence" bson:"sequence"` // account sequence for submitting the transaction
-	Status                MessageStatus       `json:"status" bson:"status"`
+	Transaction           *primitive.ObjectID `json:"transaction" bson:"transaction"`
+	Sequence              *uint64             `json:"sequence" bson:"sequence"` // account sequence for submitting the transaction
 	TransactionHash       string              `json:"transaction_hash" bson:"transaction_hash"`
+	Status                MessageStatus       `json:"status" bson:"status"`
 	CreatedAt             time.Time           `bson:"created_at" json:"created_at"`
 	UpdatedAt             time.Time           `bson:"updated_at" json:"updated_at"`
 }

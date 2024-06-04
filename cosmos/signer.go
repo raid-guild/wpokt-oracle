@@ -202,6 +202,7 @@ func (x *MessageSignerRunner) SignRefund(
 
 	valid := x.ValidateRefund(txResponse, refundDoc, spender, amount)
 	if !valid {
+		logger.Warnf("Invalid refund")
 		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
 	}
 
@@ -213,10 +214,20 @@ func (x *MessageSignerRunner) SignRefund(
 		var err error
 		maxSequence, err := db.FindMaxSequence(x.chain)
 		if err != nil {
-			logger.WithError(err).Error("Error getting sequence")
+			logger.WithError(err).Error("Error getting sequence from db")
 			return false
 		}
-		sequence = maxSequence + 1
+		if maxSequence != nil {
+			sequence = *maxSequence + 1
+		} else {
+			account, err := x.client.GetAccount(x.multisigAddress)
+			if err != nil {
+				logger.WithError(err).Error("Error getting account")
+				return false
+			}
+			sequence = account.Sequence
+		}
+		log.Infof("Sequence: %d", sequence)
 	}
 
 	for _, sig := range refundDoc.Signatures {
@@ -284,10 +295,14 @@ func (x *MessageSignerRunner) SignRefund(
 		return false
 	}
 
-	sigV2s, err := txBuilder.GetTx().GetSignaturesV2()
-	if err != nil {
-		logger.WithError(err).Error("Error getting signatures")
-		return false
+	var sigV2s []signingtypes.SignatureV2
+
+	if len(refundDoc.Signatures) > 0 {
+		sigV2s, err = txBuilder.GetTx().GetSignaturesV2()
+		if err != nil {
+			logger.WithError(err).Error("Error getting signatures")
+			return false
+		}
 	}
 
 	sigV2s = append(sigV2s, sigV2)
@@ -449,6 +464,7 @@ func (x *MessageSignerRunner) BroadcastRefund(
 
 	valid := x.ValidateRefund(txResponse, refundDoc, spender, amount)
 	if !valid {
+		logger.Warnf("Invalid refund")
 		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
 	}
 
@@ -468,7 +484,7 @@ func (x *MessageSignerRunner) BroadcastRefund(
 
 	valid = x.ValidateSignatures(refundDoc, txCfg, txBuilder)
 	if !valid {
-		err := txBuilder.SetSignatures()
+		err = txBuilder.SetSignatures()
 		if err != nil {
 			logger.WithError(err).Errorf("Error setting signatures")
 			return false

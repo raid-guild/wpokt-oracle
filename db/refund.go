@@ -46,7 +46,9 @@ func NewRefund(
 		TransactionBody:       txBody,
 		Signatures:            []models.Signature{},
 		Transaction:           nil,
+		Sequence:              nil,
 		Status:                models.RefundStatusPending,
+		TransactionHash:       "",
 		CreatedAt:             time.Now(),
 		UpdatedAt:             time.Now(),
 	}, nil
@@ -57,8 +59,7 @@ func InsertRefund(tx models.Refund) (primitive.ObjectID, error) {
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			var refundDoc models.Refund
-			err := mongoDB.FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, refundDoc)
-			if err != nil {
+			if err = mongoDB.FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, &refundDoc); err != nil {
 				return insertedID, err
 			}
 			return *refundDoc.ID, nil
@@ -113,7 +114,7 @@ func GetSignedRefunds() ([]models.Refund, error) {
 
 func GetBroadcastedRefunds() ([]models.Refund, error) {
 	refunds := []models.Refund{}
-	filter := bson.M{"status": models.RefundStatusBroadcasted}
+	filter := bson.M{"status": models.RefundStatusBroadcasted, "transaction": nil}
 
 	err := mongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
 

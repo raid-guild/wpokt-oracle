@@ -29,16 +29,9 @@ var (
 	_ = abi.ConvertType
 )
 
-// MintControllerMintData is an auto generated low-level Go binding around an user-defined struct.
-type MintControllerMintData struct {
-	Recipient common.Address
-	Amount    *big.Int
-	Nonce     *big.Int
-}
-
 // MintControllerMetaData contains all meta data concerning the MintController contract.
 var MintControllerMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_wPokt\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"BelowMinThreshold\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidAddValidator\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidRemoveValidator\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidShortString\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidSignatureRatio\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidSignatures\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NonAdmin\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NonZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OverMintLimit\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"str\",\"type\":\"string\"}],\"name\":\"StringTooLong\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"limit\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"lastMint\",\"type\":\"uint256\"}],\"name\":\"CurrentMintLimit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"EIP712DomainChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newLimit\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newCooldown\",\"type\":\"uint256\"}],\"name\":\"MintCooldownSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"validator\",\"type\":\"address\"}],\"name\":\"NewValidator\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"validator\",\"type\":\"address\"}],\"name\":\"RemovedValidator\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"ratio\",\"type\":\"uint256\"}],\"name\":\"SignerThresholdSet\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"DEFAULT_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"validator\",\"type\":\"address\"}],\"name\":\"addValidator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"currentMintLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"eip712Domain\",\"outputs\":[{\"internalType\":\"bytes1\",\"name\":\"fields\",\"type\":\"bytes1\"},{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"version\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"chainId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"verifyingContract\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"uint256[]\",\"name\":\"extensions\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastMint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastMintLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxMintLimit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"mintPerSecond\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"nonce\",\"type\":\"uint256\"}],\"internalType\":\"structMintController.MintData\",\"name\":\"data\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"signatures\",\"type\":\"bytes[]\"}],\"name\":\"mintWrappedPocket\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"validator\",\"type\":\"address\"}],\"name\":\"removeValidator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"newLimit\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"newMintPerSecond\",\"type\":\"uint256\"}],\"name\":\"setMintCooldown\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"signatureRatio\",\"type\":\"uint256\"}],\"name\":\"setSignerThreshold\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"signerThreshold\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"validatorCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"validators\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"wPokt\",\"outputs\":[{\"internalType\":\"contractIWPokt\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"mailbox_\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"token_\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"ism_\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"defaultAdmin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"newLimit_\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"newMintPerSecond_\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"DEFAULT_ADMIN_ROLE\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"MAIL_BOX_ROLE\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"currentMintLimit\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"fulfillOrder\",\"inputs\":[{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"message\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getRoleAdmin\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"grantRole\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"handle\",\"inputs\":[{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"hasRole\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"initiateOrder\",\"inputs\":[{\"name\":\"destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"interchainSecurityModule\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractIInterchainSecurityModule\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"lastMint\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"lastMintLimit\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"maxMintLimit\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"mintPerSecond\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"renounceRole\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"callerConfirmation\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"revokeRole\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setIsm\",\"inputs\":[{\"name\":\"ism_\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"supportsInterface\",\"inputs\":[{\"name\":\"interfaceId\",\"type\":\"bytes4\",\"internalType\":\"bytes4\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"CurrentMintLimit\",\"inputs\":[{\"name\":\"limit\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"lastMint\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Fulfillment\",\"inputs\":[{\"name\":\"orderId\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"message\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"MintCooldownSet\",\"inputs\":[{\"name\":\"newLimit\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"newCooldown\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RoleAdminChanged\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"previousAdminRole\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"newAdminRole\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RoleGranted\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"account\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"sender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RoleRevoked\",\"inputs\":[{\"name\":\"role\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"account\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"sender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"AccessControlBadConfirmation\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"AccessControlUnauthorizedAccount\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"neededRole\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"type\":\"error\",\"name\":\"InvalidCooldownConfig\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"OverMintLimit\",\"inputs\":[]}]",
 }
 
 // MintControllerABI is the input ABI used to generate the binding from.
@@ -218,6 +211,37 @@ func (_MintController *MintControllerCallerSession) DEFAULTADMINROLE() ([32]byte
 	return _MintController.Contract.DEFAULTADMINROLE(&_MintController.CallOpts)
 }
 
+// MAILBOXROLE is a free data retrieval call binding the contract method 0xe1787b90.
+//
+// Solidity: function MAIL_BOX_ROLE() view returns(bytes32)
+func (_MintController *MintControllerCaller) MAILBOXROLE(opts *bind.CallOpts) ([32]byte, error) {
+	var out []interface{}
+	err := _MintController.contract.Call(opts, &out, "MAIL_BOX_ROLE")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// MAILBOXROLE is a free data retrieval call binding the contract method 0xe1787b90.
+//
+// Solidity: function MAIL_BOX_ROLE() view returns(bytes32)
+func (_MintController *MintControllerSession) MAILBOXROLE() ([32]byte, error) {
+	return _MintController.Contract.MAILBOXROLE(&_MintController.CallOpts)
+}
+
+// MAILBOXROLE is a free data retrieval call binding the contract method 0xe1787b90.
+//
+// Solidity: function MAIL_BOX_ROLE() view returns(bytes32)
+func (_MintController *MintControllerCallerSession) MAILBOXROLE() ([32]byte, error) {
+	return _MintController.Contract.MAILBOXROLE(&_MintController.CallOpts)
+}
+
 // CurrentMintLimit is a free data retrieval call binding the contract method 0xa40c3eab.
 //
 // Solidity: function currentMintLimit() view returns(uint256)
@@ -249,74 +273,97 @@ func (_MintController *MintControllerCallerSession) CurrentMintLimit() (*big.Int
 	return _MintController.Contract.CurrentMintLimit(&_MintController.CallOpts)
 }
 
-// Eip712Domain is a free data retrieval call binding the contract method 0x84b0196e.
+// GetRoleAdmin is a free data retrieval call binding the contract method 0x248a9ca3.
 //
-// Solidity: function eip712Domain() view returns(bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)
-func (_MintController *MintControllerCaller) Eip712Domain(opts *bind.CallOpts) (struct {
-	Fields            [1]byte
-	Name              string
-	Version           string
-	ChainId           *big.Int
-	VerifyingContract common.Address
-	Salt              [32]byte
-	Extensions        []*big.Int
-}, error) {
+// Solidity: function getRoleAdmin(bytes32 role) view returns(bytes32)
+func (_MintController *MintControllerCaller) GetRoleAdmin(opts *bind.CallOpts, role [32]byte) ([32]byte, error) {
 	var out []interface{}
-	err := _MintController.contract.Call(opts, &out, "eip712Domain")
+	err := _MintController.contract.Call(opts, &out, "getRoleAdmin", role)
 
-	outstruct := new(struct {
-		Fields            [1]byte
-		Name              string
-		Version           string
-		ChainId           *big.Int
-		VerifyingContract common.Address
-		Salt              [32]byte
-		Extensions        []*big.Int
-	})
 	if err != nil {
-		return *outstruct, err
+		return *new([32]byte), err
 	}
 
-	outstruct.Fields = *abi.ConvertType(out[0], new([1]byte)).(*[1]byte)
-	outstruct.Name = *abi.ConvertType(out[1], new(string)).(*string)
-	outstruct.Version = *abi.ConvertType(out[2], new(string)).(*string)
-	outstruct.ChainId = *abi.ConvertType(out[3], new(*big.Int)).(**big.Int)
-	outstruct.VerifyingContract = *abi.ConvertType(out[4], new(common.Address)).(*common.Address)
-	outstruct.Salt = *abi.ConvertType(out[5], new([32]byte)).(*[32]byte)
-	outstruct.Extensions = *abi.ConvertType(out[6], new([]*big.Int)).(*[]*big.Int)
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
 
-	return *outstruct, err
+	return out0, err
 
 }
 
-// Eip712Domain is a free data retrieval call binding the contract method 0x84b0196e.
+// GetRoleAdmin is a free data retrieval call binding the contract method 0x248a9ca3.
 //
-// Solidity: function eip712Domain() view returns(bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)
-func (_MintController *MintControllerSession) Eip712Domain() (struct {
-	Fields            [1]byte
-	Name              string
-	Version           string
-	ChainId           *big.Int
-	VerifyingContract common.Address
-	Salt              [32]byte
-	Extensions        []*big.Int
-}, error) {
-	return _MintController.Contract.Eip712Domain(&_MintController.CallOpts)
+// Solidity: function getRoleAdmin(bytes32 role) view returns(bytes32)
+func (_MintController *MintControllerSession) GetRoleAdmin(role [32]byte) ([32]byte, error) {
+	return _MintController.Contract.GetRoleAdmin(&_MintController.CallOpts, role)
 }
 
-// Eip712Domain is a free data retrieval call binding the contract method 0x84b0196e.
+// GetRoleAdmin is a free data retrieval call binding the contract method 0x248a9ca3.
 //
-// Solidity: function eip712Domain() view returns(bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)
-func (_MintController *MintControllerCallerSession) Eip712Domain() (struct {
-	Fields            [1]byte
-	Name              string
-	Version           string
-	ChainId           *big.Int
-	VerifyingContract common.Address
-	Salt              [32]byte
-	Extensions        []*big.Int
-}, error) {
-	return _MintController.Contract.Eip712Domain(&_MintController.CallOpts)
+// Solidity: function getRoleAdmin(bytes32 role) view returns(bytes32)
+func (_MintController *MintControllerCallerSession) GetRoleAdmin(role [32]byte) ([32]byte, error) {
+	return _MintController.Contract.GetRoleAdmin(&_MintController.CallOpts, role)
+}
+
+// HasRole is a free data retrieval call binding the contract method 0x91d14854.
+//
+// Solidity: function hasRole(bytes32 role, address account) view returns(bool)
+func (_MintController *MintControllerCaller) HasRole(opts *bind.CallOpts, role [32]byte, account common.Address) (bool, error) {
+	var out []interface{}
+	err := _MintController.contract.Call(opts, &out, "hasRole", role, account)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// HasRole is a free data retrieval call binding the contract method 0x91d14854.
+//
+// Solidity: function hasRole(bytes32 role, address account) view returns(bool)
+func (_MintController *MintControllerSession) HasRole(role [32]byte, account common.Address) (bool, error) {
+	return _MintController.Contract.HasRole(&_MintController.CallOpts, role, account)
+}
+
+// HasRole is a free data retrieval call binding the contract method 0x91d14854.
+//
+// Solidity: function hasRole(bytes32 role, address account) view returns(bool)
+func (_MintController *MintControllerCallerSession) HasRole(role [32]byte, account common.Address) (bool, error) {
+	return _MintController.Contract.HasRole(&_MintController.CallOpts, role, account)
+}
+
+// InterchainSecurityModule is a free data retrieval call binding the contract method 0xde523cf3.
+//
+// Solidity: function interchainSecurityModule() view returns(address)
+func (_MintController *MintControllerCaller) InterchainSecurityModule(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _MintController.contract.Call(opts, &out, "interchainSecurityModule")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// InterchainSecurityModule is a free data retrieval call binding the contract method 0xde523cf3.
+//
+// Solidity: function interchainSecurityModule() view returns(address)
+func (_MintController *MintControllerSession) InterchainSecurityModule() (common.Address, error) {
+	return _MintController.Contract.InterchainSecurityModule(&_MintController.CallOpts)
+}
+
+// InterchainSecurityModule is a free data retrieval call binding the contract method 0xde523cf3.
+//
+// Solidity: function interchainSecurityModule() view returns(address)
+func (_MintController *MintControllerCallerSession) InterchainSecurityModule() (common.Address, error) {
+	return _MintController.Contract.InterchainSecurityModule(&_MintController.CallOpts)
 }
 
 // LastMint is a free data retrieval call binding the contract method 0x586fc5b5.
@@ -443,74 +490,12 @@ func (_MintController *MintControllerCallerSession) MintPerSecond() (*big.Int, e
 	return _MintController.Contract.MintPerSecond(&_MintController.CallOpts)
 }
 
-// SignerThreshold is a free data retrieval call binding the contract method 0xa4a4f390.
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
 //
-// Solidity: function signerThreshold() view returns(uint256)
-func (_MintController *MintControllerCaller) SignerThreshold(opts *bind.CallOpts) (*big.Int, error) {
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_MintController *MintControllerCaller) SupportsInterface(opts *bind.CallOpts, interfaceId [4]byte) (bool, error) {
 	var out []interface{}
-	err := _MintController.contract.Call(opts, &out, "signerThreshold")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// SignerThreshold is a free data retrieval call binding the contract method 0xa4a4f390.
-//
-// Solidity: function signerThreshold() view returns(uint256)
-func (_MintController *MintControllerSession) SignerThreshold() (*big.Int, error) {
-	return _MintController.Contract.SignerThreshold(&_MintController.CallOpts)
-}
-
-// SignerThreshold is a free data retrieval call binding the contract method 0xa4a4f390.
-//
-// Solidity: function signerThreshold() view returns(uint256)
-func (_MintController *MintControllerCallerSession) SignerThreshold() (*big.Int, error) {
-	return _MintController.Contract.SignerThreshold(&_MintController.CallOpts)
-}
-
-// ValidatorCount is a free data retrieval call binding the contract method 0x0f43a677.
-//
-// Solidity: function validatorCount() view returns(uint256)
-func (_MintController *MintControllerCaller) ValidatorCount(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _MintController.contract.Call(opts, &out, "validatorCount")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// ValidatorCount is a free data retrieval call binding the contract method 0x0f43a677.
-//
-// Solidity: function validatorCount() view returns(uint256)
-func (_MintController *MintControllerSession) ValidatorCount() (*big.Int, error) {
-	return _MintController.Contract.ValidatorCount(&_MintController.CallOpts)
-}
-
-// ValidatorCount is a free data retrieval call binding the contract method 0x0f43a677.
-//
-// Solidity: function validatorCount() view returns(uint256)
-func (_MintController *MintControllerCallerSession) ValidatorCount() (*big.Int, error) {
-	return _MintController.Contract.ValidatorCount(&_MintController.CallOpts)
-}
-
-// Validators is a free data retrieval call binding the contract method 0xfa52c7d8.
-//
-// Solidity: function validators(address ) view returns(bool)
-func (_MintController *MintControllerCaller) Validators(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
-	var out []interface{}
-	err := _MintController.contract.Call(opts, &out, "validators", arg0)
+	err := _MintController.contract.Call(opts, &out, "supportsInterface", interfaceId)
 
 	if err != nil {
 		return *new(bool), err
@@ -522,154 +507,165 @@ func (_MintController *MintControllerCaller) Validators(opts *bind.CallOpts, arg
 
 }
 
-// Validators is a free data retrieval call binding the contract method 0xfa52c7d8.
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
 //
-// Solidity: function validators(address ) view returns(bool)
-func (_MintController *MintControllerSession) Validators(arg0 common.Address) (bool, error) {
-	return _MintController.Contract.Validators(&_MintController.CallOpts, arg0)
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_MintController *MintControllerSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _MintController.Contract.SupportsInterface(&_MintController.CallOpts, interfaceId)
 }
 
-// Validators is a free data retrieval call binding the contract method 0xfa52c7d8.
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
 //
-// Solidity: function validators(address ) view returns(bool)
-func (_MintController *MintControllerCallerSession) Validators(arg0 common.Address) (bool, error) {
-	return _MintController.Contract.Validators(&_MintController.CallOpts, arg0)
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_MintController *MintControllerCallerSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _MintController.Contract.SupportsInterface(&_MintController.CallOpts, interfaceId)
 }
 
-// WPokt is a free data retrieval call binding the contract method 0xd72a828b.
+// FulfillOrder is a paid mutator transaction binding the contract method 0xf6853601.
 //
-// Solidity: function wPokt() view returns(address)
-func (_MintController *MintControllerCaller) WPokt(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _MintController.contract.Call(opts, &out, "wPokt")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
+// Solidity: function fulfillOrder(bytes metadata, bytes message) returns()
+func (_MintController *MintControllerTransactor) FulfillOrder(opts *bind.TransactOpts, metadata []byte, message []byte) (*types.Transaction, error) {
+	return _MintController.contract.Transact(opts, "fulfillOrder", metadata, message)
 }
 
-// WPokt is a free data retrieval call binding the contract method 0xd72a828b.
+// FulfillOrder is a paid mutator transaction binding the contract method 0xf6853601.
 //
-// Solidity: function wPokt() view returns(address)
-func (_MintController *MintControllerSession) WPokt() (common.Address, error) {
-	return _MintController.Contract.WPokt(&_MintController.CallOpts)
+// Solidity: function fulfillOrder(bytes metadata, bytes message) returns()
+func (_MintController *MintControllerSession) FulfillOrder(metadata []byte, message []byte) (*types.Transaction, error) {
+	return _MintController.Contract.FulfillOrder(&_MintController.TransactOpts, metadata, message)
 }
 
-// WPokt is a free data retrieval call binding the contract method 0xd72a828b.
+// FulfillOrder is a paid mutator transaction binding the contract method 0xf6853601.
 //
-// Solidity: function wPokt() view returns(address)
-func (_MintController *MintControllerCallerSession) WPokt() (common.Address, error) {
-	return _MintController.Contract.WPokt(&_MintController.CallOpts)
+// Solidity: function fulfillOrder(bytes metadata, bytes message) returns()
+func (_MintController *MintControllerTransactorSession) FulfillOrder(metadata []byte, message []byte) (*types.Transaction, error) {
+	return _MintController.Contract.FulfillOrder(&_MintController.TransactOpts, metadata, message)
 }
 
-// AddValidator is a paid mutator transaction binding the contract method 0x4d238c8e.
+// GrantRole is a paid mutator transaction binding the contract method 0x2f2ff15d.
 //
-// Solidity: function addValidator(address validator) returns()
-func (_MintController *MintControllerTransactor) AddValidator(opts *bind.TransactOpts, validator common.Address) (*types.Transaction, error) {
-	return _MintController.contract.Transact(opts, "addValidator", validator)
+// Solidity: function grantRole(bytes32 role, address account) returns()
+func (_MintController *MintControllerTransactor) GrantRole(opts *bind.TransactOpts, role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _MintController.contract.Transact(opts, "grantRole", role, account)
 }
 
-// AddValidator is a paid mutator transaction binding the contract method 0x4d238c8e.
+// GrantRole is a paid mutator transaction binding the contract method 0x2f2ff15d.
 //
-// Solidity: function addValidator(address validator) returns()
-func (_MintController *MintControllerSession) AddValidator(validator common.Address) (*types.Transaction, error) {
-	return _MintController.Contract.AddValidator(&_MintController.TransactOpts, validator)
+// Solidity: function grantRole(bytes32 role, address account) returns()
+func (_MintController *MintControllerSession) GrantRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.GrantRole(&_MintController.TransactOpts, role, account)
 }
 
-// AddValidator is a paid mutator transaction binding the contract method 0x4d238c8e.
+// GrantRole is a paid mutator transaction binding the contract method 0x2f2ff15d.
 //
-// Solidity: function addValidator(address validator) returns()
-func (_MintController *MintControllerTransactorSession) AddValidator(validator common.Address) (*types.Transaction, error) {
-	return _MintController.Contract.AddValidator(&_MintController.TransactOpts, validator)
+// Solidity: function grantRole(bytes32 role, address account) returns()
+func (_MintController *MintControllerTransactorSession) GrantRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.GrantRole(&_MintController.TransactOpts, role, account)
 }
 
-// MintWrappedPocket is a paid mutator transaction binding the contract method 0x0f22ed52.
+// Handle is a paid mutator transaction binding the contract method 0x56d5d475.
 //
-// Solidity: function mintWrappedPocket((address,uint256,uint256) data, bytes[] signatures) returns()
-func (_MintController *MintControllerTransactor) MintWrappedPocket(opts *bind.TransactOpts, data MintControllerMintData, signatures [][]byte) (*types.Transaction, error) {
-	return _MintController.contract.Transact(opts, "mintWrappedPocket", data, signatures)
+// Solidity: function handle(uint32 , bytes32 , bytes _messageBody) returns()
+func (_MintController *MintControllerTransactor) Handle(opts *bind.TransactOpts, arg0 uint32, arg1 [32]byte, _messageBody []byte) (*types.Transaction, error) {
+	return _MintController.contract.Transact(opts, "handle", arg0, arg1, _messageBody)
 }
 
-// MintWrappedPocket is a paid mutator transaction binding the contract method 0x0f22ed52.
+// Handle is a paid mutator transaction binding the contract method 0x56d5d475.
 //
-// Solidity: function mintWrappedPocket((address,uint256,uint256) data, bytes[] signatures) returns()
-func (_MintController *MintControllerSession) MintWrappedPocket(data MintControllerMintData, signatures [][]byte) (*types.Transaction, error) {
-	return _MintController.Contract.MintWrappedPocket(&_MintController.TransactOpts, data, signatures)
+// Solidity: function handle(uint32 , bytes32 , bytes _messageBody) returns()
+func (_MintController *MintControllerSession) Handle(arg0 uint32, arg1 [32]byte, _messageBody []byte) (*types.Transaction, error) {
+	return _MintController.Contract.Handle(&_MintController.TransactOpts, arg0, arg1, _messageBody)
 }
 
-// MintWrappedPocket is a paid mutator transaction binding the contract method 0x0f22ed52.
+// Handle is a paid mutator transaction binding the contract method 0x56d5d475.
 //
-// Solidity: function mintWrappedPocket((address,uint256,uint256) data, bytes[] signatures) returns()
-func (_MintController *MintControllerTransactorSession) MintWrappedPocket(data MintControllerMintData, signatures [][]byte) (*types.Transaction, error) {
-	return _MintController.Contract.MintWrappedPocket(&_MintController.TransactOpts, data, signatures)
+// Solidity: function handle(uint32 , bytes32 , bytes _messageBody) returns()
+func (_MintController *MintControllerTransactorSession) Handle(arg0 uint32, arg1 [32]byte, _messageBody []byte) (*types.Transaction, error) {
+	return _MintController.Contract.Handle(&_MintController.TransactOpts, arg0, arg1, _messageBody)
 }
 
-// RemoveValidator is a paid mutator transaction binding the contract method 0x40a141ff.
+// InitiateOrder is a paid mutator transaction binding the contract method 0x9179f6a0.
 //
-// Solidity: function removeValidator(address validator) returns()
-func (_MintController *MintControllerTransactor) RemoveValidator(opts *bind.TransactOpts, validator common.Address) (*types.Transaction, error) {
-	return _MintController.contract.Transact(opts, "removeValidator", validator)
+// Solidity: function initiateOrder(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody) returns()
+func (_MintController *MintControllerTransactor) InitiateOrder(opts *bind.TransactOpts, destinationDomain uint32, recipientAddress [32]byte, messageBody []byte) (*types.Transaction, error) {
+	return _MintController.contract.Transact(opts, "initiateOrder", destinationDomain, recipientAddress, messageBody)
 }
 
-// RemoveValidator is a paid mutator transaction binding the contract method 0x40a141ff.
+// InitiateOrder is a paid mutator transaction binding the contract method 0x9179f6a0.
 //
-// Solidity: function removeValidator(address validator) returns()
-func (_MintController *MintControllerSession) RemoveValidator(validator common.Address) (*types.Transaction, error) {
-	return _MintController.Contract.RemoveValidator(&_MintController.TransactOpts, validator)
+// Solidity: function initiateOrder(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody) returns()
+func (_MintController *MintControllerSession) InitiateOrder(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte) (*types.Transaction, error) {
+	return _MintController.Contract.InitiateOrder(&_MintController.TransactOpts, destinationDomain, recipientAddress, messageBody)
 }
 
-// RemoveValidator is a paid mutator transaction binding the contract method 0x40a141ff.
+// InitiateOrder is a paid mutator transaction binding the contract method 0x9179f6a0.
 //
-// Solidity: function removeValidator(address validator) returns()
-func (_MintController *MintControllerTransactorSession) RemoveValidator(validator common.Address) (*types.Transaction, error) {
-	return _MintController.Contract.RemoveValidator(&_MintController.TransactOpts, validator)
+// Solidity: function initiateOrder(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody) returns()
+func (_MintController *MintControllerTransactorSession) InitiateOrder(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte) (*types.Transaction, error) {
+	return _MintController.Contract.InitiateOrder(&_MintController.TransactOpts, destinationDomain, recipientAddress, messageBody)
 }
 
-// SetMintCooldown is a paid mutator transaction binding the contract method 0x59aa6859.
+// RenounceRole is a paid mutator transaction binding the contract method 0x36568abe.
 //
-// Solidity: function setMintCooldown(uint256 newLimit, uint256 newMintPerSecond) returns()
-func (_MintController *MintControllerTransactor) SetMintCooldown(opts *bind.TransactOpts, newLimit *big.Int, newMintPerSecond *big.Int) (*types.Transaction, error) {
-	return _MintController.contract.Transact(opts, "setMintCooldown", newLimit, newMintPerSecond)
+// Solidity: function renounceRole(bytes32 role, address callerConfirmation) returns()
+func (_MintController *MintControllerTransactor) RenounceRole(opts *bind.TransactOpts, role [32]byte, callerConfirmation common.Address) (*types.Transaction, error) {
+	return _MintController.contract.Transact(opts, "renounceRole", role, callerConfirmation)
 }
 
-// SetMintCooldown is a paid mutator transaction binding the contract method 0x59aa6859.
+// RenounceRole is a paid mutator transaction binding the contract method 0x36568abe.
 //
-// Solidity: function setMintCooldown(uint256 newLimit, uint256 newMintPerSecond) returns()
-func (_MintController *MintControllerSession) SetMintCooldown(newLimit *big.Int, newMintPerSecond *big.Int) (*types.Transaction, error) {
-	return _MintController.Contract.SetMintCooldown(&_MintController.TransactOpts, newLimit, newMintPerSecond)
+// Solidity: function renounceRole(bytes32 role, address callerConfirmation) returns()
+func (_MintController *MintControllerSession) RenounceRole(role [32]byte, callerConfirmation common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.RenounceRole(&_MintController.TransactOpts, role, callerConfirmation)
 }
 
-// SetMintCooldown is a paid mutator transaction binding the contract method 0x59aa6859.
+// RenounceRole is a paid mutator transaction binding the contract method 0x36568abe.
 //
-// Solidity: function setMintCooldown(uint256 newLimit, uint256 newMintPerSecond) returns()
-func (_MintController *MintControllerTransactorSession) SetMintCooldown(newLimit *big.Int, newMintPerSecond *big.Int) (*types.Transaction, error) {
-	return _MintController.Contract.SetMintCooldown(&_MintController.TransactOpts, newLimit, newMintPerSecond)
+// Solidity: function renounceRole(bytes32 role, address callerConfirmation) returns()
+func (_MintController *MintControllerTransactorSession) RenounceRole(role [32]byte, callerConfirmation common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.RenounceRole(&_MintController.TransactOpts, role, callerConfirmation)
 }
 
-// SetSignerThreshold is a paid mutator transaction binding the contract method 0x251b8192.
+// RevokeRole is a paid mutator transaction binding the contract method 0xd547741f.
 //
-// Solidity: function setSignerThreshold(uint256 signatureRatio) returns()
-func (_MintController *MintControllerTransactor) SetSignerThreshold(opts *bind.TransactOpts, signatureRatio *big.Int) (*types.Transaction, error) {
-	return _MintController.contract.Transact(opts, "setSignerThreshold", signatureRatio)
+// Solidity: function revokeRole(bytes32 role, address account) returns()
+func (_MintController *MintControllerTransactor) RevokeRole(opts *bind.TransactOpts, role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _MintController.contract.Transact(opts, "revokeRole", role, account)
 }
 
-// SetSignerThreshold is a paid mutator transaction binding the contract method 0x251b8192.
+// RevokeRole is a paid mutator transaction binding the contract method 0xd547741f.
 //
-// Solidity: function setSignerThreshold(uint256 signatureRatio) returns()
-func (_MintController *MintControllerSession) SetSignerThreshold(signatureRatio *big.Int) (*types.Transaction, error) {
-	return _MintController.Contract.SetSignerThreshold(&_MintController.TransactOpts, signatureRatio)
+// Solidity: function revokeRole(bytes32 role, address account) returns()
+func (_MintController *MintControllerSession) RevokeRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.RevokeRole(&_MintController.TransactOpts, role, account)
 }
 
-// SetSignerThreshold is a paid mutator transaction binding the contract method 0x251b8192.
+// RevokeRole is a paid mutator transaction binding the contract method 0xd547741f.
 //
-// Solidity: function setSignerThreshold(uint256 signatureRatio) returns()
-func (_MintController *MintControllerTransactorSession) SetSignerThreshold(signatureRatio *big.Int) (*types.Transaction, error) {
-	return _MintController.Contract.SetSignerThreshold(&_MintController.TransactOpts, signatureRatio)
+// Solidity: function revokeRole(bytes32 role, address account) returns()
+func (_MintController *MintControllerTransactorSession) RevokeRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.RevokeRole(&_MintController.TransactOpts, role, account)
+}
+
+// SetIsm is a paid mutator transaction binding the contract method 0x2e779beb.
+//
+// Solidity: function setIsm(address ism_) returns()
+func (_MintController *MintControllerTransactor) SetIsm(opts *bind.TransactOpts, ism_ common.Address) (*types.Transaction, error) {
+	return _MintController.contract.Transact(opts, "setIsm", ism_)
+}
+
+// SetIsm is a paid mutator transaction binding the contract method 0x2e779beb.
+//
+// Solidity: function setIsm(address ism_) returns()
+func (_MintController *MintControllerSession) SetIsm(ism_ common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.SetIsm(&_MintController.TransactOpts, ism_)
+}
+
+// SetIsm is a paid mutator transaction binding the contract method 0x2e779beb.
+//
+// Solidity: function setIsm(address ism_) returns()
+func (_MintController *MintControllerTransactorSession) SetIsm(ism_ common.Address) (*types.Transaction, error) {
+	return _MintController.Contract.SetIsm(&_MintController.TransactOpts, ism_)
 }
 
 // MintControllerCurrentMintLimitIterator is returned from FilterCurrentMintLimit and is used to iterate over the raw logs and unpacked data for CurrentMintLimit events raised by the MintController contract.
@@ -825,9 +821,9 @@ func (_MintController *MintControllerFilterer) ParseCurrentMintLimit(log types.L
 	return event, nil
 }
 
-// MintControllerEIP712DomainChangedIterator is returned from FilterEIP712DomainChanged and is used to iterate over the raw logs and unpacked data for EIP712DomainChanged events raised by the MintController contract.
-type MintControllerEIP712DomainChangedIterator struct {
-	Event *MintControllerEIP712DomainChanged // Event containing the contract specifics and raw log
+// MintControllerFulfillmentIterator is returned from FilterFulfillment and is used to iterate over the raw logs and unpacked data for Fulfillment events raised by the MintController contract.
+type MintControllerFulfillmentIterator struct {
+	Event *MintControllerFulfillment // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -841,7 +837,7 @@ type MintControllerEIP712DomainChangedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MintControllerEIP712DomainChangedIterator) Next() bool {
+func (it *MintControllerFulfillmentIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -850,7 +846,7 @@ func (it *MintControllerEIP712DomainChangedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MintControllerEIP712DomainChanged)
+			it.Event = new(MintControllerFulfillment)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -865,7 +861,7 @@ func (it *MintControllerEIP712DomainChangedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MintControllerEIP712DomainChanged)
+		it.Event = new(MintControllerFulfillment)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -881,40 +877,52 @@ func (it *MintControllerEIP712DomainChangedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MintControllerEIP712DomainChangedIterator) Error() error {
+func (it *MintControllerFulfillmentIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MintControllerEIP712DomainChangedIterator) Close() error {
+func (it *MintControllerFulfillmentIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MintControllerEIP712DomainChanged represents a EIP712DomainChanged event raised by the MintController contract.
-type MintControllerEIP712DomainChanged struct {
-	Raw types.Log // Blockchain specific contextual infos
+// MintControllerFulfillment represents a Fulfillment event raised by the MintController contract.
+type MintControllerFulfillment struct {
+	OrderId [32]byte
+	Message []byte
+	Raw     types.Log // Blockchain specific contextual infos
 }
 
-// FilterEIP712DomainChanged is a free log retrieval operation binding the contract event 0x0a6387c9ea3628b88a633bb4f3b151770f70085117a15f9bf3787cda53f13d31.
+// FilterFulfillment is a free log retrieval operation binding the contract event 0x21f27e3543480a9af10f107929b1caf9d017fe7282b1c3d4e8c6960b5464d2d1.
 //
-// Solidity: event EIP712DomainChanged()
-func (_MintController *MintControllerFilterer) FilterEIP712DomainChanged(opts *bind.FilterOpts) (*MintControllerEIP712DomainChangedIterator, error) {
+// Solidity: event Fulfillment(bytes32 indexed orderId, bytes message)
+func (_MintController *MintControllerFilterer) FilterFulfillment(opts *bind.FilterOpts, orderId [][32]byte) (*MintControllerFulfillmentIterator, error) {
 
-	logs, sub, err := _MintController.contract.FilterLogs(opts, "EIP712DomainChanged")
+	var orderIdRule []interface{}
+	for _, orderIdItem := range orderId {
+		orderIdRule = append(orderIdRule, orderIdItem)
+	}
+
+	logs, sub, err := _MintController.contract.FilterLogs(opts, "Fulfillment", orderIdRule)
 	if err != nil {
 		return nil, err
 	}
-	return &MintControllerEIP712DomainChangedIterator{contract: _MintController.contract, event: "EIP712DomainChanged", logs: logs, sub: sub}, nil
+	return &MintControllerFulfillmentIterator{contract: _MintController.contract, event: "Fulfillment", logs: logs, sub: sub}, nil
 }
 
-// WatchEIP712DomainChanged is a free log subscription operation binding the contract event 0x0a6387c9ea3628b88a633bb4f3b151770f70085117a15f9bf3787cda53f13d31.
+// WatchFulfillment is a free log subscription operation binding the contract event 0x21f27e3543480a9af10f107929b1caf9d017fe7282b1c3d4e8c6960b5464d2d1.
 //
-// Solidity: event EIP712DomainChanged()
-func (_MintController *MintControllerFilterer) WatchEIP712DomainChanged(opts *bind.WatchOpts, sink chan<- *MintControllerEIP712DomainChanged) (event.Subscription, error) {
+// Solidity: event Fulfillment(bytes32 indexed orderId, bytes message)
+func (_MintController *MintControllerFilterer) WatchFulfillment(opts *bind.WatchOpts, sink chan<- *MintControllerFulfillment, orderId [][32]byte) (event.Subscription, error) {
 
-	logs, sub, err := _MintController.contract.WatchLogs(opts, "EIP712DomainChanged")
+	var orderIdRule []interface{}
+	for _, orderIdItem := range orderId {
+		orderIdRule = append(orderIdRule, orderIdItem)
+	}
+
+	logs, sub, err := _MintController.contract.WatchLogs(opts, "Fulfillment", orderIdRule)
 	if err != nil {
 		return nil, err
 	}
@@ -924,8 +932,8 @@ func (_MintController *MintControllerFilterer) WatchEIP712DomainChanged(opts *bi
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MintControllerEIP712DomainChanged)
-				if err := _MintController.contract.UnpackLog(event, "EIP712DomainChanged", log); err != nil {
+				event := new(MintControllerFulfillment)
+				if err := _MintController.contract.UnpackLog(event, "Fulfillment", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -946,12 +954,12 @@ func (_MintController *MintControllerFilterer) WatchEIP712DomainChanged(opts *bi
 	}), nil
 }
 
-// ParseEIP712DomainChanged is a log parse operation binding the contract event 0x0a6387c9ea3628b88a633bb4f3b151770f70085117a15f9bf3787cda53f13d31.
+// ParseFulfillment is a log parse operation binding the contract event 0x21f27e3543480a9af10f107929b1caf9d017fe7282b1c3d4e8c6960b5464d2d1.
 //
-// Solidity: event EIP712DomainChanged()
-func (_MintController *MintControllerFilterer) ParseEIP712DomainChanged(log types.Log) (*MintControllerEIP712DomainChanged, error) {
-	event := new(MintControllerEIP712DomainChanged)
-	if err := _MintController.contract.UnpackLog(event, "EIP712DomainChanged", log); err != nil {
+// Solidity: event Fulfillment(bytes32 indexed orderId, bytes message)
+func (_MintController *MintControllerFilterer) ParseFulfillment(log types.Log) (*MintControllerFulfillment, error) {
+	event := new(MintControllerFulfillment)
+	if err := _MintController.contract.UnpackLog(event, "Fulfillment", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -1093,9 +1101,9 @@ func (_MintController *MintControllerFilterer) ParseMintCooldownSet(log types.Lo
 	return event, nil
 }
 
-// MintControllerNewValidatorIterator is returned from FilterNewValidator and is used to iterate over the raw logs and unpacked data for NewValidator events raised by the MintController contract.
-type MintControllerNewValidatorIterator struct {
-	Event *MintControllerNewValidator // Event containing the contract specifics and raw log
+// MintControllerRoleAdminChangedIterator is returned from FilterRoleAdminChanged and is used to iterate over the raw logs and unpacked data for RoleAdminChanged events raised by the MintController contract.
+type MintControllerRoleAdminChangedIterator struct {
+	Event *MintControllerRoleAdminChanged // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1109,7 +1117,7 @@ type MintControllerNewValidatorIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MintControllerNewValidatorIterator) Next() bool {
+func (it *MintControllerRoleAdminChangedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1118,7 +1126,7 @@ func (it *MintControllerNewValidatorIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MintControllerNewValidator)
+			it.Event = new(MintControllerRoleAdminChanged)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1133,7 +1141,7 @@ func (it *MintControllerNewValidatorIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MintControllerNewValidator)
+		it.Event = new(MintControllerRoleAdminChanged)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1149,51 +1157,69 @@ func (it *MintControllerNewValidatorIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MintControllerNewValidatorIterator) Error() error {
+func (it *MintControllerRoleAdminChangedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MintControllerNewValidatorIterator) Close() error {
+func (it *MintControllerRoleAdminChangedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MintControllerNewValidator represents a NewValidator event raised by the MintController contract.
-type MintControllerNewValidator struct {
-	Validator common.Address
-	Raw       types.Log // Blockchain specific contextual infos
+// MintControllerRoleAdminChanged represents a RoleAdminChanged event raised by the MintController contract.
+type MintControllerRoleAdminChanged struct {
+	Role              [32]byte
+	PreviousAdminRole [32]byte
+	NewAdminRole      [32]byte
+	Raw               types.Log // Blockchain specific contextual infos
 }
 
-// FilterNewValidator is a free log retrieval operation binding the contract event 0x29b4645f23b856eccf12b3b38e036c3221ca1b5a9afa2a83aea7ead34e47987c.
+// FilterRoleAdminChanged is a free log retrieval operation binding the contract event 0xbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff.
 //
-// Solidity: event NewValidator(address indexed validator)
-func (_MintController *MintControllerFilterer) FilterNewValidator(opts *bind.FilterOpts, validator []common.Address) (*MintControllerNewValidatorIterator, error) {
+// Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
+func (_MintController *MintControllerFilterer) FilterRoleAdminChanged(opts *bind.FilterOpts, role [][32]byte, previousAdminRole [][32]byte, newAdminRole [][32]byte) (*MintControllerRoleAdminChangedIterator, error) {
 
-	var validatorRule []interface{}
-	for _, validatorItem := range validator {
-		validatorRule = append(validatorRule, validatorItem)
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var previousAdminRoleRule []interface{}
+	for _, previousAdminRoleItem := range previousAdminRole {
+		previousAdminRoleRule = append(previousAdminRoleRule, previousAdminRoleItem)
+	}
+	var newAdminRoleRule []interface{}
+	for _, newAdminRoleItem := range newAdminRole {
+		newAdminRoleRule = append(newAdminRoleRule, newAdminRoleItem)
 	}
 
-	logs, sub, err := _MintController.contract.FilterLogs(opts, "NewValidator", validatorRule)
+	logs, sub, err := _MintController.contract.FilterLogs(opts, "RoleAdminChanged", roleRule, previousAdminRoleRule, newAdminRoleRule)
 	if err != nil {
 		return nil, err
 	}
-	return &MintControllerNewValidatorIterator{contract: _MintController.contract, event: "NewValidator", logs: logs, sub: sub}, nil
+	return &MintControllerRoleAdminChangedIterator{contract: _MintController.contract, event: "RoleAdminChanged", logs: logs, sub: sub}, nil
 }
 
-// WatchNewValidator is a free log subscription operation binding the contract event 0x29b4645f23b856eccf12b3b38e036c3221ca1b5a9afa2a83aea7ead34e47987c.
+// WatchRoleAdminChanged is a free log subscription operation binding the contract event 0xbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff.
 //
-// Solidity: event NewValidator(address indexed validator)
-func (_MintController *MintControllerFilterer) WatchNewValidator(opts *bind.WatchOpts, sink chan<- *MintControllerNewValidator, validator []common.Address) (event.Subscription, error) {
+// Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
+func (_MintController *MintControllerFilterer) WatchRoleAdminChanged(opts *bind.WatchOpts, sink chan<- *MintControllerRoleAdminChanged, role [][32]byte, previousAdminRole [][32]byte, newAdminRole [][32]byte) (event.Subscription, error) {
 
-	var validatorRule []interface{}
-	for _, validatorItem := range validator {
-		validatorRule = append(validatorRule, validatorItem)
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var previousAdminRoleRule []interface{}
+	for _, previousAdminRoleItem := range previousAdminRole {
+		previousAdminRoleRule = append(previousAdminRoleRule, previousAdminRoleItem)
+	}
+	var newAdminRoleRule []interface{}
+	for _, newAdminRoleItem := range newAdminRole {
+		newAdminRoleRule = append(newAdminRoleRule, newAdminRoleItem)
 	}
 
-	logs, sub, err := _MintController.contract.WatchLogs(opts, "NewValidator", validatorRule)
+	logs, sub, err := _MintController.contract.WatchLogs(opts, "RoleAdminChanged", roleRule, previousAdminRoleRule, newAdminRoleRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1203,8 +1229,8 @@ func (_MintController *MintControllerFilterer) WatchNewValidator(opts *bind.Watc
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MintControllerNewValidator)
-				if err := _MintController.contract.UnpackLog(event, "NewValidator", log); err != nil {
+				event := new(MintControllerRoleAdminChanged)
+				if err := _MintController.contract.UnpackLog(event, "RoleAdminChanged", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1225,21 +1251,21 @@ func (_MintController *MintControllerFilterer) WatchNewValidator(opts *bind.Watc
 	}), nil
 }
 
-// ParseNewValidator is a log parse operation binding the contract event 0x29b4645f23b856eccf12b3b38e036c3221ca1b5a9afa2a83aea7ead34e47987c.
+// ParseRoleAdminChanged is a log parse operation binding the contract event 0xbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff.
 //
-// Solidity: event NewValidator(address indexed validator)
-func (_MintController *MintControllerFilterer) ParseNewValidator(log types.Log) (*MintControllerNewValidator, error) {
-	event := new(MintControllerNewValidator)
-	if err := _MintController.contract.UnpackLog(event, "NewValidator", log); err != nil {
+// Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
+func (_MintController *MintControllerFilterer) ParseRoleAdminChanged(log types.Log) (*MintControllerRoleAdminChanged, error) {
+	event := new(MintControllerRoleAdminChanged)
+	if err := _MintController.contract.UnpackLog(event, "RoleAdminChanged", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MintControllerRemovedValidatorIterator is returned from FilterRemovedValidator and is used to iterate over the raw logs and unpacked data for RemovedValidator events raised by the MintController contract.
-type MintControllerRemovedValidatorIterator struct {
-	Event *MintControllerRemovedValidator // Event containing the contract specifics and raw log
+// MintControllerRoleGrantedIterator is returned from FilterRoleGranted and is used to iterate over the raw logs and unpacked data for RoleGranted events raised by the MintController contract.
+type MintControllerRoleGrantedIterator struct {
+	Event *MintControllerRoleGranted // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1253,7 +1279,7 @@ type MintControllerRemovedValidatorIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MintControllerRemovedValidatorIterator) Next() bool {
+func (it *MintControllerRoleGrantedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1262,7 +1288,7 @@ func (it *MintControllerRemovedValidatorIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MintControllerRemovedValidator)
+			it.Event = new(MintControllerRoleGranted)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1277,7 +1303,7 @@ func (it *MintControllerRemovedValidatorIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MintControllerRemovedValidator)
+		it.Event = new(MintControllerRoleGranted)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1293,51 +1319,69 @@ func (it *MintControllerRemovedValidatorIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MintControllerRemovedValidatorIterator) Error() error {
+func (it *MintControllerRoleGrantedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MintControllerRemovedValidatorIterator) Close() error {
+func (it *MintControllerRoleGrantedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MintControllerRemovedValidator represents a RemovedValidator event raised by the MintController contract.
-type MintControllerRemovedValidator struct {
-	Validator common.Address
-	Raw       types.Log // Blockchain specific contextual infos
+// MintControllerRoleGranted represents a RoleGranted event raised by the MintController contract.
+type MintControllerRoleGranted struct {
+	Role    [32]byte
+	Account common.Address
+	Sender  common.Address
+	Raw     types.Log // Blockchain specific contextual infos
 }
 
-// FilterRemovedValidator is a free log retrieval operation binding the contract event 0xb625c55cf7e37b54fcd18bc4edafdf3f4f9acd59a5ec824c77c795dcb2d65070.
+// FilterRoleGranted is a free log retrieval operation binding the contract event 0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d.
 //
-// Solidity: event RemovedValidator(address indexed validator)
-func (_MintController *MintControllerFilterer) FilterRemovedValidator(opts *bind.FilterOpts, validator []common.Address) (*MintControllerRemovedValidatorIterator, error) {
+// Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
+func (_MintController *MintControllerFilterer) FilterRoleGranted(opts *bind.FilterOpts, role [][32]byte, account []common.Address, sender []common.Address) (*MintControllerRoleGrantedIterator, error) {
 
-	var validatorRule []interface{}
-	for _, validatorItem := range validator {
-		validatorRule = append(validatorRule, validatorItem)
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
 	}
 
-	logs, sub, err := _MintController.contract.FilterLogs(opts, "RemovedValidator", validatorRule)
+	logs, sub, err := _MintController.contract.FilterLogs(opts, "RoleGranted", roleRule, accountRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
-	return &MintControllerRemovedValidatorIterator{contract: _MintController.contract, event: "RemovedValidator", logs: logs, sub: sub}, nil
+	return &MintControllerRoleGrantedIterator{contract: _MintController.contract, event: "RoleGranted", logs: logs, sub: sub}, nil
 }
 
-// WatchRemovedValidator is a free log subscription operation binding the contract event 0xb625c55cf7e37b54fcd18bc4edafdf3f4f9acd59a5ec824c77c795dcb2d65070.
+// WatchRoleGranted is a free log subscription operation binding the contract event 0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d.
 //
-// Solidity: event RemovedValidator(address indexed validator)
-func (_MintController *MintControllerFilterer) WatchRemovedValidator(opts *bind.WatchOpts, sink chan<- *MintControllerRemovedValidator, validator []common.Address) (event.Subscription, error) {
+// Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
+func (_MintController *MintControllerFilterer) WatchRoleGranted(opts *bind.WatchOpts, sink chan<- *MintControllerRoleGranted, role [][32]byte, account []common.Address, sender []common.Address) (event.Subscription, error) {
 
-	var validatorRule []interface{}
-	for _, validatorItem := range validator {
-		validatorRule = append(validatorRule, validatorItem)
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
 	}
 
-	logs, sub, err := _MintController.contract.WatchLogs(opts, "RemovedValidator", validatorRule)
+	logs, sub, err := _MintController.contract.WatchLogs(opts, "RoleGranted", roleRule, accountRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1347,8 +1391,8 @@ func (_MintController *MintControllerFilterer) WatchRemovedValidator(opts *bind.
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MintControllerRemovedValidator)
-				if err := _MintController.contract.UnpackLog(event, "RemovedValidator", log); err != nil {
+				event := new(MintControllerRoleGranted)
+				if err := _MintController.contract.UnpackLog(event, "RoleGranted", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1369,21 +1413,21 @@ func (_MintController *MintControllerFilterer) WatchRemovedValidator(opts *bind.
 	}), nil
 }
 
-// ParseRemovedValidator is a log parse operation binding the contract event 0xb625c55cf7e37b54fcd18bc4edafdf3f4f9acd59a5ec824c77c795dcb2d65070.
+// ParseRoleGranted is a log parse operation binding the contract event 0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d.
 //
-// Solidity: event RemovedValidator(address indexed validator)
-func (_MintController *MintControllerFilterer) ParseRemovedValidator(log types.Log) (*MintControllerRemovedValidator, error) {
-	event := new(MintControllerRemovedValidator)
-	if err := _MintController.contract.UnpackLog(event, "RemovedValidator", log); err != nil {
+// Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
+func (_MintController *MintControllerFilterer) ParseRoleGranted(log types.Log) (*MintControllerRoleGranted, error) {
+	event := new(MintControllerRoleGranted)
+	if err := _MintController.contract.UnpackLog(event, "RoleGranted", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MintControllerSignerThresholdSetIterator is returned from FilterSignerThresholdSet and is used to iterate over the raw logs and unpacked data for SignerThresholdSet events raised by the MintController contract.
-type MintControllerSignerThresholdSetIterator struct {
-	Event *MintControllerSignerThresholdSet // Event containing the contract specifics and raw log
+// MintControllerRoleRevokedIterator is returned from FilterRoleRevoked and is used to iterate over the raw logs and unpacked data for RoleRevoked events raised by the MintController contract.
+type MintControllerRoleRevokedIterator struct {
+	Event *MintControllerRoleRevoked // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1397,7 +1441,7 @@ type MintControllerSignerThresholdSetIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MintControllerSignerThresholdSetIterator) Next() bool {
+func (it *MintControllerRoleRevokedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1406,7 +1450,7 @@ func (it *MintControllerSignerThresholdSetIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MintControllerSignerThresholdSet)
+			it.Event = new(MintControllerRoleRevoked)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1421,7 +1465,7 @@ func (it *MintControllerSignerThresholdSetIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MintControllerSignerThresholdSet)
+		it.Event = new(MintControllerRoleRevoked)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1437,51 +1481,69 @@ func (it *MintControllerSignerThresholdSetIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MintControllerSignerThresholdSetIterator) Error() error {
+func (it *MintControllerRoleRevokedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MintControllerSignerThresholdSetIterator) Close() error {
+func (it *MintControllerRoleRevokedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MintControllerSignerThresholdSet represents a SignerThresholdSet event raised by the MintController contract.
-type MintControllerSignerThresholdSet struct {
-	Ratio *big.Int
-	Raw   types.Log // Blockchain specific contextual infos
+// MintControllerRoleRevoked represents a RoleRevoked event raised by the MintController contract.
+type MintControllerRoleRevoked struct {
+	Role    [32]byte
+	Account common.Address
+	Sender  common.Address
+	Raw     types.Log // Blockchain specific contextual infos
 }
 
-// FilterSignerThresholdSet is a free log retrieval operation binding the contract event 0x030f8d880b0bf7b6311c00e028809570118cbccc8302e08c8776ad77d10f505e.
+// FilterRoleRevoked is a free log retrieval operation binding the contract event 0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b.
 //
-// Solidity: event SignerThresholdSet(uint256 indexed ratio)
-func (_MintController *MintControllerFilterer) FilterSignerThresholdSet(opts *bind.FilterOpts, ratio []*big.Int) (*MintControllerSignerThresholdSetIterator, error) {
+// Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
+func (_MintController *MintControllerFilterer) FilterRoleRevoked(opts *bind.FilterOpts, role [][32]byte, account []common.Address, sender []common.Address) (*MintControllerRoleRevokedIterator, error) {
 
-	var ratioRule []interface{}
-	for _, ratioItem := range ratio {
-		ratioRule = append(ratioRule, ratioItem)
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
 	}
 
-	logs, sub, err := _MintController.contract.FilterLogs(opts, "SignerThresholdSet", ratioRule)
+	logs, sub, err := _MintController.contract.FilterLogs(opts, "RoleRevoked", roleRule, accountRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
-	return &MintControllerSignerThresholdSetIterator{contract: _MintController.contract, event: "SignerThresholdSet", logs: logs, sub: sub}, nil
+	return &MintControllerRoleRevokedIterator{contract: _MintController.contract, event: "RoleRevoked", logs: logs, sub: sub}, nil
 }
 
-// WatchSignerThresholdSet is a free log subscription operation binding the contract event 0x030f8d880b0bf7b6311c00e028809570118cbccc8302e08c8776ad77d10f505e.
+// WatchRoleRevoked is a free log subscription operation binding the contract event 0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b.
 //
-// Solidity: event SignerThresholdSet(uint256 indexed ratio)
-func (_MintController *MintControllerFilterer) WatchSignerThresholdSet(opts *bind.WatchOpts, sink chan<- *MintControllerSignerThresholdSet, ratio []*big.Int) (event.Subscription, error) {
+// Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
+func (_MintController *MintControllerFilterer) WatchRoleRevoked(opts *bind.WatchOpts, sink chan<- *MintControllerRoleRevoked, role [][32]byte, account []common.Address, sender []common.Address) (event.Subscription, error) {
 
-	var ratioRule []interface{}
-	for _, ratioItem := range ratio {
-		ratioRule = append(ratioRule, ratioItem)
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
 	}
 
-	logs, sub, err := _MintController.contract.WatchLogs(opts, "SignerThresholdSet", ratioRule)
+	logs, sub, err := _MintController.contract.WatchLogs(opts, "RoleRevoked", roleRule, accountRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1491,8 +1553,8 @@ func (_MintController *MintControllerFilterer) WatchSignerThresholdSet(opts *bin
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MintControllerSignerThresholdSet)
-				if err := _MintController.contract.UnpackLog(event, "SignerThresholdSet", log); err != nil {
+				event := new(MintControllerRoleRevoked)
+				if err := _MintController.contract.UnpackLog(event, "RoleRevoked", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1513,12 +1575,12 @@ func (_MintController *MintControllerFilterer) WatchSignerThresholdSet(opts *bin
 	}), nil
 }
 
-// ParseSignerThresholdSet is a log parse operation binding the contract event 0x030f8d880b0bf7b6311c00e028809570118cbccc8302e08c8776ad77d10f505e.
+// ParseRoleRevoked is a log parse operation binding the contract event 0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b.
 //
-// Solidity: event SignerThresholdSet(uint256 indexed ratio)
-func (_MintController *MintControllerFilterer) ParseSignerThresholdSet(log types.Log) (*MintControllerSignerThresholdSet, error) {
-	event := new(MintControllerSignerThresholdSet)
-	if err := _MintController.contract.UnpackLog(event, "SignerThresholdSet", log); err != nil {
+// Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
+func (_MintController *MintControllerFilterer) ParseRoleRevoked(log types.Log) (*MintControllerRoleRevoked, error) {
+	event := new(MintControllerRoleRevoked)
+	if err := _MintController.contract.UnpackLog(event, "RoleRevoked", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

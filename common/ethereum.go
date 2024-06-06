@@ -2,9 +2,13 @@ package common
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"strings"
 
 	hdwallet "github.com/dan13ram/go-ethereum-hdwallet"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func IsValidEthereumAddress(s string) bool {
@@ -46,4 +50,19 @@ func EthereumAddressFromMnemonic(mnemonic string) (string, error) {
 	}
 
 	return wallet.AddressHex(account)
+}
+
+func HexToAddress(hex string) ethcommon.Address {
+	return ethcommon.HexToAddress(hex)
+}
+
+func EthereumPrivateKeyToAddressHex(privateKey *ecdsa.PrivateKey) (string, error) {
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return "", fmt.Errorf("error casting public key to ECDSA")
+	}
+
+	address := crypto.PubkeyToAddress(*publicKeyECDSA)
+	return address.Hex(), nil
 }

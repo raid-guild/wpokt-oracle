@@ -9,11 +9,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
+	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 )
@@ -26,6 +29,10 @@ type MessageMonitorRunner struct {
 
 	mailbox eth.MailboxContract
 	client  eth.EthereumClient
+
+	confirmations uint64
+
+	chain models.Chain
 
 	minimumAmount *big.Int
 
@@ -92,15 +99,84 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		return false
 	}
 
-	message, err := db.NewMessageWithTxHash(event.Raw.TxHash, messageContent, models.MessageStatusPending)
+	txHash := event.Raw.TxHash.String()
+
+	tx, isPending, err := x.client.GetTransactionByHash(txHash)
+	if err != nil {
+		x.logger.WithError(err).Error("Error getting transaction by hash")
+		return false
+	}
+	if tx == nil {
+		x.logger.Errorf("Transaction not found: %s", txHash)
+		return false
+	}
+	if isPending {
+		x.logger.Infof("Transaction is pending")
+		return false
+	}
+	receipt, err := x.client.GetTransactionReceipt(txHash)
+	if err != nil {
+		x.logger.WithError(err).Error("Error getting transaction receipt")
+		return false
+	}
+
+	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
+		x.logger.Infof("Transaction failed")
+		return false
+	}
+
+	txDoc, err := db.NewEthereumTransaction(tx, receipt, x.chain, models.TransactionStatusPending)
+	if err != nil {
+		x.logger.WithError(err).
+			WithField("tx_hash", txHash).
+			Errorf("Error creating transaction")
+		return false
+	}
+
+	confirmations := x.currentBlockHeight - txDoc.BlockHeight
+	if confirmations < x.confirmations {
+		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
+		return false
+	}
+
+	txDoc.Confirmations = confirmations
+	txDoc.Status = models.TransactionStatusConfirmed
+
+	txID, err := db.InsertTransaction(txDoc)
+	if err != nil {
+		x.logger.WithError(err).
+			WithField("tx_hash", txHash).
+			Errorf("Error inserting transaction")
+		return false
+	}
+	txDoc.ID = &txID
+
+	message, err := db.NewMessage(&txDoc, messageContent, models.MessageStatusPending)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating message")
 		return false
 	}
 
-	_, err = db.InsertMessage(message)
+	messageID, err := db.InsertMessage(message)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error inserting message")
+		return false
+	}
+
+	x.logger.
+		WithField("tx_hash", txHash).
+		WithField("message_id", messageID.Hex()).
+		Info("Message created")
+
+	update := bson.M{
+		"message": messageID,
+	}
+
+	err = db.UpdateTransaction(&txDoc, update)
+	if err != nil {
+		x.logger.WithError(err).
+			WithField("tx_hash", txHash).
+			Errorf("Error updating transaction")
 		return false
 	}
 
@@ -214,7 +290,7 @@ func NewMessageMonitor(config models.EthereumNetworkConfig, mintControllerMap ma
 	}
 
 	logger.Debug("Connecting to mailbox contract at: ", config.MailboxAddress)
-	contract, err := autogen.NewMailbox(common.HexToAddress(config.MailboxAddress), client.GetClient())
+	mailbox, err := eth.NewMailboxContract(common.HexToAddress(config.MailboxAddress), client.GetClient())
 	if err != nil {
 		logger.Fatal("Error connecting to mailbox contract: ", err)
 	}
@@ -226,9 +302,12 @@ func NewMessageMonitor(config models.EthereumNetworkConfig, mintControllerMap ma
 
 		mintControllerMap: mintControllerMap,
 
-		mailbox: eth.NewMailboxContract(contract),
+		mailbox:       mailbox,
+		confirmations: config.Confirmations,
 
 		client: client,
+
+		chain: util.ParseChain(config),
 
 		logger: logger,
 	}

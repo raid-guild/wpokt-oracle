@@ -100,7 +100,7 @@ func (x *MessageMonitorRunner) CreateTransactionWithSpender(
 		}
 	}
 
-	transaction, err := db.NewTransaction(tx, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
+	transaction, err := db.NewCosmosTransaction(tx, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("status", txStatus).

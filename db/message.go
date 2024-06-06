@@ -91,34 +91,6 @@ func NewMessage(
 	}, nil
 }
 
-func NewMessageWithTxHash(
-	originTxHash [32]byte,
-	content models.MessageContent,
-	status models.MessageStatus,
-) (models.Message, error) {
-	messageIDBytes, err := content.MessageID()
-	if err != nil {
-		return models.Message{}, err
-	}
-	messageID := common.HexFromBytes(messageIDBytes)
-
-	txHash := common.HexFromBytes(originTxHash[:])
-
-	return models.Message{
-		OriginTransaction:     nil,
-		OriginTransactionHash: txHash,
-		MessageID:             messageID,
-		Content:               content,
-		Signatures:            []models.Signature{},
-		Transaction:           nil,
-		Sequence:              nil,
-		Status:                status,
-		TransactionHash:       "",
-		CreatedAt:             time.Now(),
-		UpdatedAt:             time.Now(),
-	}, nil
-}
-
 func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	if messageID == nil {
 		return fmt.Errorf("messageID is nil")
@@ -144,4 +116,26 @@ func InsertMessage(tx models.Message) (primitive.ObjectID, error) {
 	}
 
 	return insertedID, nil
+}
+
+func GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Message, error) {
+	messages := []models.Message{}
+	filter := bson.M{
+		"$and": []bson.M{
+			{"content.destination_domain": chain.ChainDomain},
+			{"$or": []bson.M{
+				{"status": models.MessageStatusPending},
+				{"status": models.MessageStatusSigned},
+			}},
+			{"$nor": []bson.M{
+				{"signatures": bson.M{
+					"$elemMatch": bson.M{"signer": signerToExclude},
+				}},
+			}},
+		},
+	}
+
+	err := mongoDB.FindMany(common.CollectionMessages, filter, &messages)
+
+	return messages, err
 }

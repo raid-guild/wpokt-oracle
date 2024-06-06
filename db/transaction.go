@@ -10,11 +10,46 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func NewTransaction(
+func NewEthereumTransaction(
+	tx *types.Transaction,
+	receipt *types.Receipt,
+	chain models.Chain,
+	txStatus models.TransactionStatus,
+) (models.Transaction, error) {
+
+	txHash := common.Ensure0xPrefix(receipt.TxHash.String())
+	if len(txHash) != 66 {
+		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", txHash)
+	}
+
+	txTo := common.Ensure0xPrefix(tx.To().String())
+
+	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+	if err != nil {
+		return models.Transaction{}, err
+	}
+
+	txFrom := common.Ensure0xPrefix(from.String())
+
+	return models.Transaction{
+		Hash:        txHash,
+		FromAddress: txFrom,
+		ToAddress:   txTo,
+		BlockHeight: receipt.BlockNumber.Uint64(),
+		Chain:       chain,
+		Status:      txStatus,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func NewCosmosTransaction(
 	tx *sdk.TxResponse,
 	chain models.Chain,
 	fromAddress []byte,

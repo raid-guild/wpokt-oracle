@@ -83,6 +83,18 @@ func (x *MessageSignerRunner) UpdateCurrentHeight() {
 		Info("updated current block height")
 }
 
+func (x *MessageSignerRunner) UpdateMessage(
+	message *models.Message,
+	update bson.M,
+) bool {
+	err := db.UpdateMessage(message.ID, update)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error updating message")
+		return false
+	}
+	return true
+}
+
 func (x *MessageSignerRunner) SignMessages() bool {
 	return true
 }

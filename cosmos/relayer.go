@@ -114,7 +114,7 @@ func (x *MessageRelayerRunner) CreateTransaction(
 		return false
 	}
 
-	transaction, err := db.NewTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
+	transaction, err := db.NewCosmosTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error creating transaction")

@@ -87,14 +87,13 @@ func main() {
 		logger.Fatalf("Only one Cosmos network is supported")
 	}
 
+	cosmosNetwork := config.CosmosNetworks[0]
 	mintControllerMap := NewMintControllerMap(config)
 
 	for _, ethNetwork := range config.EthereumNetworks {
-		chainService := ethereum.NewEthereumChainService(ethNetwork, mintControllerMap, config.Mnemonic, &wg, nodeHealth)
+		chainService := ethereum.NewEthereumChainService(ethNetwork, cosmosNetwork, mintControllerMap, config.Mnemonic, &wg, nodeHealth)
 		services = append(services, chainService)
 	}
-
-	cosmosNetwork := config.CosmosNetworks[0]
 
 	cosmosService := cosmos.NewCosmosChainService(cosmosNetwork, mintControllerMap, config.Mnemonic, &wg, nodeHealth)
 	services = append(services, cosmosService)

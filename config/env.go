@@ -55,6 +55,8 @@ func loadConfigFromEnv(envFile string) models.Config {
 			ChainName:             getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
 			MailboxAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MAILBOX_ADDRESS"),
 			MintControllerAddress: getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MINT_CONTROLLER_ADDRESS"),
+			OmniTokenAddress:      getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_OMNI_TOKEN_ADDRESS"),
+			WarpISMAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_WARP_ISM_ADDRESS"),
 			OracleAddresses:       getStringArrayEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_ORACLE_ADDRESSES"),
 			MessageMonitor: models.ServiceConfig{
 				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_ENABLED"),

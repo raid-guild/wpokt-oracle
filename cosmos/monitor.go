@@ -221,6 +221,10 @@ func (x *MessageMonitorRunner) CreateMessage(
 	nonce := uint32(tx.AuthInfo.SignerInfos[0].Sequence)
 	originDomain := x.chain.ChainDomain
 	chainID, err := strconv.Atoi(memo.ChainID)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error parsing chain ID")
+		return false
+	}
 	destinationDomain := uint32(chainID)
 
 	mintController, ok := x.mintControllerMap[destinationDomain]
@@ -574,7 +578,7 @@ func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerSer
 	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
-func NewMessageMonitor(config models.CosmosNetworkConfig, ethNetworks []models.EthereumNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runner {
+func NewMessageMonitor(config models.CosmosNetworkConfig, mintControllerMap map[uint32][]byte, lastHealth *models.RunnerServiceStatus) service.Runner {
 	logger := log.
 		WithField("module", "cosmos").
 		WithField("service", "monitor").
@@ -612,17 +616,6 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, ethNetworks []models.E
 	}
 
 	feeAmount := sdk.NewCoin("upokt", math.NewInt(int64(config.TxFee)))
-
-	mintControllerMap := make(map[uint32][]byte)
-
-	for _, ethNetwork := range ethNetworks {
-		mintController, err := common.BytesFromAddressHex(ethNetwork.MintControllerAddress)
-		if err != nil {
-			logger.Fatalf("Error parsing mint controller address: %s", err)
-			return nil
-		}
-		mintControllerMap[uint32(ethNetwork.ChainID)] = mintController
-	}
 
 	x := &MessageMonitorRunner{
 		multisigPk:      multisigPk,

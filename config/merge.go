@@ -69,6 +69,12 @@ func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envEthNet.MintControllerAddress != "" {
 				mergedConfig.EthereumNetworks[i].MintControllerAddress = envEthNet.MintControllerAddress
 			}
+			if envEthNet.OmniTokenAddress != "" {
+				mergedConfig.EthereumNetworks[i].OmniTokenAddress = envEthNet.OmniTokenAddress
+			}
+			if envEthNet.WarpISMAddress != "" {
+				mergedConfig.EthereumNetworks[i].WarpISMAddress = envEthNet.WarpISMAddress
+			}
 			if len(envEthNet.OracleAddresses) != 0 {
 				mergedConfig.EthereumNetworks[i].OracleAddresses = envEthNet.OracleAddresses
 			}

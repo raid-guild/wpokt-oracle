@@ -91,6 +91,34 @@ func NewMessage(
 	}, nil
 }
 
+func NewMessageWithTxHash(
+	originTxHash [32]byte,
+	content models.MessageContent,
+	status models.MessageStatus,
+) (models.Message, error) {
+	messageIDBytes, err := content.MessageID()
+	if err != nil {
+		return models.Message{}, err
+	}
+	messageID := common.HexFromBytes(messageIDBytes)
+
+	txHash := common.HexFromBytes(originTxHash[:])
+
+	return models.Message{
+		OriginTransaction:     nil,
+		OriginTransactionHash: txHash,
+		MessageID:             messageID,
+		Content:               content,
+		Signatures:            []models.Signature{},
+		Transaction:           nil,
+		Sequence:              nil,
+		Status:                status,
+		TransactionHash:       "",
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
+	}, nil
+}
+
 func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	if messageID == nil {
 		return fmt.Errorf("messageID is nil")

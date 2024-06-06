@@ -12,6 +12,8 @@ import (
 
 func NewEthereumChainService(
 	config models.EthereumNetworkConfig,
+	mintControllerMap map[uint32][]byte,
+	mnemonic string,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
 ) service.ChainServiceInterface {
@@ -31,7 +33,7 @@ func NewEthereumChainService(
 	var monitorRunner service.Runner
 	monitorRunner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
-		monitorRunner = NewMessageMonitor(config, chainHealth.MessageMonitor)
+		monitorRunner = NewMessageMonitor(config, mintControllerMap, chainHealth.MessageMonitor)
 	}
 	monitorRunnerService := service.NewRunnerService(
 		"monitor",

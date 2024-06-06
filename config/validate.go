@@ -91,6 +91,12 @@ func validateConfig(config models.Config) error {
 		if !common.IsValidEthereumAddress(ethNetwork.MintControllerAddress) {
 			return fmt.Errorf("EthereumNetworks[%d].MintControllerAddress is invalid", i)
 		}
+		if !common.IsValidEthereumAddress(ethNetwork.OmniTokenAddress) {
+			return fmt.Errorf("EthereumNetworks[%d].OmniTokenAddress is invalid", i)
+		}
+		if !common.IsValidEthereumAddress(ethNetwork.WarpISMAddress) {
+			return fmt.Errorf("EthereumNetworks[%d].WarpISMAddress is invalid", i)
+		}
 		if ethNetwork.OracleAddresses == nil || len(ethNetwork.OracleAddresses) <= 1 {
 			return fmt.Errorf("EthereumNetworks[%d].OracleAddresses is required and must have at least 2 addresses", i)
 		}

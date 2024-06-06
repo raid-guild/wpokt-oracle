@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	MaxQueryBlocks int64 = 100000
+	MaxQueryBlocks uint64 = 100000
 )
 
 type EthereumClient interface {

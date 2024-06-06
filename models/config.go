@@ -34,6 +34,8 @@ type EthereumNetworkConfig struct {
 	ChainName             string        `yaml:"chain_name" json:"chain_name"`
 	MailboxAddress        string        `yaml:"mailbox_address" json:"mailbox_address"`
 	MintControllerAddress string        `yaml:"mint_controller_address" json:"mint_controller_address"`
+	OmniTokenAddress      string        `yaml:"omni_token_address" json:"omni_token_address"`
+	WarpISMAddress        string        `yaml:"warp_ism_address" json:"warp_ism_address"`
 	OracleAddresses       []string      `yaml:"oracle_addresses" json:"oracle_addresses"`
 	MessageMonitor        ServiceConfig `yaml:"message_monitor" json:"message_monitor"`
 	MessageSigner         ServiceConfig `yaml:"message_signer" json:"message_signer"`

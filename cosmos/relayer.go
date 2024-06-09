@@ -62,10 +62,6 @@ func (x *MessageRelayerRunner) UpdateCurrentHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageRelayerRunner) SyncMessages() bool {
-	return true
-}
-
 func (x *MessageRelayerRunner) UpdateRefund(
 	refundID *primitive.ObjectID,
 	update bson.M,
@@ -90,7 +86,49 @@ func (x *MessageRelayerRunner) UpdateMessage(
 	return true
 }
 
-func (x *MessageRelayerRunner) CreateTransaction(
+func (x *MessageRelayerRunner) CreateMessageTransaction(
+	messageDoc *models.Message,
+) bool {
+	logger := x.logger.
+		WithField("tx_hash", messageDoc.TransactionHash).
+		WithField("section", "create-transaction")
+
+	txStatus := models.TransactionStatusPending
+
+	toAddress, err := common.BytesFromAddressHex(messageDoc.Content.MessageBody.RecipientAddress)
+	if err != nil {
+		logger.WithError(err).Errorf("Error parsing recipient address")
+		return false
+	}
+
+	txHash := common.Ensure0xPrefix(messageDoc.TransactionHash)
+
+	tx, err := x.client.GetTx(txHash)
+	if err != nil {
+		logger.WithError(err).Errorf("Error getting tx")
+		return false
+	}
+
+	transaction, err := db.NewCosmosTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
+	if err != nil {
+		x.logger.WithError(err).
+			Errorf("Error creating transaction")
+		return false
+	}
+
+	transaction.Messages = append(transaction.Messages, *messageDoc.ID)
+
+	insertedID, err := db.InsertTransaction(transaction)
+	if err != nil {
+		x.logger.WithError(err).
+			Errorf("Error inserting transaction")
+		return false
+	}
+
+	return x.UpdateMessage(messageDoc.ID, bson.M{"transaction": insertedID})
+}
+
+func (x *MessageRelayerRunner) CreateRefundTransaction(
 	refundDoc *models.Refund,
 ) bool {
 
@@ -106,9 +144,7 @@ func (x *MessageRelayerRunner) CreateTransaction(
 		return false
 	}
 
-	txHash := common.Ensure0xPrefix(refundDoc.TransactionHash)
-
-	tx, err := x.client.GetTx(txHash)
+	tx, err := x.client.GetTx(refundDoc.TransactionHash)
 	if err != nil {
 		logger.WithError(err).Errorf("Error getting tx")
 		return false
@@ -142,11 +178,23 @@ func (x *MessageRelayerRunner) SyncRefunds() bool {
 	x.logger.Infof("Found %d broadcasted refunds", len(refunds))
 	success := true
 	for _, refundDoc := range refunds {
-		success = success && x.CreateTransaction(&refundDoc)
+		success = success && x.CreateRefundTransaction(&refundDoc)
 	}
 
-	if success {
-		x.startBlockHeight = x.currentBlockHeight
+	return success
+}
+
+func (x *MessageRelayerRunner) SyncMessages() bool {
+	x.logger.Infof("Relaying messages")
+	messages, err := db.GetBroadcastedMessages(x.chain)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error getting broadcasted messages")
+		return false
+	}
+	x.logger.Infof("Found %d broadcasted messages", len(messages))
+	success := true
+	for _, messageDoc := range messages {
+		success = success && x.CreateMessageTransaction(&messageDoc)
 	}
 
 	return success
@@ -156,7 +204,7 @@ func (x *MessageRelayerRunner) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := db.UpdateTransaction(tx, update)
+	err := db.UpdateTransaction(tx.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -174,6 +222,7 @@ func (x *MessageRelayerRunner) ResetRefund(
 	update := bson.M{
 		"status":           models.RefundStatusPending,
 		"signatures":       []models.Signature{},
+		"transaction_body": "",
 		"transaction":      nil,
 		"transaction_hash": "",
 	}
@@ -189,15 +238,15 @@ func (x *MessageRelayerRunner) ResetMessage(
 		return false
 	}
 
-	return true
-	// update := bson.M{
-	// 	"status": models.MessageStatusPending,
-	// 	"signatures": []models.Signature{},
-	// 	"transaction": nil,
-	// 	"transaction_hash": "",
-	// }
-	//
-	// return x.UpdateMessage(messageID, update)
+	update := bson.M{
+		"status":           models.MessageStatusPending,
+		"signatures":       []models.Signature{},
+		"transaction_body": "",
+		"transaction":      nil,
+		"transaction_hash": "",
+	}
+
+	return x.UpdateMessage(messageID, update)
 }
 
 func (x *MessageRelayerRunner) RelayTransactions() bool {
@@ -211,25 +260,34 @@ func (x *MessageRelayerRunner) RelayTransactions() bool {
 	success := true
 	for _, txDoc := range txs {
 		logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "confirm")
+
+		if (txDoc.Refund == nil && len(txDoc.Messages) == 0) || (txDoc.Refund != nil && len(txDoc.Messages) != 0) {
+			logger.Errorf("Invalid transaction")
+			success = false
+			continue
+		}
+
 		txResponse, err := x.client.GetTx(txDoc.Hash)
 		if err != nil {
 			logger.WithError(err).Errorf("Error getting tx")
 			success = false
 			continue
 		}
+
 		if txResponse.Code != 0 {
 			logger.Infof("Found tx with error")
-			failed := x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusFailed})
-			if failed {
-				if txDoc.Refund != nil {
-					success = success && x.ResetRefund(txDoc.Refund)
-				} else if txDoc.Message != nil {
-					success = success && x.ResetMessage(txDoc.Message)
-				} else {
-					success = false
-				}
-			} else {
+			updateSuccesful := x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusFailed})
+			if !updateSuccesful {
 				success = false
+				continue
+			}
+
+			if txDoc.Refund != nil {
+				success = success && x.ResetRefund(txDoc.Refund)
+				continue
+			}
+			for _, messageID := range txDoc.Messages {
+				success = success && x.ResetMessage(&messageID)
 			}
 			continue
 		}
@@ -252,18 +310,24 @@ func (x *MessageRelayerRunner) RelayTransactions() bool {
 		confirmed := x.UpdateTransaction(&txDoc, update)
 
 		// TODO: Handle updating refund and message status in a separate function ?
-		if confirmed {
-			if txDoc.Refund != nil {
-				success = success && x.UpdateRefund(txDoc.Refund, bson.M{"status": models.RefundStatusSuccess})
-			} else if txDoc.Message != nil {
-				success = success && x.UpdateMessage(txDoc.Message, bson.M{"status": models.MessageStatusSuccess})
-			} else {
-				success = false
-			}
-		} else {
+		if !confirmed {
 			success = false
+			continue
 		}
 
+		update = bson.M{
+			"status":           models.MessageStatusSuccess,
+			"transaction":      txDoc.ID,
+			"transaction_hash": txDoc.Hash,
+		}
+
+		if txDoc.Refund != nil {
+			success = x.UpdateRefund(txDoc.Refund, update) && success
+			continue
+		}
+		for _, messageObjectID := range txDoc.Messages {
+			success = x.UpdateMessage(&messageObjectID, update) && success
+		}
 	}
 
 	return success

@@ -95,9 +95,19 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	if messageID == nil {
 		return fmt.Errorf("messageID is nil")
 	}
-	return mongoDB.UpdateOne(
+	_, err := mongoDB.UpdateOne(
 		common.CollectionMessages,
 		bson.M{"_id": messageID},
+		bson.M{"$set": update},
+	)
+	return err
+}
+
+func UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error) {
+	messageIDHex := common.Ensure0xPrefix(common.HexFromBytes(messageID[:]))
+	return mongoDB.UpdateOne(
+		common.CollectionMessages,
+		bson.M{"message_id": messageIDHex},
 		bson.M{"$set": update},
 	)
 }
@@ -133,6 +143,32 @@ func GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Me
 				}},
 			}},
 		},
+	}
+
+	err := mongoDB.FindMany(common.CollectionMessages, filter, &messages)
+
+	return messages, err
+}
+
+func GetSignedMessages(chain models.Chain) ([]models.Message, error) {
+	messages := []models.Message{}
+	sort := bson.M{"sequence": 1}
+	filter := bson.M{
+		"content.destination_domain": chain.ChainDomain,
+		"status":                     models.MessageStatusSigned,
+	}
+
+	err := mongoDB.FindManySorted(common.CollectionMessages, filter, sort, &messages)
+
+	return messages, err
+}
+
+func GetBroadcastedMessages(chain models.Chain) ([]models.Message, error) {
+	messages := []models.Message{}
+	filter := bson.M{
+		"content.destination_domain": chain.ChainDomain,
+		"status":                     models.MessageStatusBroadcasted,
+		"transaction":                nil,
 	}
 
 	err := mongoDB.FindMany(common.CollectionMessages, filter, &messages)

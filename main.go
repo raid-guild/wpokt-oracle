@@ -95,7 +95,7 @@ func main() {
 		services = append(services, chainService)
 	}
 
-	cosmosService := cosmos.NewCosmosChainService(cosmosNetwork, mintControllerMap, config.Mnemonic, &wg, nodeHealth)
+	cosmosService := cosmos.NewCosmosChainService(cosmosNetwork, mintControllerMap, config.Mnemonic, config.EthereumNetworks, &wg, nodeHealth)
 	services = append(services, cosmosService)
 
 	wg.Add(len(services) + 1)

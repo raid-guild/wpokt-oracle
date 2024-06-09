@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 
+	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 
 	log "github.com/sirupsen/logrus"
@@ -22,6 +23,7 @@ const (
 )
 
 type EthereumClient interface {
+	Chain() models.Chain
 	ValidateNetwork() error
 	GetBlockHeight() (uint64, error)
 	GetChainID() (*big.Int, error)
@@ -31,13 +33,19 @@ type EthereumClient interface {
 }
 
 type ethereumClient struct {
-	Timeout   time.Duration
-	ChainID   uint64
-	ChainName string
+	chain models.Chain
+
+	timeout   time.Duration
+	chainID   uint64
+	chainName string
 
 	client *ethclient.Client
 
 	logger *log.Entry
+}
+
+func (c *ethereumClient) Chain() models.Chain {
+	return c.chain
 }
 
 func (c *ethereumClient) GetClient() *ethclient.Client {
@@ -45,7 +53,7 @@ func (c *ethereumClient) GetClient() *ethclient.Client {
 }
 
 func (c *ethereumClient) GetBlockHeight() (uint64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	blockNumber, err := c.client.BlockNumber(ctx)
@@ -57,7 +65,7 @@ func (c *ethereumClient) GetBlockHeight() (uint64, error) {
 }
 
 func (c *ethereumClient) GetChainID() (*big.Int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	chainId, err := c.client.ChainID(ctx)
@@ -75,8 +83,8 @@ func (c *ethereumClient) ValidateNetwork() error {
 	if err != nil {
 		return fmt.Errorf("failed to validate network: %s", err)
 	}
-	if chainID.Cmp(big.NewInt(int64(c.ChainID))) != 0 {
-		return fmt.Errorf("failed to validate network: expected chain id %d, got %s", c.ChainID, chainID)
+	if chainID.Cmp(big.NewInt(int64(c.chainID))) != 0 {
+		return fmt.Errorf("failed to validate network: expected chain id %d, got %s", c.chainID, chainID)
 	}
 
 	c.logger.Debugf("Validated network")
@@ -84,7 +92,7 @@ func (c *ethereumClient) ValidateNetwork() error {
 }
 
 func (c *ethereumClient) GetTransactionByHash(txHash string) (*types.Transaction, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	tx, isPending, err := c.client.TransactionByHash(ctx, common.HexToHash(txHash))
@@ -92,7 +100,7 @@ func (c *ethereumClient) GetTransactionByHash(txHash string) (*types.Transaction
 }
 
 func (c *ethereumClient) GetTransactionReceipt(txHash string) (*types.Receipt, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
 	receipt, err := c.client.TransactionReceipt(ctx, common.HexToHash(txHash))
@@ -112,9 +120,11 @@ func NewClient(config models.EthereumNetworkConfig) (EthereumClient, error) {
 	}
 
 	ethclient := &ethereumClient{
-		Timeout:   time.Duration(config.TimeoutMS) * time.Millisecond,
-		ChainID:   config.ChainID,
-		ChainName: config.ChainName,
+		chain: util.ParseChain(config),
+
+		timeout:   time.Duration(config.TimeoutMS) * time.Millisecond,
+		chainID:   config.ChainID,
+		chainName: config.ChainName,
 
 		client: client,
 

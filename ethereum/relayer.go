@@ -1,17 +1,15 @@
 package ethereum
 
 import (
-	"bytes"
 	"context"
-	"encoding/hex"
 	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/db"
@@ -22,14 +20,14 @@ import (
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
-type MessageMonitorRunner struct {
+type MessageRelayerRunner struct {
 	startBlockHeight   uint64
 	currentBlockHeight uint64
 
 	mintControllerMap map[uint32][]byte
 
-	mailbox eth.MailboxContract
-	client  eth.EthereumClient
+	mintController eth.MintControllerContract
+	client         eth.EthereumClient
 
 	confirmations uint64
 
@@ -40,18 +38,18 @@ type MessageMonitorRunner struct {
 	logger *log.Entry
 }
 
-func (x *MessageMonitorRunner) Run() {
+func (x *MessageRelayerRunner) Run() {
 	x.UpdateCurrentBlockHeight()
 	x.SyncNewBlocks()
-	x.ConfirmDispatchTxs()
-	x.CreateMessagesForTxs()
+	x.ConfirmFulfillmentTxs()
+	x.ConfirmMessages()
 }
 
-func (x *MessageMonitorRunner) Height() uint64 {
+func (x *MessageRelayerRunner) Height() uint64 {
 	return uint64(x.currentBlockHeight)
 }
 
-func (x *MessageMonitorRunner) UpdateCurrentBlockHeight() {
+func (x *MessageRelayerRunner) UpdateCurrentBlockHeight() {
 	res, err := x.client.GetBlockHeight()
 	if err != nil {
 		x.logger.
@@ -65,20 +63,9 @@ func (x *MessageMonitorRunner) UpdateCurrentBlockHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatch) bool {
+func (x *MessageRelayerRunner) HandleFulfillmentEvent(event *autogen.MintControllerFulfillment) bool {
 	if event == nil {
-		x.logger.Error("HandleDispatchEvent: event is nil")
-		return false
-	}
-
-	mintController, ok := x.mintControllerMap[event.Destination]
-	if !ok {
-		x.logger.Errorf("Mint controller not found for destination domain: %d", event.Destination)
-		return false
-	}
-
-	if !bytes.Equal(mintController, []byte(event.Recipient[12:32])) {
-		x.logger.Errorf("Recipient does not match mint controller for destination domain: %d", event.Destination)
+		x.logger.Error("HandleFulfillmentEvent: event is nil")
 		return false
 	}
 
@@ -87,18 +74,6 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 	err := messageContent.DecodeFromBytes(event.Message)
 	if err != nil {
 		x.logger.WithError(err).Error("Error decoding message content")
-		return false
-	}
-
-	if messageContent.DestinationDomain != event.Destination {
-		x.logger.Errorf("Destination domain does not match message content destination domain: %d", event.Destination)
-		return false
-	}
-
-	recipientHex := "0x" + hex.EncodeToString(event.Recipient[12:32])
-
-	if !strings.EqualFold(messageContent.Recipient, recipientHex) {
-		x.logger.Errorf("Recipient does not match message content recipient: %s", recipientHex)
 		return false
 	}
 
@@ -128,7 +103,7 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		return false
 	}
 
-	txDoc, err := db.NewEthereumTransaction(tx, x.mailbox.Address().Bytes(), receipt, x.chain, models.TransactionStatusPending)
+	txDoc, err := db.NewEthereumTransaction(tx, x.mintController.Address().Bytes(), receipt, x.chain, models.TransactionStatusPending)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("tx_hash", txHash).
@@ -136,7 +111,7 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		return false
 	}
 
-	_, err = db.InsertTransaction(txDoc)
+	insertedID, err := db.InsertTransaction(txDoc)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("tx_hash", txHash).
@@ -144,16 +119,28 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		return false
 	}
 
+	update := bson.M{
+		"transaction":      insertedID,
+		"transaction_hash": txHash,
+	}
+
+	messageID := event.OrderId
+
+	_, err = db.UpdateMessageByMessageID(messageID, update)
+	if err != nil {
+		x.logger.WithError(err).
+			Errorf("Error updating message")
+		return false
+	}
+
 	return true
 }
 
-func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
+func (x *MessageRelayerRunner) ConfirmTx(txDoc *models.Transaction) bool {
 	if txDoc == nil {
 		x.logger.Error("ConfirmTx: txDoc is nil")
 		return false
 	}
-
-	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "ConfirmTx")
 
 	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
 	if err != nil {
@@ -185,48 +172,16 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 		return false
 	}
 
-	var events []*autogen.MailboxDispatch
-	for _, log := range receipt.Logs {
-		if log.Address == x.mailbox.Address() {
-			event, err := x.mailbox.ParseDispatch(*log)
-			if err != nil {
-				logger.WithError(err).Errorf("Error parsing dispatch event")
-				continue
-			}
-			mintController, ok := x.mintControllerMap[event.Destination]
-			if !ok {
-				logger.Infof("Event destination is not supported")
-				continue
-			}
-			if !bytes.Equal(event.Recipient[12:32], mintController) {
-				logger.Infof("Event recipient is not known mint controller")
-				continue
-			}
-			events = append(events, event)
-			break
-		}
-	}
-
-	if len(events) == 0 {
-		logger.Infof("No dispatch events found")
-		err := db.UpdateTransaction(txDoc.ID, bson.M{"status": models.TransactionStatusInvalid})
-		if err != nil {
-			logger.WithError(err).Errorf("Error updating transaction")
-			return false
-		}
-		return true
-	}
-
 	return true
 }
 
-func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bool {
+func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) bool {
 	if txDoc == nil {
-		x.logger.Error("CreateMessagesForTx: txDoc is nil")
+		x.logger.Error("ConfirmMessagesForTx: txDoc is nil")
 		return false
 	}
 
-	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "CreateMessagesForTx")
+	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "ConfirmMessagesForTx")
 
 	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
 	if err != nil {
@@ -245,87 +200,55 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 		return false
 	}
 
-	var events []*autogen.MailboxDispatch
+	var messageIDs [][32]byte
 	for _, log := range receipt.Logs {
-		if log.Address == x.mailbox.Address() {
-			event, err := x.mailbox.ParseDispatch(*log)
+		if log.Address == x.mintController.Address() {
+			event, err := x.mintController.ParseFulfillment(*log)
 			if err != nil {
-				logger.WithError(err).Errorf("Error parsing dispatch event")
+				logger.WithError(err).Errorf("Error parsing fulfillment event")
 				continue
 			}
-			mintController, ok := x.mintControllerMap[event.Destination]
-			if !ok {
-				logger.Infof("Event destination is not supported")
-				continue
-			}
-			if !bytes.Equal(event.Recipient[12:32], mintController) {
-				logger.Infof("Event recipient is not known mint controller")
-				continue
-			}
-			events = append(events, event)
+			messageIDs = append(messageIDs, event.OrderId)
 			break
 		}
 	}
 
-	if len(events) == 0 {
+	if len(messageIDs) == 0 {
 		return false
 	}
 
 	var success bool
 
-	for _, event := range events {
+	update := bson.M{
+		"status":           models.MessageStatusSuccess,
+		"transaction":      txDoc.ID,
+		"transaction_hash": txDoc.Hash,
+	}
 
-		var messageContent models.MessageContent
-		err := messageContent.DecodeFromBytes(event.Message)
+	var docIDs []primitive.ObjectID
+
+	for _, messageID := range messageIDs {
+		docID, err := db.UpdateMessageByMessageID(messageID, update)
 		if err != nil {
-			x.logger.WithError(err).Error("Error decoding message content")
+			logger.WithError(err).
+				Errorf("Error updating message")
 			success = false
+		} else {
+			docIDs = append(docIDs, docID)
 		}
-
-		if messageContent.DestinationDomain != event.Destination {
-			x.logger.Errorf("Destination domain does not match message content destination domain: %d", event.Destination)
-			success = false
-		}
-
-		recipientHex := "0x" + hex.EncodeToString(event.Recipient[12:32])
-
-		if !strings.EqualFold(messageContent.Recipient, recipientHex) {
-			x.logger.Errorf("Recipient does not match message content recipient: %s", recipientHex)
-			success = false
-		}
-
-		message, err := db.NewMessage(txDoc, messageContent, models.MessageStatusPending)
-		if err != nil {
-			x.logger.WithError(err).Errorf("Error creating message")
-			success = false
-		}
-
-		messageID, err := db.InsertMessage(message)
-		if err != nil {
-			x.logger.WithError(err).Errorf("Error inserting message")
-			success = false
-		}
-
-		x.logger.
-			WithField("tx_hash", txDoc.Hash).
-			WithField("message_id", messageID.Hex()).
-			Info("Message created")
-
-		txDoc.Messages = append(txDoc.Messages, messageID)
 	}
 
 	if !success {
 		return false
 	}
 
-	update := bson.M{
-		"messages": common.RemoveDuplicates(txDoc.Messages),
+	update = bson.M{
+		"messages": docIDs,
 	}
 
 	err = db.UpdateTransaction(txDoc.ID, update)
 	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txDoc.Hash).
+		logger.WithError(err).
 			Errorf("Error updating transaction")
 		return false
 	}
@@ -333,19 +256,19 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 	return true
 }
 
-func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
-	filter, err := x.mailbox.FilterDispatch(&bind.FilterOpts{
+func (x *MessageRelayerRunner) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
+	filter, err := x.mintController.FilterFulfillment(&bind.FilterOpts{
 		Start:   startBlockHeight,
 		End:     &endBlockHeight,
 		Context: context.Background(),
-	}, []ethcommon.Address{}, []uint32{}, [][32]byte{})
+	}, [][32]byte{})
 
 	if filter != nil {
 		defer filter.Close()
 	}
 
 	if err != nil {
-		x.logger.WithError(err).Error("Error creating filter for dispatch events")
+		x.logger.WithError(err).Error("Error creating filter for fulfillment events")
 		return false
 	}
 
@@ -367,18 +290,18 @@ func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 			continue
 		}
 
-		success = x.HandleDispatchEvent(event) && success
+		success = x.HandleFulfillmentEvent(event) && success
 	}
 
 	if err := filter.Error(); err != nil {
-		x.logger.WithError(err).Error("Error processing dispatch events")
+		x.logger.WithError(err).Error("Error processing fulfillment events")
 		return false
 	}
 
 	return success
 }
 
-func (x *MessageMonitorRunner) SyncNewBlocks() bool {
+func (x *MessageRelayerRunner) SyncNewBlocks() bool {
 	if x.currentBlockHeight <= x.startBlockHeight {
 		x.logger.Infof("No new blocks to sync")
 		return true
@@ -407,10 +330,10 @@ func (x *MessageMonitorRunner) SyncNewBlocks() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) ConfirmDispatchTxs() bool {
-	logger := x.logger.WithField("section", "ConfirmDispatchTxs")
+func (x *MessageRelayerRunner) ConfirmFulfillmentTxs() bool {
+	logger := x.logger.WithField("section", "ConfirmFulfillmentTxs")
 
-	txs, err := db.GetPendingTransactionsTo(x.chain, x.mailbox.Address().Bytes())
+	txs, err := db.GetPendingTransactionsTo(x.chain, x.mintController.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Error("Error getting pending transactions")
 		return false
@@ -424,10 +347,10 @@ func (x *MessageMonitorRunner) ConfirmDispatchTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) CreateMessagesForTxs() bool {
-	logger := x.logger.WithField("section", "CreateMessagesForTxs")
+func (x *MessageRelayerRunner) ConfirmMessages() bool {
+	logger := x.logger.WithField("section", "ConfirmMessages")
 
-	txs, err := db.GetConfirmedTransactionsTo(x.chain, x.mailbox.Address().Bytes())
+	txs, err := db.GetConfirmedTransactionsTo(x.chain, x.mintController.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Error("Error getting confirmed transactions")
 		return false
@@ -435,13 +358,13 @@ func (x *MessageMonitorRunner) CreateMessagesForTxs() bool {
 
 	var success bool
 	for _, tx := range txs {
-		success = x.CreateMessagesForTx(&tx) && success
+		success = x.ConfirmMessagesForTx(&tx) && success
 	}
 
 	return success
 }
 
-func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
+func (x *MessageRelayerRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
 	if lastHealth == nil || lastHealth.BlockHeight == 0 {
 		x.logger.Infof("Invalid last health")
 	} else {
@@ -455,19 +378,19 @@ func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerSer
 	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
-func NewMessageMonitor(
+func NewMessageRelayer(
 	config models.EthereumNetworkConfig,
 	mintControllerMap map[uint32][]byte,
 	lastHealth *models.RunnerServiceStatus,
 ) service.Runner {
 	logger := log.
 		WithField("module", "ethereum").
-		WithField("service", "monitor").
+		WithField("service", "relayer").
 		WithField("chain_name", strings.ToLower(config.ChainName)).
 		WithField("chain_id", config.ChainID)
 
-	if !config.MessageMonitor.Enabled {
-		logger.Fatalf("Message monitor is not enabled")
+	if !config.MessageRelayer.Enabled {
+		logger.Fatalf("Message relayer is not enabled")
 	}
 
 	logger.Debugf("Initializing")
@@ -477,21 +400,21 @@ func NewMessageMonitor(
 		logger.Fatalf("Error creating ethereum client: %s", err)
 	}
 
-	logger.Debug("Connecting to mailbox contract at: ", config.MailboxAddress)
-	mailbox, err := eth.NewMailboxContract(common.HexToAddress(config.MailboxAddress), client.GetClient())
+	logger.Debug("Connecting to mintController contract at: ", config.MintControllerAddress)
+	mintController, err := eth.NewMintControllerContract(common.HexToAddress(config.MintControllerAddress), client.GetClient())
 	if err != nil {
-		logger.Fatal("Error connecting to mailbox contract: ", err)
+		logger.Fatal("Error connecting to mintController contract: ", err)
 	}
-	logger.Debug("Connected to mailbox contract")
+	logger.Debug("Connected to mintController contract")
 
-	x := &MessageMonitorRunner{
+	x := &MessageRelayerRunner{
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 
 		mintControllerMap: mintControllerMap,
 
-		mailbox:       mailbox,
-		confirmations: config.Confirmations,
+		mintController: mintController,
+		confirmations:  config.Confirmations,
 
 		client: client,
 

@@ -130,7 +130,7 @@ func (x *MessageMonitorRunner) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := db.UpdateTransaction(tx, update)
+	err := db.UpdateTransaction(tx.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -178,7 +178,7 @@ func (x *MessageMonitorRunner) CreateRefund(
 		return false
 	}
 
-	err = db.UpdateTransaction(txDoc, bson.M{"refund": insertedID})
+	err = db.UpdateTransaction(txDoc.ID, bson.M{"refund": insertedID})
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -252,9 +252,21 @@ func (x *MessageMonitorRunner) CreateMessage(
 		return false
 	}
 
-	_, err = db.InsertMessage(message)
+	messageID, err := db.InsertMessage(message)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error inserting message")
+		return false
+	}
+
+	txDoc.Messages = append(txDoc.Messages, messageID)
+
+	update := bson.M{
+		"messages": common.RemoveDuplicates(txDoc.Messages),
+	}
+
+	err = db.UpdateTransaction(txDoc.ID, update)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
 	}
 
@@ -616,6 +628,8 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, mintControllerMap map[
 	}
 
 	feeAmount := sdk.NewCoin("upokt", math.NewInt(int64(config.TxFee)))
+
+	// TODO: check max amount for corresponding chain and disallow if too high
 
 	x := &MessageMonitorRunner{
 		multisigPk:      multisigPk,

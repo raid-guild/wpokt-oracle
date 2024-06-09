@@ -18,6 +18,7 @@ import (
 
 func NewEthereumTransaction(
 	tx *types.Transaction,
+	toAddress []byte,
 	receipt *types.Receipt,
 	chain models.Chain,
 	txStatus models.TransactionStatus,
@@ -28,7 +29,10 @@ func NewEthereumTransaction(
 		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", txHash)
 	}
 
-	txTo := common.Ensure0xPrefix(tx.To().String())
+	txTo, err := common.AddressHexFromBytes(toAddress)
+	if err != nil {
+		return models.Transaction{}, fmt.Errorf("invalid to address: %s", toAddress)
+	}
 
 	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 	if err != nil {
@@ -46,6 +50,7 @@ func NewEthereumTransaction(
 		Status:      txStatus,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+		Messages:    []primitive.ObjectID{},
 	}, nil
 }
 
@@ -81,6 +86,7 @@ func NewCosmosTransaction(
 		Status:      txStatus,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+		Messages:    []primitive.ObjectID{},
 	}, nil
 }
 
@@ -100,15 +106,16 @@ func InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
 	return insertedID, nil
 }
 
-func UpdateTransaction(tx *models.Transaction, update bson.M) error {
-	if tx == nil {
-		return fmt.Errorf("tx is nil")
+func UpdateTransaction(txID *primitive.ObjectID, update bson.M) error {
+	if txID == nil {
+		return fmt.Errorf("txID is nil")
 	}
-	return mongoDB.UpdateOne(
+	_, err := mongoDB.UpdateOne(
 		common.CollectionTransactions,
-		bson.M{"_id": tx.ID, "hash": tx.Hash},
+		bson.M{"_id": *txID},
 		bson.M{"$set": update},
 	)
+	return err
 }
 
 func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
@@ -142,6 +149,29 @@ func GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.
 		"status":     models.TransactionStatusConfirmed,
 		"chain":      chain,
 		"to_address": txTo,
+	}
+
+	refundNil := bson.M{
+		"$or": []bson.M{
+			{"refund": bson.M{"$exists": false}},
+			{"refund": bson.M{"$eq": nil}},
+		},
+	}
+
+	messagesEmpty := bson.M{
+		"$or": []bson.M{
+			{"messages": bson.M{"$exists": false}},
+			{"messages": bson.M{"$eq": nil}},
+			{"messages": bson.M{"$size": 0}},
+		},
+	}
+
+	filter = bson.M{
+		"$and": []bson.M{
+			filter,
+			refundNil,
+			messagesEmpty,
+		},
 	}
 
 	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)

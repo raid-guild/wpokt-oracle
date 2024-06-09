@@ -13,6 +13,7 @@ func NewCosmosChainService(
 	config models.CosmosNetworkConfig,
 	mintControllerMap map[uint32][]byte,
 	mnemonic string,
+	ethNetworks []models.EthereumNetworkConfig,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
 ) service.ChainServiceInterface {
@@ -45,7 +46,7 @@ func NewCosmosChainService(
 	var signerRunner service.Runner
 	signerRunner = &service.EmptyRunner{}
 	if config.MessageSigner.Enabled {
-		signerRunner = NewMessageSigner(mnemonic, config)
+		signerRunner = NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
 	}
 
 	signerRunnerService := service.NewRunnerService(

@@ -74,11 +74,12 @@ func UpdateRefund(refundID *primitive.ObjectID, update bson.M) error {
 	if refundID == nil {
 		return fmt.Errorf("refundID is nil")
 	}
-	return mongoDB.UpdateOne(
+	_, err := mongoDB.UpdateOne(
 		common.CollectionRefunds,
 		bson.M{"_id": refundID},
 		bson.M{"$set": update},
 	)
+	return err
 }
 
 func GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {

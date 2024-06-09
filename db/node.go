@@ -16,5 +16,6 @@ func FindNode(filter interface{}) (*models.Node, error) {
 func UpsertNode(filter interface{}, onUpdate interface{}, onInsert interface{}) error {
 	update := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
 
-	return mongoDB.UpsertOne(common.CollectionNodes, filter, update)
+	_, err := mongoDB.UpsertOne(common.CollectionNodes, filter, update)
+	return err
 }

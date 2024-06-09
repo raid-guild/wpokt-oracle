@@ -2,11 +2,14 @@ package ethereum
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/types/tx"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -27,13 +30,19 @@ import (
 )
 
 type MessageSignerRunner struct {
-	startBlockHeight   uint64
-	currentBlockHeight uint64
+	timeout time.Duration
+
+	currentEthereumBlockHeight uint64
+	currentCosmosBlockHeight   uint64
 
 	mintControllerMap map[uint32][]byte
 
-	mailbox eth.MailboxContract
-	client  eth.EthereumClient
+	mailbox        eth.MailboxContract
+	mintController eth.MintControllerContract
+	warpISM        eth.WarpISMContract
+
+	client        eth.EthereumClient
+	confirmations uint64
 
 	cosmosConfig models.CosmosNetworkConfig
 	cosmosClient cosmos.CosmosClient
@@ -44,30 +53,56 @@ type MessageSignerRunner struct {
 
 	minimumAmount *big.Int
 
+	// TODO: validate maximumAmount
+	maximumAmount *big.Int
+
+	numSigners int64
+	domain     util.DomainData
+
 	logger *log.Entry
 }
 
 func (x *MessageSignerRunner) Run() {
 	x.UpdateCurrentBlockHeight()
+	x.UpdateMaxMintLimit()
 	x.SignMessages()
 }
 
 func (x *MessageSignerRunner) Height() uint64 {
-	return uint64(x.currentBlockHeight)
+	return uint64(x.currentEthereumBlockHeight)
 }
 
-func (x *MessageSignerRunner) UpdateCurrentBlockHeight() {
+func (x *MessageSignerRunner) UpdateCurrentCosmosBlockHeight() {
+	height, err := x.cosmosClient.GetLatestBlockHeight()
+	if err != nil {
+		x.logger.
+			WithError(err).
+			Error("could not get current cosmos block height")
+		return
+	}
+	x.currentCosmosBlockHeight = uint64(height)
+	x.logger.
+		WithField("current_block_height", x.currentCosmosBlockHeight).
+		Info("updated current cosmos block height")
+}
+
+func (x *MessageSignerRunner) UpdateCurrentEthereumBlockHeight() {
 	res, err := x.client.GetBlockHeight()
 	if err != nil {
 		x.logger.
 			WithError(err).
-			Error("could not get current block height")
+			Error("could not get current ethereum block height")
 		return
 	}
-	x.currentBlockHeight = res
+	x.currentEthereumBlockHeight = res
 	x.logger.
-		WithField("current_block_height", x.currentBlockHeight).
-		Info("updated current block height")
+		WithField("current_ethereum_block_height", x.currentEthereumBlockHeight).
+		Info("updated current ethereum block height")
+}
+
+func (x *MessageSignerRunner) UpdateCurrentBlockHeight() {
+	x.UpdateCurrentEthereumBlockHeight()
+	x.UpdateCurrentCosmosBlockHeight()
 }
 
 func (x *MessageSignerRunner) UpdateMessage(
@@ -85,10 +120,30 @@ func (x *MessageSignerRunner) UpdateMessage(
 func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-message")
 	logger.Debugf("Signing message")
-	return false
+
+	err := util.SignMessage(messageDoc, x.domain, x.privateKey)
+	if err != nil {
+		logger.WithError(err).Errorf("Error signing message")
+		return false
+	}
+
+	logger.Infof("Signed message")
+
+	status := models.MessageStatusPending
+
+	if len(messageDoc.Signatures) == int(x.numSigners) {
+		status = models.MessageStatusSigned
+	}
+
+	update := bson.M{
+		"status":     status,
+		"signatures": messageDoc.Signatures,
+	}
+
+	return x.UpdateMessage(messageDoc, update)
 }
 
-func (x *MessageSignerRunner) ValidateAndSignCosmosMessage(messageDoc *models.Message) bool {
+func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-cosmos-message")
 	logger.Debugf("Signing cosmos message")
 
@@ -131,23 +186,22 @@ func (x *MessageSignerRunner) ValidateAndSignCosmosMessage(messageDoc *models.Me
 
 	}
 
-	feeAmount := sdk.NewCoin("upokt", math.NewInt(int64(x.cosmosConfig.TxFee)))
+	feeAmount := sdk.NewCoin("upokt", math.NewInt(x.minimumAmount.Int64()))
 
 	if coinsReceived.IsLTE(feeAmount) {
 		logger.
 			Debugf("Found tx with amount too low")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
 	}
 
 	txHeight := txResponse.Height
-	if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
+	if txHeight <= 0 || uint64(txHeight) > x.currentCosmosBlockHeight {
 		logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 
 	}
 
-	confirmations := x.currentBlockHeight - uint64(txHeight)
+	confirmations := x.currentCosmosBlockHeight - uint64(txHeight)
 
 	if confirmations < x.cosmosConfig.Confirmations {
 		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
@@ -172,7 +226,7 @@ func (x *MessageSignerRunner) ValidateAndSignCosmosMessage(messageDoc *models.Me
 	return x.SignMessage(messageDoc)
 }
 
-func (x *MessageSignerRunner) ValidateAndSignEthereumMessage(messageDoc *models.Message) bool {
+func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
@@ -190,6 +244,12 @@ func (x *MessageSignerRunner) ValidateAndSignEthereumMessage(messageDoc *models.
 	if receipt.Status != types.ReceiptStatusSuccessful {
 		logger.Infof("Tx receipt failed")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+	}
+
+	confirmations := x.currentEthereumBlockHeight - receipt.BlockNumber.Uint64()
+	if confirmations < uint64(x.confirmations) {
+		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
+		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusPending})
 	}
 
 	messageBytes, err := messageDoc.Content.EncodeToBytes()
@@ -252,29 +312,60 @@ func (x *MessageSignerRunner) SignMessages() bool {
 	success := true
 	for _, messageDoc := range messages {
 
-		if messageDoc.Content.DestinationDomain == x.cosmosClient.Chain().ChainDomain {
-			success = success && x.ValidateAndSignCosmosMessage(&messageDoc)
+		if messageDoc.Content.OriginDomain == x.cosmosClient.Chain().ChainDomain {
+			success = x.ValidateCosmosTxAndSignMessage(&messageDoc) && success
 			continue
 		}
 
-		success = success && x.ValidateAndSignEthereumMessage(&messageDoc)
+		success = x.ValidateEthereumTxAndSignMessage(&messageDoc) && success
 	}
 
-	return true
+	return success
 }
 
-func (x *MessageSignerRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
-	if lastHealth == nil || lastHealth.BlockHeight == 0 {
-		x.logger.Infof("Invalid last health")
-	} else {
-		x.logger.Debugf("Last block height: %d", lastHealth.BlockHeight)
-		x.startBlockHeight = lastHealth.BlockHeight
+func (x *MessageSignerRunner) UpdateValidatorCount() {
+	x.logger.Debug("Fetching validator count")
+	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
+	defer cancel()
+	opts := &bind.CallOpts{Context: ctx, Pending: false}
+	count, err := x.warpISM.ValidatorCount(opts)
+
+	if err != nil {
+		x.logger.WithError(err).Error("Error fetching validator count")
+		return
 	}
-	if x.startBlockHeight == 0 || x.startBlockHeight > x.currentBlockHeight {
-		x.logger.Infof("Start block height is greater than current block height")
-		x.startBlockHeight = x.currentBlockHeight
+	x.logger.Debug("Fetched validator count")
+	x.numSigners = count.Int64()
+}
+
+func (x *MessageSignerRunner) UpdateDomainData() {
+	x.logger.Debug("Fetching domain data")
+	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
+	defer cancel()
+	opts := &bind.CallOpts{Context: ctx, Pending: false}
+	domain, err := x.warpISM.Eip712Domain(opts)
+
+	if err != nil {
+		x.logger.WithError(err).Error("Error fetching domain data")
+		return
 	}
-	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
+	x.logger.Debug("Fetched domain data")
+	x.domain = domain
+}
+
+func (x *MessageSignerRunner) UpdateMaxMintLimit() {
+	x.logger.Debug("Fetching max mint limit")
+	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
+	defer cancel()
+	opts := &bind.CallOpts{Context: ctx, Pending: false}
+	mintLimit, err := x.mintController.MaxMintLimit(opts)
+
+	if err != nil {
+		x.logger.WithError(err).Error("Error fetching max mint limit")
+		return
+	}
+	x.logger.Debug("Fetched max mint limit")
+	x.maximumAmount = mintLimit
 }
 
 func NewMessageSigner(
@@ -307,6 +398,20 @@ func NewMessageSigner(
 	}
 	logger.Debug("Connected to mailbox contract")
 
+	logger.Debug("Connecting to mint controller contract at: ", config.MintControllerAddress)
+	mintController, err := eth.NewMintControllerContract(common.HexToAddress(config.MintControllerAddress), client.GetClient())
+	if err != nil {
+		logger.Fatal("Error connecting to mint controller contract: ", err)
+	}
+	logger.Debug("Connected to mint controller contract")
+
+	logger.Debug("Connecting to warp ism contract at: ", config.WarpISMAddress)
+	warpISM, err := eth.NewWarpISMContract(common.HexToAddress(config.WarpISMAddress), client.GetClient())
+	if err != nil {
+		logger.Fatal("Error connecting to warp ism contract: ", err)
+	}
+	logger.Debug("Connected to warp ism contract")
+
 	privateKey, err := common.EthereumPrivateKeyFromMnemonic(mnemonic)
 	if err != nil {
 		logger.Fatalf("Error getting private key from mnemonic: %s", err)
@@ -317,25 +422,60 @@ func NewMessageSigner(
 		logger.Fatalf("Error creating cosmos client: %s", err)
 	}
 
+	minimumAmount := big.NewInt(int64(cosmosConfig.TxFee))
+
 	x := &MessageSignerRunner{
-		startBlockHeight:   config.StartBlockHeight,
-		currentBlockHeight: 0,
+		timeout: time.Duration(config.TimeoutMS) * time.Millisecond,
+
+		currentEthereumBlockHeight: 0,
 
 		mintControllerMap: mintControllerMap,
 
-		mailbox:    mailbox,
+		mailbox:        mailbox,
+		mintController: mintController,
+		warpISM:        warpISM,
+
 		privateKey: privateKey,
 
 		chain: util.ParseChain(config),
 
-		client:       client,
+		client:        client,
+		confirmations: uint64(config.Confirmations),
+
 		cosmosClient: cosmosClient,
 		cosmosConfig: cosmosConfig,
+
+		numSigners:    0,
+		minimumAmount: minimumAmount,
 
 		logger: logger,
 	}
 
 	x.UpdateCurrentBlockHeight()
+
+	x.UpdateValidatorCount()
+
+	if x.numSigners != int64(len(config.OracleAddresses)) {
+		x.logger.Fatalf("Invalid number of signers")
+	}
+
+	x.UpdateDomainData()
+
+	chainId := big.NewInt(int64(config.ChainID))
+
+	if x.domain.ChainId.Cmp(chainId) != 0 {
+		x.logger.Fatalf("Invalid chain ID")
+	}
+
+	if !strings.EqualFold(x.domain.VerifyingContract.Hex(), config.WarpISMAddress) {
+		x.logger.Fatalf("Invalid verifying address in domain data")
+	}
+
+	x.UpdateMaxMintLimit()
+
+	if x.maximumAmount == nil || x.maximumAmount.Cmp(x.minimumAmount) != 1 {
+		x.logger.Fatalf("Invalid max mint limit")
+	}
 
 	logger.Infof("Initialized")
 

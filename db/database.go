@@ -35,8 +35,8 @@ type Database interface {
 	AggregateOne(collection string, pipeline interface{}, result interface{}) error
 	AggregateMany(collection string, pipeline interface{}, result interface{}) error
 
-	UpdateOne(collection string, filter interface{}, update interface{}) error
-	UpsertOne(collection string, filter interface{}, update interface{}) error
+	UpdateOne(collection string, filter interface{}, update interface{}) (primitive.ObjectID, error)
+	UpsertOne(collection string, filter interface{}, update interface{}) (primitive.ObjectID, error)
 
 	XLock(resourceID string) (string, error)
 	SLock(resourceID string) (string, error)
@@ -327,21 +327,21 @@ func (d *MongoDatabase) AggregateMany(collection string, pipeline interface{}, r
 }
 
 // method for update single value in a collection
-func (d *MongoDatabase) UpdateOne(collection string, filter interface{}, update interface{}) error {
+func (d *MongoDatabase) UpdateOne(collection string, filter interface{}, update interface{}) (primitive.ObjectID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
-	_, err := d.db.Collection(collection).UpdateOne(ctx, filter, update)
-	return err
+	result, err := d.db.Collection(collection).UpdateOne(ctx, filter, update)
+	return result.UpsertedID.(primitive.ObjectID), err
 }
 
 // method for upsert single value in a collection
-func (d *MongoDatabase) UpsertOne(collection string, filter interface{}, update interface{}) error {
+func (d *MongoDatabase) UpsertOne(collection string, filter interface{}, update interface{}) (primitive.ObjectID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
 	opts := options.Update().SetUpsert(true)
-	_, err := d.db.Collection(collection).UpdateOne(ctx, filter, update, opts)
-	return err
+	result, err := d.db.Collection(collection).UpdateOne(ctx, filter, update, opts)
+	return result.UpsertedID.(primitive.ObjectID), err
 }
 
 // InitDB creates a new database wrapper

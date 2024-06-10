@@ -3,17 +3,18 @@ package util
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"sort"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+
+	"github.com/dan13ram/wpokt-oracle/common"
+	"github.com/dan13ram/wpokt-oracle/models"
 )
 
 const primaryType = "Message"
@@ -23,7 +24,7 @@ type DomainData struct {
 	Name              string
 	Version           string
 	ChainId           *big.Int
-	VerifyingContract common.Address
+	VerifyingContract ethcommon.Address
 	Salt              [32]byte
 	Extensions        []*big.Int
 }
@@ -79,11 +80,9 @@ var typesStandard = apitypes.Types{
 	},
 }
 
-func HexToBytes32(hexString string) [32]byte {
-	bytes, _ := hex.DecodeString(hexString)
-	var bytes32 [32]byte
-	copy(bytes32[:], bytes)
-	return bytes32
+func HexToBytes32(hexString string) string {
+	bytes, _ := common.Bytes32FromAddressHex(hexString)
+	return "0x" + hex.EncodeToString(bytes)
 }
 
 func signTypedData(
@@ -121,18 +120,10 @@ func signTypedData(
 		Message:     message,
 	}
 
-	domainSeparator, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
+	sighash, _, err := apitypes.TypedDataAndHash(typedData)
 	if err != nil {
 		return nil, err
 	}
-
-	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
-	if err != nil {
-		return nil, err
-	}
-
-	rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(domainSeparator), string(typedDataHash)))
-	sighash := crypto.Keccak256(rawData)
 
 	signature, err := crypto.Sign(sighash, key)
 	if signature[64] == 0 || signature[64] == 1 {
@@ -162,7 +153,7 @@ func SignMessage(
 	signatures = append(signatures, sig)
 
 	sort.Slice(signatures, func(i, j int) bool {
-		return common.HexToAddress(signatures[i].Signer).Big().Cmp(common.HexToAddress(signatures[j].Signer).Big()) == -1
+		return ethcommon.HexToAddress(signatures[i].Signer).Big().Cmp(ethcommon.HexToAddress(signatures[j].Signer).Big()) == -1
 	})
 
 	message.Signatures = signatures

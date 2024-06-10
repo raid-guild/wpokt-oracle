@@ -91,6 +91,12 @@ func NewMessage(
 	}, nil
 }
 
+func FindMessage(filter bson.M) (models.Message, error) {
+	var message models.Message
+	err := mongoDB.FindOne(common.CollectionMessages, filter, &message)
+	return message, err
+}
+
 func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	if messageID == nil {
 		return fmt.Errorf("messageID is nil")
@@ -105,6 +111,7 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 
 func UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error) {
 	messageIDHex := common.Ensure0xPrefix(common.HexFromBytes(messageID[:]))
+	fmt.Println("messageIDHex", messageIDHex)
 	return mongoDB.UpdateOne(
 		common.CollectionMessages,
 		bson.M{"message_id": messageIDHex},

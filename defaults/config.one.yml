@@ -10,7 +10,7 @@ mongodb:
   database: "test"
   timeout_ms: 10000
 ethereum_networks:
-  - start_block_height: 0
+  - start_block_height: 1
     confirmations: 0
     rpc_url: "http://127.0.0.1:38545"
     timeout_ms: 5000
@@ -33,7 +33,7 @@ ethereum_networks:
     message_relayer:
       enabled: true
       interval_ms: 10000
-  - start_block_height: 0
+  - start_block_height: 1
     confirmations: 0
     rpc_url: "http://127.0.0.1:38546"
     timeout_ms: 5000

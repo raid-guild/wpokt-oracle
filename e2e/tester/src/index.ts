@@ -1,8 +1,9 @@
-import { formatUnits } from "viem";
-import { findNodes } from "./util/mongodb";
+import { concatHex, formatUnits } from "viem";
+import { findMessage, findNodes } from "./util/mongodb";
 import cosmos from "./util/cosmos";
 import ethereum from "./util/ethereum";
 import { config } from "./util/config";
+import { encodeMessage } from "./util/message";
 // import { mintFlow } from "./flows/mint";
 // import { burnFlow } from "./flows/burn";
 
@@ -55,8 +56,8 @@ const init = async () => {
 };
 
 before(async () => {
-  await init();
-  console.log("\n");
+  // await init();
+  // console.log("\n");
 });
 
 describe("E2E tests", async () => {
@@ -66,6 +67,29 @@ describe("E2E tests", async () => {
   describe("Basic", async () => {
     it("should pass", async () => {
       console.log("Basic test");
+    });
+
+    it("Should fulfill signed message", async () => {
+      const origin_tx_hash = "0xa5126398367210fbc99190d2e935de4cecbd2ea3d97034426e66b0753279d45c";
+      const messageDoc = await findMessage(origin_tx_hash);
+      console.log(messageDoc);
+
+      if (!messageDoc) {
+        console.log("Message not found");
+        return;
+      }
+
+      const message = encodeMessage(messageDoc.content);
+      const metadata = concatHex(messageDoc.signatures.map((s) => s.signature));
+
+      console.log("Message:", message);
+      console.log("Metadata:", metadata);
+
+      const chain_id = messageDoc.content.destination_domain;
+
+      const receipt = await ethereum.fulfillOrder(chain_id, metadata, message);
+
+      console.log(receipt);
     });
   });
 

@@ -10,7 +10,7 @@ export type MessageContent = {
   sender: Hex;
   destination_domain: number;
   recipient: Hex;
-  messageBody: MessageBody;
+  message_body: MessageBody;
 };
 
 // Define the MessageStatus type

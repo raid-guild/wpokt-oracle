@@ -15,7 +15,7 @@ import {
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Chain } from "viem/chains";
 import { EthereumNetworkConfig, config } from "./config";
-import { OmniTokenAbi } from "./abis";
+import { MintControllerAbi, OmniTokenAbi } from "./abis";
 
 
 const DEFAULT_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -133,6 +133,20 @@ const getAddress = async (chain_id: number): Promise<Hex> => {
   return wallet.account.address;
 };
 
+
+const fulfillOrder = async (chain_id: number, metadata: Hex, message: Hex): Promise<TransactionReceipt> => {
+  const wallet = await getWallet(chain_id);
+  const hash = await wallet.writeContract({
+    address: networkConfig[chain_id].mint_controller_address as Hex,
+    abi: MintControllerAbi,
+    functionName: "fulfillOrder",
+    args: [metadata, message],
+  });
+
+  const receipt = await publicClient(chain_id).waitForTransactionReceipt({ hash });
+  return receipt;
+}
+
 /*
 
 const mintWPOKT = async (
@@ -233,6 +247,7 @@ export default {
   getWPOKTBalance,
   getAddress,
   sendWPOKT,
+  fulfillOrder,
   // mintWPOKT,
   // findMintedEvent,
   // burnAndBridgeWPOKT,

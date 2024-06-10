@@ -30,8 +30,7 @@ func NewCosmosChainService(
 
 	chain := util.ParseChain(config)
 
-	var monitorRunner service.Runner
-	monitorRunner = &service.EmptyRunner{}
+	var monitorRunner service.Runner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
 		monitorRunner = NewMessageMonitor(config, mintControllerMap, ethNetworks, chainHealth.MessageMonitor)
 	}
@@ -43,8 +42,7 @@ func NewCosmosChainService(
 		chain,
 	)
 
-	var signerRunner service.Runner
-	signerRunner = &service.EmptyRunner{}
+	var signerRunner service.Runner = &service.EmptyRunner{}
 	if config.MessageSigner.Enabled {
 		signerRunner = NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
 	}
@@ -57,8 +55,7 @@ func NewCosmosChainService(
 		chain,
 	)
 
-	var relayerRunner service.Runner
-	relayerRunner = &service.EmptyRunner{}
+	var relayerRunner service.Runner = &service.EmptyRunner{}
 	if config.MessageRelayer.Enabled {
 		relayerRunner = NewMessageRelayer(config, chainHealth.MessageRelayer)
 	}

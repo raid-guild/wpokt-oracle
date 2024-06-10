@@ -76,6 +76,6 @@ func AddressHexFromBytes(address []byte) (string, error) {
 	return Ensure0xPrefix(hex.EncodeToString(address)), nil
 }
 
-func HexFromBytes(address []byte) string {
-	return Ensure0xPrefix(hex.EncodeToString(address))
+func HexFromBytes(bytes []byte) string {
+	return Ensure0xPrefix(hex.EncodeToString(bytes))
 }

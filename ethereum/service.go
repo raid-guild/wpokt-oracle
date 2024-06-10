@@ -31,8 +31,7 @@ func NewEthereumChainService(
 
 	chain := util.ParseChain(config)
 
-	var monitorRunner service.Runner
-	monitorRunner = &service.EmptyRunner{}
+	var monitorRunner service.Runner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
 		monitorRunner = NewMessageMonitor(config, mintControllerMap, chainHealth.MessageMonitor)
 	}
@@ -44,8 +43,7 @@ func NewEthereumChainService(
 		chain,
 	)
 
-	var signerRunner service.Runner
-	signerRunner = &service.EmptyRunner{}
+	var signerRunner service.Runner = &service.EmptyRunner{}
 	if config.MessageSigner.Enabled {
 		signerRunner = NewMessageSigner(mnemonic, config, cosmosConfig, mintControllerMap)
 	}
@@ -57,9 +55,14 @@ func NewEthereumChainService(
 		chain,
 	)
 
+	var relayerRunner service.Runner = &service.EmptyRunner{}
+	if config.MessageRelayer.Enabled {
+		relayerRunner = NewMessageRelayer(config, mintControllerMap, chainHealth.MessageRelayer)
+	}
+
 	relayerRunnerService := service.NewRunnerService(
 		"relayer",
-		&service.EmptyRunner{},
+		relayerRunner,
 		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
 		chain,

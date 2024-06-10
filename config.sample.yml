@@ -4,6 +4,7 @@ health_check:
   read_last_health: true
 logger:
   level: "info"
+  format: "json"
 mongodb:
   uri: "mongodb://localhost:27017/example_db?retryWrites=true&w=majority"
   database: "example_db"
@@ -12,14 +13,17 @@ ethereum_networks:
   - start_block_height: 1000000
     confirmations: 0
     rpc_url: "http://localhost:8545"
-    rpc_timeout_ms: 5000
+    timeout_ms: 5000
     chain_id: 1
     chain_name: localnet
     mailbox_address: "0x123456789abcdef"
-    mint_controller_address: "0xabcdef123456789"
+    warp_ism_address: "0x123456789abcdef"
+    omni_token_address: "0x123456789abcdef"
+    mint_controller_address: "0x123456789abcdef"
     oracle_addresses:
       - "0xoracleAddress1"
       - "0xoracleAddress2"
+      - "0xoracleAddress3"
     message_monitor:
       enabled: true
       interval_ms: 60000
@@ -29,30 +33,31 @@ ethereum_networks:
     message_processor:
       enabled: true
       interval_ms: 60000
-cosmos_networks:
-  - start_block_height: 50000
-    confirmations: 0
-    rpc_url: "http://localhost:36657"
-    grpc_enabled: false
-    grpc_host: 'localhost'
-    grpc_port: 36658
-    timeout_ms: 5000
-    chain_id: "poktroll"
-    chain_name: "pokt_localnet"
-    tx_fee: 0
-    bech32_prefix: "pokt"
-    coin_denom: "upokt"
-    multisig_address: "pokt1abcdefg"
-    multisig_public_keys:
-      - "pubKey1"
-      - "pubKey2"
-    multisig_threshold: 2
-    message_monitor:
-      enabled: true
-      interval_ms: 60000
-    message_signer:
-      enabled: true
-      interval_ms: 60000
-    message_processor:
-      enabled: true
-      interval_ms: 60000
+cosmos_network:
+  start_block_height: 50000
+  confirmations: 0
+  rpc_url: "http://localhost:36657"
+  grpc_enabled: false
+  grpc_host: 'localhost'
+  grpc_port: 36658
+  timeout_ms: 5000
+  chain_id: "poktroll"
+  chain_name: "pokt_localnet"
+  tx_fee: 0
+  bech32_prefix: "pokt"
+  coin_denom: "upokt"
+  multisig_address: "pokt1abcdefg"
+  multisig_public_keys:
+    - "pubKey1"
+    - "pubKey2"
+    - "pubKey3"
+  multisig_threshold: 2
+  message_monitor:
+    enabled: true
+    interval_ms: 60000
+  message_signer:
+    enabled: true
+    interval_ms: 60000
+  message_processor:
+    enabled: true
+    interval_ms: 60000

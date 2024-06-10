@@ -36,7 +36,7 @@ func NewMintControllerMap(config models.Config) map[uint32][]byte {
 		mintControllerMap[ethChain.ChainDomain] = mintController
 	}
 
-	cosmosNetwork := config.CosmosNetworks[0]
+	cosmosNetwork := config.CosmosNetwork
 
 	mintController, err := common.AddressBytesFromBech32(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress)
 
@@ -83,11 +83,7 @@ func main() {
 		}
 	}
 
-	if len(config.CosmosNetworks) != 1 {
-		logger.Fatalf("Only one Cosmos network is supported")
-	}
-
-	cosmosNetwork := config.CosmosNetworks[0]
+	cosmosNetwork := config.CosmosNetwork
 	mintControllerMap := NewMintControllerMap(config)
 
 	for _, ethNetwork := range config.EthereumNetworks {

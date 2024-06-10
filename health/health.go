@@ -117,7 +117,7 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 		Debug("Initialized cosmos address")
 
 	signerIndex := -1
-	for i, pk := range config.CosmosNetworks[0].MultisigPublicKeys {
+	for i, pk := range config.CosmosNetwork.MultisigPublicKeys {
 		if strings.EqualFold(pk, cosmosPubKeyHex) {
 			signerIndex = i
 		}

@@ -100,72 +100,68 @@ func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 	}
 
 	// Merge CosmosNetworks
-	for i, envCosmosNet := range envConfig.CosmosNetworks {
-		if i < len(mergedConfig.CosmosNetworks) {
-			if envCosmosNet.StartBlockHeight != 0 {
-				mergedConfig.CosmosNetworks[i].StartBlockHeight = envCosmosNet.StartBlockHeight
-			}
-			if envCosmosNet.Confirmations != 0 {
-				mergedConfig.CosmosNetworks[i].Confirmations = envCosmosNet.Confirmations
-			}
-			if envCosmosNet.RPCURL != "" {
-				mergedConfig.CosmosNetworks[i].RPCURL = envCosmosNet.RPCURL
-			}
-			if envCosmosNet.GRPCEnabled {
-				mergedConfig.CosmosNetworks[i].GRPCEnabled = envCosmosNet.GRPCEnabled
-			}
-			if envCosmosNet.GRPCHost != "" {
-				mergedConfig.CosmosNetworks[i].GRPCHost = envCosmosNet.GRPCHost
-			}
-			if envCosmosNet.GRPCPort != 0 {
-				mergedConfig.CosmosNetworks[i].GRPCPort = envCosmosNet.GRPCPort
-			}
-			if envCosmosNet.TimeoutMS != 0 {
-				mergedConfig.CosmosNetworks[i].TimeoutMS = envCosmosNet.TimeoutMS
-			}
-			if envCosmosNet.ChainID != "" {
-				mergedConfig.CosmosNetworks[i].ChainID = envCosmosNet.ChainID
-			}
-			if envCosmosNet.ChainName != "" {
-				mergedConfig.CosmosNetworks[i].ChainName = envCosmosNet.ChainName
-			}
-			if envCosmosNet.TxFee != 0 {
-				mergedConfig.CosmosNetworks[i].TxFee = envCosmosNet.TxFee
-			}
-			if envCosmosNet.Bech32Prefix != "" {
-				mergedConfig.CosmosNetworks[i].Bech32Prefix = envCosmosNet.Bech32Prefix
-			}
-			if envCosmosNet.CoinDenom != "" {
-				mergedConfig.CosmosNetworks[i].CoinDenom = envCosmosNet.CoinDenom
-			}
-			if envCosmosNet.MultisigAddress != "" {
-				mergedConfig.CosmosNetworks[i].MultisigAddress = envCosmosNet.MultisigAddress
-			}
-			if len(envCosmosNet.MultisigPublicKeys) != 0 {
-				mergedConfig.CosmosNetworks[i].MultisigPublicKeys = envCosmosNet.MultisigPublicKeys
-			}
-			if envCosmosNet.MultisigThreshold != 0 {
-				mergedConfig.CosmosNetworks[i].MultisigThreshold = envCosmosNet.MultisigThreshold
-			}
-			if envCosmosNet.MessageMonitor.Enabled {
-				mergedConfig.CosmosNetworks[i].MessageMonitor.Enabled = envCosmosNet.MessageMonitor.Enabled
-			}
-			if envCosmosNet.MessageMonitor.IntervalMS != 0 {
-				mergedConfig.CosmosNetworks[i].MessageMonitor.IntervalMS = envCosmosNet.MessageMonitor.IntervalMS
-			}
-			if envCosmosNet.MessageSigner.Enabled {
-				mergedConfig.CosmosNetworks[i].MessageSigner.Enabled = envCosmosNet.MessageSigner.Enabled
-			}
-			if envCosmosNet.MessageSigner.IntervalMS != 0 {
-				mergedConfig.CosmosNetworks[i].MessageSigner.IntervalMS = envCosmosNet.MessageSigner.IntervalMS
-			}
-			if envCosmosNet.MessageRelayer.Enabled {
-				mergedConfig.CosmosNetworks[i].MessageRelayer.Enabled = envCosmosNet.MessageRelayer.Enabled
-			}
-			if envCosmosNet.MessageRelayer.IntervalMS != 0 {
-				mergedConfig.CosmosNetworks[i].MessageRelayer.IntervalMS = envCosmosNet.MessageRelayer.IntervalMS
-			}
-		}
+	if envConfig.CosmosNetwork.StartBlockHeight != 0 {
+		mergedConfig.CosmosNetwork.StartBlockHeight = envConfig.CosmosNetwork.StartBlockHeight
+	}
+	if envConfig.CosmosNetwork.Confirmations != 0 {
+		mergedConfig.CosmosNetwork.Confirmations = envConfig.CosmosNetwork.Confirmations
+	}
+	if envConfig.CosmosNetwork.RPCURL != "" {
+		mergedConfig.CosmosNetwork.RPCURL = envConfig.CosmosNetwork.RPCURL
+	}
+	if envConfig.CosmosNetwork.GRPCEnabled {
+		mergedConfig.CosmosNetwork.GRPCEnabled = envConfig.CosmosNetwork.GRPCEnabled
+	}
+	if envConfig.CosmosNetwork.GRPCHost != "" {
+		mergedConfig.CosmosNetwork.GRPCHost = envConfig.CosmosNetwork.GRPCHost
+	}
+	if envConfig.CosmosNetwork.GRPCPort != 0 {
+		mergedConfig.CosmosNetwork.GRPCPort = envConfig.CosmosNetwork.GRPCPort
+	}
+	if envConfig.CosmosNetwork.TimeoutMS != 0 {
+		mergedConfig.CosmosNetwork.TimeoutMS = envConfig.CosmosNetwork.TimeoutMS
+	}
+	if envConfig.CosmosNetwork.ChainID != "" {
+		mergedConfig.CosmosNetwork.ChainID = envConfig.CosmosNetwork.ChainID
+	}
+	if envConfig.CosmosNetwork.ChainName != "" {
+		mergedConfig.CosmosNetwork.ChainName = envConfig.CosmosNetwork.ChainName
+	}
+	if envConfig.CosmosNetwork.TxFee != 0 {
+		mergedConfig.CosmosNetwork.TxFee = envConfig.CosmosNetwork.TxFee
+	}
+	if envConfig.CosmosNetwork.Bech32Prefix != "" {
+		mergedConfig.CosmosNetwork.Bech32Prefix = envConfig.CosmosNetwork.Bech32Prefix
+	}
+	if envConfig.CosmosNetwork.CoinDenom != "" {
+		mergedConfig.CosmosNetwork.CoinDenom = envConfig.CosmosNetwork.CoinDenom
+	}
+	if envConfig.CosmosNetwork.MultisigAddress != "" {
+		mergedConfig.CosmosNetwork.MultisigAddress = envConfig.CosmosNetwork.MultisigAddress
+	}
+	if len(envConfig.CosmosNetwork.MultisigPublicKeys) != 0 {
+		mergedConfig.CosmosNetwork.MultisigPublicKeys = envConfig.CosmosNetwork.MultisigPublicKeys
+	}
+	if envConfig.CosmosNetwork.MultisigThreshold != 0 {
+		mergedConfig.CosmosNetwork.MultisigThreshold = envConfig.CosmosNetwork.MultisigThreshold
+	}
+	if envConfig.CosmosNetwork.MessageMonitor.Enabled {
+		mergedConfig.CosmosNetwork.MessageMonitor.Enabled = envConfig.CosmosNetwork.MessageMonitor.Enabled
+	}
+	if envConfig.CosmosNetwork.MessageMonitor.IntervalMS != 0 {
+		mergedConfig.CosmosNetwork.MessageMonitor.IntervalMS = envConfig.CosmosNetwork.MessageMonitor.IntervalMS
+	}
+	if envConfig.CosmosNetwork.MessageSigner.Enabled {
+		mergedConfig.CosmosNetwork.MessageSigner.Enabled = envConfig.CosmosNetwork.MessageSigner.Enabled
+	}
+	if envConfig.CosmosNetwork.MessageSigner.IntervalMS != 0 {
+		mergedConfig.CosmosNetwork.MessageSigner.IntervalMS = envConfig.CosmosNetwork.MessageSigner.IntervalMS
+	}
+	if envConfig.CosmosNetwork.MessageRelayer.Enabled {
+		mergedConfig.CosmosNetwork.MessageRelayer.Enabled = envConfig.CosmosNetwork.MessageRelayer.Enabled
+	}
+	if envConfig.CosmosNetwork.MessageRelayer.IntervalMS != 0 {
+		mergedConfig.CosmosNetwork.MessageRelayer.IntervalMS = envConfig.CosmosNetwork.MessageRelayer.IntervalMS
 	}
 
 	logger.Debug("Config merged successfully")

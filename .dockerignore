@@ -21,6 +21,11 @@ go.work
 # vim files
 *.sw[a-z]
 
+# config
+*.yml
+!config.sample.yml
+!config.test.yml
+
 # env
 .env*
 
@@ -33,5 +38,16 @@ credentials.json
 # build
 ./wpokt-oracle
 
-# docker
-docker/docker-compose.yml
+LICENSE.md
+README.md
+sample.env
+
+# scripts not needed on image
+scripts/
+
+# e2e test files
+e2e/
+
+# docker files
+docker/
+!docker/set_eth_envs.sh

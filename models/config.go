@@ -6,7 +6,7 @@ type Config struct {
 	Logger           LoggerConfig            `yaml:"logger" json:"logger"`
 	MongoDB          MongoConfig             `yaml:"mongodb" json:"mongodb"`
 	EthereumNetworks []EthereumNetworkConfig `yaml:"ethereum_networks" json:"ethereum_networks"`
-	CosmosNetworks   []CosmosNetworkConfig   `yaml:"cosmos_networks" json:"cosmos_networks"`
+	CosmosNetwork    CosmosNetworkConfig     `yaml:"cosmos_network" json:"cosmos_network"`
 }
 
 type HealthCheckConfig struct {

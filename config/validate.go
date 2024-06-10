@@ -129,100 +129,92 @@ func validateConfig(config models.Config) error {
 	}
 
 	logger.Debug("Ethereum validated")
-	if len(config.CosmosNetworks) == 0 {
-		return fmt.Errorf("at least one cosmos network must be configured")
-	}
-	if len(config.CosmosNetworks) > 1 {
-		return fmt.Errorf("only one cosmos network is supported")
-	}
 
 	// cosmos
-	for i, cosmosNetwork := range config.CosmosNetworks {
-		if cosmosNetwork.StartBlockHeight == 0 {
-			logger.Warnf("CosmosNetworks[%d].StartBlockHeight is 0", i)
+	if config.CosmosNetwork.StartBlockHeight == 0 {
+		logger.Warnf("CosmosNetwork.StartBlockHeight is 0")
+	}
+	if config.CosmosNetwork.Confirmations == 0 {
+		logger.Warnf("CosmosNetwork.Confirmations is 0")
+	}
+	if config.CosmosNetwork.GRPCEnabled {
+		if config.CosmosNetwork.GRPCHost == "" {
+			return fmt.Errorf("CosmosNetwork.GRPCHost is required when GRPCEnabled is true")
 		}
-		if cosmosNetwork.Confirmations == 0 {
-			logger.Warnf("CosmosNetworks[%d].Confirmations is 0", i)
+		if config.CosmosNetwork.GRPCPort == 0 {
+			return fmt.Errorf("CosmosNetwork.GRPCPort is required when GRPCEnabled is true")
 		}
-		if cosmosNetwork.GRPCEnabled {
-			if cosmosNetwork.GRPCHost == "" {
-				return fmt.Errorf("CosmosNetworks[%d].GRPCHost is required when GRPCEnabled is true", i)
-			}
-			if cosmosNetwork.GRPCPort == 0 {
-				return fmt.Errorf("CosmosNetworks[%d].GRPCPort is required when GRPCEnabled is true", i)
-			}
-		} else {
-			if cosmosNetwork.RPCURL == "" {
-				return fmt.Errorf("CosmosNetworks[%d].RPCURL is required when GRPCEnabled is false", i)
-			}
+	} else {
+		if config.CosmosNetwork.RPCURL == "" {
+			return fmt.Errorf("CosmosNetwork.RPCURL is required when GRPCEnabled is false")
 		}
-		if cosmosNetwork.TimeoutMS == 0 {
-			return fmt.Errorf("CosmosNetworks[%d].TimeoutMS is required", i)
+	}
+	if config.CosmosNetwork.TimeoutMS == 0 {
+		return fmt.Errorf("CosmosNetwork.TimeoutMS is required")
+	}
+	if config.CosmosNetwork.ChainID == "" {
+		return fmt.Errorf("CosmosNetwork.ChainId is required")
+	}
+	if config.CosmosNetwork.ChainName == "" {
+		return fmt.Errorf("CosmosNetwork.ChainName is required")
+	}
+	if config.CosmosNetwork.TxFee == 0 {
+		logger.Warnf("CosmosNetwork.TxFee is 0")
+	}
+	if config.CosmosNetwork.Bech32Prefix == "" {
+		return fmt.Errorf("CosmosNetwork.Bech32Prefix is required")
+	}
+	if config.CosmosNetwork.CoinDenom == "" {
+		return fmt.Errorf("CosmosNetwork.CoinDenom is required")
+	}
+	if !common.IsValidBech32Address(config.CosmosNetwork.Bech32Prefix, config.CosmosNetwork.MultisigAddress) {
+		return fmt.Errorf("CosmosNetwork.MultisigAddress is invalid")
+	}
+	if config.CosmosNetwork.MultisigPublicKeys == nil || len(config.CosmosNetwork.MultisigPublicKeys) <= 1 {
+		return fmt.Errorf("CosmosNetwork.MultisigPublicKeys is required and must have at least 2 public keys")
+	}
+	foundPublicKey := false
+	seen := make(map[string]bool)
+	var pKeys []crypto.PubKey
+	for j, publicKey := range config.CosmosNetwork.MultisigPublicKeys {
+		if !common.IsValidCosmosPublicKey(publicKey) {
+			return fmt.Errorf("CosmosNetwork.MultisigPublicKeys[%d] is invalid", j)
 		}
-		if cosmosNetwork.ChainID == "" {
-			return fmt.Errorf("CosmosNetworks[%d].ChainId is required", i)
+		if strings.EqualFold(publicKey, cosmosPubKeyHex) {
+			foundPublicKey = true
 		}
-		if cosmosNetwork.ChainName == "" {
-			return fmt.Errorf("CosmosNetworks[%d].ChainName is required", i)
-		}
-		if cosmosNetwork.TxFee == 0 {
-			logger.Warnf("CosmosNetworks[%d].TxFee is 0", i)
-		}
-		if cosmosNetwork.Bech32Prefix == "" {
-			return fmt.Errorf("CosmosNetworks[%d].Bech32Prefix is required", i)
-		}
-		if cosmosNetwork.CoinDenom == "" {
-			return fmt.Errorf("CosmosNetworks[%d].CoinDenom is required", i)
-		}
-		if !common.IsValidBech32Address(cosmosNetwork.Bech32Prefix, cosmosNetwork.MultisigAddress) {
-			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is invalid", i)
-		}
-		if cosmosNetwork.MultisigPublicKeys == nil || len(cosmosNetwork.MultisigPublicKeys) <= 1 {
-			return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys is required and must have at least 2 public keys", i)
-		}
-		foundPublicKey := false
-		seen := make(map[string]bool)
-		var pKeys []crypto.PubKey
-		for j, publicKey := range cosmosNetwork.MultisigPublicKeys {
-			if !common.IsValidCosmosPublicKey(publicKey) {
-				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
-			}
-			if strings.EqualFold(publicKey, cosmosPubKeyHex) {
-				foundPublicKey = true
-			}
-			pKey, err := common.CosmosPublicKeyFromHex(publicKey)
-			if err != nil {
-				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is invalid", i, j)
-			}
-			pKeys = append(pKeys, pKey)
-			if seen[publicKey] {
-				return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys[%d] is duplicated", i, j)
-			}
-			seen[publicKey] = true
-		}
-		if !foundPublicKey {
-			return fmt.Errorf("CosmosNetworks[%d].MultisigPublicKeys must contain the public key of this oracle", i)
-		}
-		if cosmosNetwork.MultisigThreshold == 0 || cosmosNetwork.MultisigThreshold > uint64(len(cosmosNetwork.MultisigPublicKeys)) {
-			return fmt.Errorf("CosmosNetworks[%d].MultisigThreshold is invalid", i)
-		}
-		multisigPk := multisig.NewLegacyAminoPubKey(int(cosmosNetwork.MultisigThreshold), pKeys)
-		multisigBech32, err := bech32.ConvertAndEncode(cosmosNetwork.Bech32Prefix, multisigPk.Address().Bytes())
+		pKey, err := common.CosmosPublicKeyFromHex(publicKey)
 		if err != nil {
-			logger.Fatalf("CosmosNetworks[%d].MultisigAddress could not be converted to bech32: %s", i, err)
+			return fmt.Errorf("CosmosNetwork.MultisigPublicKeys[%d] is invalid", j)
 		}
-		if !strings.EqualFold(cosmosNetwork.MultisigAddress, multisigBech32) {
-			return fmt.Errorf("CosmosNetworks[%d].MultisigAddress is not valid for the given public keys and threshold", i)
+		pKeys = append(pKeys, pKey)
+		if seen[publicKey] {
+			return fmt.Errorf("CosmosNetwork.MultisigPublicKeys[%d] is duplicated", j)
 		}
-		if err := validateServiceConfig(fmt.Sprintf("CosmosNetworks[%d].MessageMonitor", i), cosmosNetwork.MessageMonitor); err != nil {
-			return err
-		}
-		if err := validateServiceConfig(fmt.Sprintf("CosmosNetworks[%d].MessageSigner", i), cosmosNetwork.MessageSigner); err != nil {
-			return err
-		}
-		if err := validateServiceConfig(fmt.Sprintf("CosmosNetworks[%d].MessageRelayer", i), cosmosNetwork.MessageRelayer); err != nil {
-			return err
-		}
+		seen[publicKey] = true
+	}
+	if !foundPublicKey {
+		return fmt.Errorf("CosmosNetwork.MultisigPublicKeys must contain the public key of this oracle")
+	}
+	if config.CosmosNetwork.MultisigThreshold == 0 || config.CosmosNetwork.MultisigThreshold > uint64(len(config.CosmosNetwork.MultisigPublicKeys)) {
+		return fmt.Errorf("CosmosNetwork.MultisigThreshold is invalid")
+	}
+	multisigPk := multisig.NewLegacyAminoPubKey(int(config.CosmosNetwork.MultisigThreshold), pKeys)
+	multisigBech32, err := bech32.ConvertAndEncode(config.CosmosNetwork.Bech32Prefix, multisigPk.Address().Bytes())
+	if err != nil {
+		logger.Fatalf("CosmosNetwork.MultisigAddress could not be converted to bech32: %s", err)
+	}
+	if !strings.EqualFold(config.CosmosNetwork.MultisigAddress, multisigBech32) {
+		return fmt.Errorf("CosmosNetwork.MultisigAddress is not valid for the given public keys and threshold")
+	}
+	if err := validateServiceConfig("CosmosNetwork.MessageMonitor", config.CosmosNetwork.MessageMonitor); err != nil {
+		return err
+	}
+	if err := validateServiceConfig("CosmosNetwork.MessageSigner", config.CosmosNetwork.MessageSigner); err != nil {
+		return err
+	}
+	if err := validateServiceConfig("CosmosNetwork.MessageRelayer", config.CosmosNetwork.MessageRelayer); err != nil {
+		return err
 	}
 
 	logger.Debug("Cosmos validated")

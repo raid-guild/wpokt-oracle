@@ -215,7 +215,10 @@ func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.
 
 	}
 
-	memo, err := cosmosUtil.ValidateMemo(tx.Body.Memo)
+	supportedChainIDs := make(map[uint64]bool)
+	supportedChainIDs[uint64(x.chain.ChainDomain)] = true
+
+	memo, err := cosmosUtil.ValidateMemo(tx.Body.Memo, supportedChainIDs)
 	if err != nil {
 		logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})

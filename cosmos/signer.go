@@ -46,9 +46,10 @@ type MessageSignerRunner struct {
 	multisigThreshold uint64
 	multisigPk        *multisig.LegacyAminoPubKey
 
-	mintControllerMap map[uint32][]byte
-	ethClientMap      map[uint32]eth.EthereumClient
-	mailboxMap        map[uint32]eth.MailboxContract
+	mintControllerMap         map[uint32][]byte
+	ethClientMap              map[uint32]eth.EthereumClient
+	mailboxMap                map[uint32]eth.MailboxContract
+	supportedChainIDsEthereum map[uint64]bool
 
 	signerKey crypto.PrivKey
 
@@ -1101,7 +1102,7 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 			continue
 		}
 
-		memo, err := util.ValidateMemo(tx.Body.Memo)
+		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
 			success = success && x.BroadcastRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent)
@@ -1199,7 +1200,7 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 			continue
 		}
 
-		memo, err := util.ValidateMemo(tx.Body.Memo)
+		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
 			success = success && x.SignRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent)
@@ -1264,6 +1265,7 @@ func NewMessageSigner(
 
 	ethClientMap := make(map[uint32]eth.EthereumClient)
 	mailboxMap := make(map[uint32]eth.MailboxContract)
+	supportedChainIDsEthereum := make(map[uint64]bool)
 
 	for _, ethConfig := range ethNetworks {
 		ethClient, err := eth.NewClient(ethConfig)
@@ -1283,6 +1285,7 @@ func NewMessageSigner(
 				Fatalf("Error creating mailbox contract")
 		}
 		mailboxMap[ethClient.Chain().ChainDomain] = mailbox
+		supportedChainIDsEthereum[ethConfig.ChainID] = true
 	}
 
 	x := &MessageSignerRunner{
@@ -1299,9 +1302,10 @@ func NewMessageSigner(
 		chain:         util.ParseChain(config),
 		confirmations: config.Confirmations,
 
-		mintControllerMap: mintControllerMap,
-		ethClientMap:      ethClientMap,
-		mailboxMap:        mailboxMap,
+		mintControllerMap:         mintControllerMap,
+		ethClientMap:              ethClientMap,
+		mailboxMap:                mailboxMap,
+		supportedChainIDsEthereum: supportedChainIDsEthereum,
 
 		bech32Prefix: config.Bech32Prefix,
 		coinDenom:    config.CoinDenom,

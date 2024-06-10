@@ -33,7 +33,7 @@ func NewCosmosChainService(
 	var monitorRunner service.Runner
 	monitorRunner = &service.EmptyRunner{}
 	if config.MessageMonitor.Enabled {
-		monitorRunner = NewMessageMonitor(config, mintControllerMap, chainHealth.MessageMonitor)
+		monitorRunner = NewMessageMonitor(config, mintControllerMap, ethNetworks, chainHealth.MessageMonitor)
 	}
 	monitorRunnerService := service.NewRunnerService(
 		"monitor",

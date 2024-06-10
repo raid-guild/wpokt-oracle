@@ -35,7 +35,8 @@ type MessageMonitorRunner struct {
 	coinDenom    string
 	feeAmount    sdk.Coin
 
-	mintControllerMap map[uint32][]byte
+	mintControllerMap         map[uint32][]byte
+	supportedChainIDsEthereum map[uint64]bool
 
 	confirmations uint64
 
@@ -338,7 +339,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 			continue
 		}
 
-		memo, err := util.ValidateMemo(tx.Body.Memo)
+		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
 			// refund
@@ -445,7 +446,7 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 			continue
 		}
 
-		memo, err := util.ValidateMemo(tx.Body.Memo)
+		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
 			success = success && x.UpdateTransaction(&txDoc, update)
@@ -550,7 +551,7 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 			continue
 		}
 
-		memo, err := util.ValidateMemo(tx.Body.Memo)
+		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
 			if refundCreated := x.CreateRefund(txResponse, &txDoc, coinsSpentSender, coinsSpent); refundCreated {
@@ -590,7 +591,7 @@ func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerSer
 	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
-func NewMessageMonitor(config models.CosmosNetworkConfig, mintControllerMap map[uint32][]byte, lastHealth *models.RunnerServiceStatus) service.Runner {
+func NewMessageMonitor(config models.CosmosNetworkConfig, mintControllerMap map[uint32][]byte, ethNetworks []models.EthereumNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runner {
 	logger := log.
 		WithField("module", "cosmos").
 		WithField("service", "monitor").
@@ -629,6 +630,11 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, mintControllerMap map[
 
 	feeAmount := sdk.NewCoin("upokt", math.NewInt(int64(config.TxFee)))
 
+	supportedChainIDsEthereum := make(map[uint64]bool)
+	for _, ethNetwork := range ethNetworks {
+		supportedChainIDsEthereum[ethNetwork.ChainID] = true
+	}
+
 	// TODO: check max amount for corresponding chain and disallow if too high
 
 	x := &MessageMonitorRunner{
@@ -640,9 +646,11 @@ func NewMessageMonitor(config models.CosmosNetworkConfig, mintControllerMap map[
 		client:             client,
 		feeAmount:          feeAmount,
 
-		mintControllerMap: mintControllerMap,
-		chain:             util.ParseChain(config),
-		confirmations:     config.Confirmations,
+		mintControllerMap:         mintControllerMap,
+		supportedChainIDsEthereum: supportedChainIDsEthereum,
+
+		chain:         util.ParseChain(config),
+		confirmations: config.Confirmations,
 
 		bech32Prefix: config.Bech32Prefix,
 		coinDenom:    config.CoinDenom,

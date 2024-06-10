@@ -7,9 +7,10 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
-func ValidateMemo(txMemo string) (models.MintMemo, error) {
+func ValidateMemo(txMemo string, supportedChainIDsEthereum map[uint64]bool) (models.MintMemo, error) {
 	var memo models.MintMemo
 
 	err := json.Unmarshal([]byte(txMemo), &memo)
@@ -28,7 +29,12 @@ func ValidateMemo(txMemo string) (models.MintMemo, error) {
 		return memo, fmt.Errorf("zero address: %s", memo.Address)
 	}
 
-	if !common.EthereumSupportedChainIDs[memo.ChainID] {
+	chainID, ok := math.ParseUint64(memo.ChainID)
+	if !ok {
+		return memo, fmt.Errorf("invalid chain id: %s", memo.ChainID)
+	}
+
+	if _, ok := supportedChainIDsEthereum[chainID]; !ok {
 		return memo, fmt.Errorf("unsupported chain id: %s", memo.ChainID)
 	}
 

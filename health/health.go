@@ -17,8 +17,8 @@ import (
 )
 
 type HealthCheckRunner struct {
-	cosmosAddress []byte
-	ethAddress    []byte
+	cosmosAddress string
+	ethAddress    string
 	hostname      string
 	oracleID      string
 	services      []service.ChainServiceInterface
@@ -98,8 +98,6 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 
 	ethAddressHex, _ := common.EthereumAddressFromMnemonic(config.Mnemonic)
 
-	ethAddress, _ := hex.DecodeString(ethAddressHex[2:])
-
 	logger.
 		WithField("eth_address", ethAddressHex).
 		Debugf("Initialized ethereum address")
@@ -135,8 +133,8 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 	}
 
 	x := &HealthCheckRunner{
-		cosmosAddress: cosmosAddress,
-		ethAddress:    ethAddress,
+		cosmosAddress: common.Ensure0xPrefix(cosmosAddressHex),
+		ethAddress:    common.Ensure0xPrefix(ethAddressHex),
 		hostname:      hostname,
 		oracleID:      oracleID,
 		logger:        logger,

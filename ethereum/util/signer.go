@@ -79,20 +79,32 @@ var typesStandard = apitypes.Types{
 	},
 }
 
+func HexToBytes32(hexString string) [32]byte {
+	bytes, _ := hex.DecodeString(hexString)
+	var bytes32 [32]byte
+	copy(bytes32[:], bytes)
+	return bytes32
+}
+
 func signTypedData(
 	content models.MessageContent,
 	domainData DomainData,
 	key *ecdsa.PrivateKey,
 ) ([]byte, error) {
 
+	messageBodyBytes, err := content.MessageBody.EncodeToBytes()
+	if err != nil {
+		return nil, err
+	}
+
 	message := apitypes.TypedDataMessage{
-		"version":           content.Version,
-		"nonce":             content.Nonce,
-		"originDomain":      content.OriginDomain,
-		"sender":            content.Sender,
-		"destinationDomain": content.DestinationDomain,
-		"recipient":         content.Recipient,
-		"messageBody":       content.MessageBody,
+		"version":           big.NewInt(int64(content.Version)),
+		"nonce":             big.NewInt(int64(content.Nonce)),
+		"originDomain":      big.NewInt(int64(content.OriginDomain)),
+		"sender":            HexToBytes32(content.Sender),
+		"destinationDomain": big.NewInt(int64(content.DestinationDomain)),
+		"recipient":         HexToBytes32(content.Recipient),
+		"messageBody":       messageBodyBytes,
 	}
 
 	domain := apitypes.TypedDataDomain{

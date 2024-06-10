@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -131,7 +132,10 @@ func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 
 	status := models.MessageStatusPending
 
-	if len(messageDoc.Signatures) == int(x.numSigners) {
+	fmt.Println("len(messageDoc.Signatures): ", len(messageDoc.Signatures))
+	fmt.Println("x.numSigners: ", x.numSigners)
+
+	if len(messageDoc.Signatures) >= int(x.numSigners) {
 		status = models.MessageStatusSigned
 	}
 
@@ -225,7 +229,7 @@ func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.
 
 	}
 
-	logger.WithField("memo", memo).Errorf("Found message with a valid memo")
+	logger.WithField("memo", memo).Infof("Found message with a valid memo")
 	return x.SignMessage(messageDoc)
 }
 
@@ -305,7 +309,7 @@ func (x *MessageSignerRunner) SignMessages() bool {
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting address hex")
 	}
-	messages, err := db.GetPendingMessages(addressHex, x.chain)
+	messages, err := db.GetPendingMessages(common.Ensure0xPrefix(addressHex), x.chain)
 
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending messages")
@@ -464,9 +468,9 @@ func NewMessageSigner(
 
 	x.UpdateDomainData()
 
-	chainId := big.NewInt(int64(config.ChainID))
+	chainID := big.NewInt(int64(config.ChainID))
 
-	if x.domain.ChainId.Cmp(chainId) != 0 {
+	if x.domain.ChainId.Cmp(chainID) != 0 {
 		x.logger.Fatalf("Invalid chain ID")
 	}
 

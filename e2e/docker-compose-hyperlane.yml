@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  wpokt-hyperlane-one:
+    image: dan13ram/wpokt-hyperlane-contracts:v0.0.1
+    build:
+      context: .
+      target: base
+    command: "/app/docker/entrypoint.sh"
+    environment:
+      PORT: "38545"
+      CHAIN_ID: "38545"
+    ports:
+      - "38545:38545"
+    expose:
+      - "38545"
+  wpokt-hyperlane-two:
+    image: dan13ram/wpokt-hyperlane-contracts:v0.0.1
+    build:
+      context: .
+      target: base
+    command: "/app/docker/entrypoint.sh"
+    environment:
+      PORT: "38546"
+      CHAIN_ID: "38546"
+    ports:
+      - "38546:38546"
+    expose:
+      - "38546"

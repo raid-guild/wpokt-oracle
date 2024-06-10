@@ -8,8 +8,8 @@ import (
 
 type Node struct {
 	ID              primitive.ObjectID   `bson:"_id,omitempty" json:"_id"`
-	CosmosAddress   []byte               `bson:"cosmos_address" json:"cosmos_address"`
-	EthAddress      []byte               `bson:"eth_address" json:"eth_address"`
+	CosmosAddress   string               `bson:"cosmos_address" json:"cosmos_address"`
+	EthAddress      string               `bson:"eth_address" json:"eth_address"`
 	Hostname        string               `bson:"hostname" json:"hostname"`
 	OracleID        string               `bson:"oracle_id" json:"oracle_id"`
 	SupportedChains []Chain              `bson:"supported_chains" json:"supported_chains"`

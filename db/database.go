@@ -330,8 +330,22 @@ func (d *MongoDatabase) AggregateMany(collection string, pipeline interface{}, r
 func (d *MongoDatabase) UpdateOne(collection string, filter interface{}, update interface{}) (primitive.ObjectID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
-	result, err := d.db.Collection(collection).UpdateOne(ctx, filter, update)
-	return result.UpsertedID.(primitive.ObjectID), err
+
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After).SetProjection(bson.M{"_id": 1})
+
+	var updatedDocument bson.M
+	err := d.db.Collection(collection).FindOneAndUpdate(ctx, filter, update, opts).Decode(&updatedDocument)
+
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+
+	updatedID, ok := updatedDocument["_id"].(primitive.ObjectID)
+	if !ok {
+		return primitive.NilObjectID, fmt.Errorf("failed to get updated id")
+	}
+
+	return updatedID, nil
 }
 
 // method for upsert single value in a collection
@@ -339,9 +353,21 @@ func (d *MongoDatabase) UpsertOne(collection string, filter interface{}, update 
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
-	opts := options.Update().SetUpsert(true)
-	result, err := d.db.Collection(collection).UpdateOne(ctx, filter, update, opts)
-	return result.UpsertedID.(primitive.ObjectID), err
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After).SetProjection(bson.M{"_id": 1})
+
+	var upsertedDocument bson.M
+	err := d.db.Collection(collection).FindOneAndUpdate(ctx, filter, update, opts).Decode(&upsertedDocument)
+
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+
+	upsertedID, ok := upsertedDocument["_id"].(primitive.ObjectID)
+	if !ok {
+		return primitive.NilObjectID, fmt.Errorf("failed to get upserted id")
+	}
+
+	return upsertedID, nil
 }
 
 // InitDB creates a new database wrapper

@@ -227,5 +227,5 @@ func (body *MessageBody) DecodeFromBytes(data []byte) error {
 
 type Signature struct {
 	Signer    string `json:"signer" bson:"signer"`
-	Signature string `json:"signature" bson:"signature"` // Assuming signature is a string representation
+	Signature string `json:"signature" bson:"signature"`
 }

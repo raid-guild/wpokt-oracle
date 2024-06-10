@@ -1,7 +1,7 @@
 #!/bin/bash
 
-chain_id="31337"
-address="0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb"
+chain_id="38545"
+address="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 
 memo="{\"chain_id\":\"$chain_id\",\"address\":\"$address\"}"
 

@@ -1,6 +1,6 @@
 mnemonic: "shy smile praise educate custom fashion gun enjoy zero powder garden second"
 health_check:
-  interval_ms: 10000
+  interval_ms: 1000
   read_last_health: false
 logger:
   level: "debug"
@@ -11,7 +11,7 @@ mongodb:
   timeout_ms: 10000
 ethereum_networks:
   - start_block_height: 1
-    confirmations: 0
+    confirmations: 6
     rpc_url: "http://127.0.0.1:38545"
     timeout_ms: 5000
     chain_id: 38545
@@ -26,15 +26,15 @@ ethereum_networks:
       - "0x4c672Edd2ec8eac8f0F1709f33de9A2E786e6912"
     message_monitor:
       enabled: true
-      interval_ms: 10000
+      interval_ms: 1000
     message_signer:
       enabled: true
-      interval_ms: 10000
+      interval_ms: 1000
     message_relayer:
       enabled: true
-      interval_ms: 10000
+      interval_ms: 1000
   - start_block_height: 1
-    confirmations: 0
+    confirmations: 6
     rpc_url: "http://127.0.0.1:38546"
     timeout_ms: 5000
     chain_id: 38546
@@ -49,16 +49,16 @@ ethereum_networks:
       - "0x4c672Edd2ec8eac8f0F1709f33de9A2E786e6912"
     message_monitor:
       enabled: true
-      interval_ms: 10000
+      interval_ms: 1000
     message_signer:
       enabled: true
-      interval_ms: 10000
+      interval_ms: 1000
     message_relayer:
       enabled: true
-      interval_ms: 10000
+      interval_ms: 1000
 cosmos_network:
   start_block_height: 1
-  confirmations: 0
+  confirmations: 3
   rpc_url: "http://localhost:36657"
   grpc_enabled: true
   grpc_host: 'localhost'
@@ -77,10 +77,10 @@ cosmos_network:
   multisig_threshold: 2
   message_monitor:
     enabled: true
-    interval_ms: 10000
+    interval_ms: 1000
   message_signer:
     enabled: true
-    interval_ms: 10000
+    interval_ms: 1000
   message_relayer:
     enabled: true
-    interval_ms: 10000
+    interval_ms: 1000

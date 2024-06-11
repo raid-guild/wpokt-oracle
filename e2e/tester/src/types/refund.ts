@@ -10,7 +10,7 @@ export type RefundStatus = 'pending' | 'signed' | 'broadcasted' | 'success' | 'i
 
 // Define the Refund type
 export type Refund = {
-  id?: ObjectId;
+  _id?: ObjectId;
   origin_transaction: ObjectId;
   origin_transaction_hash: Hex;
   recipient: string;

@@ -18,10 +18,10 @@ export type MessageStatus = 'pending' | 'signed' | 'broadcasted' | 'success' | '
 
 // Define the Message type
 export type Message = {
-  id?: ObjectId;
+  _id?: ObjectId;
   origin_transaction: ObjectId;
   origin_transaction_hash: Hex;
-  messageId: Hex;
+  message_id: Hex;
   content: MessageContent;
   transactionBody: Hex;
   signatures: Signature[];

@@ -217,8 +217,6 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 		return false
 	}
 
-	var success bool
-
 	update := bson.M{
 		"status":           models.MessageStatusSuccess,
 		"transaction":      txDoc.ID,
@@ -226,6 +224,8 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 	}
 
 	var docIDs []primitive.ObjectID
+
+	success := true
 
 	for _, messageID := range messageIDs {
 		docID, err := db.UpdateMessageByMessageID(messageID, update)

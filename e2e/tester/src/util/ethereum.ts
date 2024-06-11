@@ -6,13 +6,16 @@ import {
   WalletClient,
   createPublicClient,
   createWalletClient,
-  // decodeEventLog,
+  decodeEventLog,
   defineChain,
-  // encodeEventTopics,
+  encodeEventTopics,
   http,
-  parseUnits,
+  // parseUnits,
 } from "viem";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import {
+  // generatePrivateKey, 
+  privateKeyToAccount
+} from "viem/accounts";
 import { Chain } from "viem/chains";
 import { EthereumNetworkConfig, config } from "./config";
 import { MintControllerAbi, OmniTokenAbi } from "./abis";
@@ -20,7 +23,7 @@ import { MintControllerAbi, OmniTokenAbi } from "./abis";
 
 const DEFAULT_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
-export const createChain = (ethNetwork: EthereumNetworkConfig) => defineChain({
+const createChain = (ethNetwork: EthereumNetworkConfig) => defineChain({
   id: ethNetwork.chain_id,
   name: ethNetwork.chain_name,
   nativeCurrency: {
@@ -61,14 +64,14 @@ const publicClient: (chain_id: number) => ReturnType<typeof createPublicClient> 
   transport: http(),
 });
 
-const getBalance = async (chain_id: number, address: Hex): Promise<bigint> => {
+export const getBalance = async (chain_id: number, address: Hex): Promise<bigint> => {
   const balance = await publicClient(chain_id).getBalance({
     address,
   });
   return balance;
 };
 
-const getWPOKTBalance = async (chain_id: number, address: Hex): Promise<bigint> => {
+export const getWPOKTBalance = async (chain_id: number, address: Hex): Promise<bigint> => {
   const tokenAddress = networkConfig[chain_id].omni_token_address as Hex;
   const balance = await publicClient(chain_id).readContract({
     address: tokenAddress,
@@ -80,7 +83,7 @@ const getWPOKTBalance = async (chain_id: number, address: Hex): Promise<bigint> 
   return balance as bigint;
 };
 
-const sendETH = async (
+export const sendETH = async (
   wallet: WalletClient<Transport, Chain, Account>,
   recipient: Hex,
   amount: bigint
@@ -93,7 +96,7 @@ const sendETH = async (
   return receipt;
 };
 
-const sendWPOKT = async (
+export const sendWPOKT = async (
   wallet: WalletClient<Transport, Chain, Account>,
   recipient: Hex,
   amount: bigint
@@ -110,31 +113,32 @@ const sendWPOKT = async (
   return receipt;
 };
 
-const getWallet: (chain_id: number) => Promise<WalletClient<Transport, Chain, Account>> =
+export const getWallet: (chain_id: number) => Promise<WalletClient<Transport, Chain, Account>> =
   async (chain_id: number) => {
-    const pKey = generatePrivateKey();
-    const walletClient = createWalletClient({
-      account: privateKeyToAccount(pKey),
-      chain: chains[chain_id],
-      transport: http(),
-    });
-
-    await sendETH(
-      defaultWalletClient(chain_id),
-      walletClient.account.address,
-      parseUnits("10", 18)
-    );
+    // const pKey = generatePrivateKey();
+    // const walletClient = createWalletClient({
+    //   account: privateKeyToAccount(pKey),
+    //   chain: chains[chain_id],
+    //   transport: http(),
+    // });
+    //
+    // await sendETH(
+    //   defaultWalletClient(chain_id),
+    //   walletClient.account.address,
+    //   parseUnits("10", 18)
+    // );
+    const walletClient = defaultWalletClient(chain_id);
 
     return walletClient;
   };
 
-const getAddress = async (chain_id: number): Promise<Hex> => {
+export const getAddress = async (chain_id: number): Promise<Hex> => {
   const wallet = await getWallet(chain_id);
-  return wallet.account.address;
+  return wallet.account.address.toLowerCase() as Hex;
 };
 
 
-const fulfillOrder = async (chain_id: number, metadata: Hex, message: Hex): Promise<TransactionReceipt> => {
+export const fulfillOrder = async (chain_id: number, metadata: Hex, message: Hex): Promise<TransactionReceipt> => {
   const wallet = await getWallet(chain_id);
   const hash = await wallet.writeContract({
     address: networkConfig[chain_id].mint_controller_address as Hex,
@@ -147,34 +151,15 @@ const fulfillOrder = async (chain_id: number, metadata: Hex, message: Hex): Prom
   return receipt;
 }
 
-/*
-
-const mintWPOKT = async (
-  wallet: WalletClient<Transport, Chain, Account>,
-  data: MintData,
-  signatures: string[]
-): Promise<TransactionReceipt> => {
-  const hash = await wallet.writeContract({
-    address: config.ethereum.mint_controller_address as Hex,
-    abi: MINT_CONTROLLER_ABI,
-    functionName: "mintWrappedPocket",
-    args: [data, signatures],
-  });
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  return receipt;
+export type FulfillmentEvent = {
+  orderId: Hex;
+  message: Hex;
 };
 
-type MintedEvent = {
-  recipient: Hex;
-  amount: bigint;
-  nonce: bigint;
-};
-
-const findMintedEvent = (receipt: TransactionReceipt): MintedEvent | null => {
+export const findFulfillmentEvent = (receipt: TransactionReceipt): FulfillmentEvent | null => {
   const eventTops = encodeEventTopics({
-    abi: WRAPPED_POCKET_ABI,
-    eventName: "Minted",
+    abi: MintControllerAbi,
+    eventName: "Fulfillment",
   });
 
   const event = receipt.logs.find((log) => log.topics[0] === eventTops[0]);
@@ -184,72 +169,11 @@ const findMintedEvent = (receipt: TransactionReceipt): MintedEvent | null => {
   }
 
   const decodedLog = decodeEventLog({
-    abi: WRAPPED_POCKET_ABI,
-    eventName: "Minted",
+    abi: MintControllerAbi,
+    eventName: "Fulfillment",
     data: event.data,
     topics: event.topics,
   });
 
-  return decodedLog.args as MintedEvent;
-};
-
-const burnAndBridgeWPOKT = async (
-  wallet: WalletClient<Transport, Chain, Account>,
-  amount: bigint,
-  poktAddress: string
-): Promise<TransactionReceipt> => {
-  const hash = await wallet.writeContract({
-    address: config.ethereum.wrapped_pocket_address as Hex,
-    abi: WRAPPED_POCKET_ABI,
-    functionName: "burnAndBridge",
-    args: [amount, `0x${poktAddress}`],
-  });
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  return receipt;
-};
-
-type BurnAndBridgeEvent = {
-  amount: bigint;
-  poktAddress: Hex;
-  from: Hex;
-};
-
-const findBurnAndBridgeEvent = (
-  receipt: TransactionReceipt
-): BurnAndBridgeEvent | null => {
-  const eventTops = encodeEventTopics({
-    abi: WRAPPED_POCKET_ABI,
-    eventName: "BurnAndBridge",
-  });
-
-  const event = receipt.logs.find((log) => log.topics[0] === eventTops[0]);
-
-  if (!event) {
-    return null;
-  }
-
-  const decodedLog = decodeEventLog({
-    abi: WRAPPED_POCKET_ABI,
-    eventName: "BurnAndBridge",
-    data: event.data,
-    topics: event.topics,
-  });
-
-  return decodedLog.args as BurnAndBridgeEvent;
-};
-
-*/
-
-export default {
-  walletPromise: getWallet,
-  getBalance,
-  getWPOKTBalance,
-  getAddress,
-  sendWPOKT,
-  fulfillOrder,
-  // mintWPOKT,
-  // findMintedEvent,
-  // burnAndBridgeWPOKT,
-  // findBurnAndBridgeEvent,
+  return decodedLog.args as unknown as FulfillmentEvent;
 };

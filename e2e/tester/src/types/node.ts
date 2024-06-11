@@ -32,7 +32,7 @@ export type ChainServiceHealth = {
 
 // Define the Node type
 export type Node = {
-  id?: ObjectId;
+  _id?: ObjectId;
   cosmos_address: Hex;
   eth_address: Hex;
   hostname: string;

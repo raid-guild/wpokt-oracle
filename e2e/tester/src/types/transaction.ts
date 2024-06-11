@@ -10,7 +10,7 @@ export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'invalid';
 
 // Define the Transaction type
 export type Transaction = {
-  id?: ObjectId;
+  _id?: ObjectId;
   hash: Hex;
   from_address: Hex;
   to_address: Hex;

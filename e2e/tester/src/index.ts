@@ -1,11 +1,9 @@
-import { concatHex, formatUnits } from "viem";
-import { findMessage, findNodes } from "./util/mongodb";
-import cosmos from "./util/cosmos";
-import ethereum from "./util/ethereum";
+import { formatUnits } from "viem";
+import { findNodes } from "./util/mongodb";
+import * as cosmos from "./util/cosmos";
+import * as ethereum from "./util/ethereum";
 import { config } from "./util/config";
-import { encodeMessage } from "./util/message";
-// import { mintFlow } from "./flows/mint";
-// import { burnFlow } from "./flows/burn";
+import { cosmosToEthereumFlow } from "./flows/cosmosToEthereum";
 
 const init = async () => {
   const nodes = await findNodes();
@@ -24,6 +22,8 @@ const init = async () => {
     "at",
     config.cosmos_network.rpc_url
   );
+
+  console.log("Pocket domain:", cosmos.CHAIN_DOMAIN);
 
   const cosmosBalance = await cosmos.getBalance(cosmosAddress);
 
@@ -56,41 +56,10 @@ const init = async () => {
 };
 
 before(async () => {
-  // await init();
-  // console.log("\n");
+  await init();
+  console.log("\n");
 });
 
 describe("E2E tests", async () => {
-  // describe("Mint flow", mintFlow);
-  // describe("Burn flow", burnFlow);
-
-  describe("Basic", async () => {
-    it("should pass", async () => {
-      console.log("Basic test");
-    });
-
-    it("Should fulfill signed message", async () => {
-      const origin_tx_hash = "0xa5126398367210fbc99190d2e935de4cecbd2ea3d97034426e66b0753279d45c";
-      const messageDoc = await findMessage(origin_tx_hash);
-      console.log(messageDoc);
-
-      if (!messageDoc) {
-        console.log("Message not found");
-        return;
-      }
-
-      const message = encodeMessage(messageDoc.content);
-      const metadata = concatHex(messageDoc.signatures.map((s) => s.signature));
-
-      console.log("Message:", message);
-      console.log("Metadata:", metadata);
-
-      const chain_id = messageDoc.content.destination_domain;
-
-      const receipt = await ethereum.fulfillOrder(chain_id, metadata, message);
-
-      console.log(receipt);
-    });
-  });
-
+  describe("Cosmos To Ethereum Flow", cosmosToEthereumFlow);
 });

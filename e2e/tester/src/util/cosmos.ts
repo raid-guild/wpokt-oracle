@@ -1,7 +1,10 @@
 import { DirectSecp256k1HdWallet, OfflineDirectSigner } from "@cosmjs/proto-signing";
 import { Account, Event, IndexedTx, SigningStargateClient, StargateClient } from "@cosmjs/stargate";
 import { config } from "./config";
-// import { parseUnits } from "viem";
+import {
+  // parseUnits,
+  Hex,
+} from "viem";
 import { sleep } from "./helpers";
 import { fromBech32 } from "@cosmjs/encoding"
 import { keccak256 } from "viem";
@@ -35,9 +38,9 @@ export const getAccount = async (address: string): Promise<Account | null> => {
   return account;
 };
 
-export function bech32ToHex(bech32Address: string) {
+export function bech32ToHex(bech32Address: string): Hex {
   const decoded = fromBech32(bech32Address);
-  return "0x" + Buffer.from(decoded.data).toString('hex').toLowerCase();
+  return "0x" + Buffer.from(decoded.data).toString('hex').toLowerCase() as Hex;
 }
 
 export const getBalance = async (address: string): Promise<bigint> => {
@@ -135,7 +138,5 @@ export const signerPromise = (async (): Promise<DirectSecp256k1HdWallet> => {
 
   return faucetWallet;
 })();
-
-export const HYPERLANE_VERSION = 0;
 
 export const CHAIN_DOMAIN = getChainDomain(config.cosmos_network.chain_id);

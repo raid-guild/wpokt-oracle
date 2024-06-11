@@ -111,7 +111,7 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 
 func UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error) {
 	messageIDHex := common.Ensure0xPrefix(common.HexFromBytes(messageID[:]))
-	fmt.Println("messageIDHex", messageIDHex)
+
 	return mongoDB.UpdateOne(
 		common.CollectionMessages,
 		bson.M{"message_id": messageIDHex},
@@ -151,8 +151,9 @@ func GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Me
 			}},
 		},
 	}
+	sort := bson.M{"content.nonce": 1}
 
-	err := mongoDB.FindMany(common.CollectionMessages, filter, &messages)
+	err := mongoDB.FindManySorted(common.CollectionMessages, filter, sort, &messages)
 
 	return messages, err
 }

@@ -171,6 +171,16 @@ func (d *MongoDatabase) SetupIndexes() error {
 	if err != nil {
 		return err
 	}
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+	_, err = d.db.Collection(common.CollectionRefunds).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "sequence", Value: 1}},
+		Options: options.Index().SetUnique(true).
+			SetPartialFilterExpression(bson.D{{Key: "sequence", Value: bson.D{{Key: "$exists", Value: true}, {Key: "$type", Value: "long"}}}}),
+	})
+	if err != nil {
+		return err
+	}
 
 	d.logger.Debug("Setting up indexes for messages")
 	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
@@ -178,6 +188,16 @@ func (d *MongoDatabase) SetupIndexes() error {
 	_, err = d.db.Collection(common.CollectionMessages).Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "origin_transaction_hash", Value: 1}},
 		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		return err
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
+	defer cancel()
+	_, err = d.db.Collection(common.CollectionMessages).Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "sequence", Value: 1}},
+		Options: options.Index().SetUnique(true).
+			SetPartialFilterExpression(bson.D{{Key: "sequence", Value: bson.D{{Key: "$exists", Value: true}, {Key: "$type", Value: "long"}}}}),
 	})
 	if err != nil {
 		return err

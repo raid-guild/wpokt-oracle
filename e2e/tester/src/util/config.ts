@@ -4,6 +4,9 @@ import fs from "fs";
 const CONFIG_PATH =
   process.env.CONFIG_PATH || "../config/tester/config.local.yml";
 
+// TODO: This should be changed 
+export const HYPERLANE_VERSION = 0;
+
 export type Config = {
   mnemonic: string;
   health_check: HealthCheckConfig;

@@ -71,14 +71,24 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		return false
 	}
 
-	mintController, ok := x.mintControllerMap[event.Destination]
+	destMintController, ok := x.mintControllerMap[event.Destination]
 	if !ok {
 		x.logger.Errorf("Mint controller not found for destination domain: %d", event.Destination)
 		return false
 	}
 
-	if !bytes.Equal(mintController, []byte(event.Recipient[12:32])) {
+	if !bytes.Equal(destMintController, []byte(event.Recipient[12:32])) {
 		x.logger.Errorf("Recipient does not match mint controller for destination domain: %d", event.Destination)
+		return false
+	}
+
+	mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
+	if !ok {
+		x.logger.Errorf("Mint controller not found for chain domain: %d", x.chain.ChainDomain)
+		return false
+	}
+	if !bytes.Equal(event.Sender.Bytes(), mintController) {
+		x.logger.Errorf("Sender does not match mint controller for chain domain: %d", x.chain.ChainDomain)
 		return false
 	}
 
@@ -193,13 +203,22 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 				logger.WithError(err).Errorf("Error parsing dispatch event")
 				continue
 			}
-			mintController, ok := x.mintControllerMap[event.Destination]
+			destMintController, ok := x.mintControllerMap[event.Destination]
 			if !ok {
 				logger.Infof("Event destination is not supported")
 				continue
 			}
-			if !bytes.Equal(event.Recipient[12:32], mintController) {
+			if !bytes.Equal(event.Recipient[12:32], destMintController) {
 				logger.Infof("Event recipient is not known mint controller")
+				continue
+			}
+			mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
+			if !ok {
+				logger.Infof("Chain domain is not supported")
+				continue
+			}
+			if !bytes.Equal(event.Sender.Bytes(), mintController) {
+				logger.Infof("Event sender is not known mint controller")
 				continue
 			}
 			events = append(events, event)
@@ -253,13 +272,22 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 				logger.WithError(err).Errorf("Error parsing dispatch event")
 				continue
 			}
-			mintController, ok := x.mintControllerMap[event.Destination]
+			destMintController, ok := x.mintControllerMap[event.Destination]
 			if !ok {
 				logger.Infof("Event destination is not supported")
 				continue
 			}
-			if !bytes.Equal(event.Recipient[12:32], mintController) {
+			if !bytes.Equal(event.Recipient[12:32], destMintController) {
 				logger.Infof("Event recipient is not known mint controller")
+				continue
+			}
+			mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
+			if !ok {
+				logger.Infof("Chain domain is not supported")
+				continue
+			}
+			if !bytes.Equal(event.Sender.Bytes(), mintController) {
+				logger.Infof("Event sender is not known mint controller")
 				continue
 			}
 			events = append(events, event)
@@ -271,8 +299,7 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 		return false
 	}
 
-	var success bool
-
+	success := true
 	for _, event := range events {
 
 		var messageContent models.MessageContent
@@ -334,11 +361,19 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 }
 
 func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
+	mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
+	if !ok {
+		x.logger.Errorf("Mint controller not found for chain domain: %d", x.chain.ChainDomain)
+		return false
+	}
+
+	mintControllerAddress := ethcommon.BytesToAddress(mintController)
+
 	filter, err := x.mailbox.FilterDispatch(&bind.FilterOpts{
 		Start:   startBlockHeight,
 		End:     &endBlockHeight,
 		Context: context.Background(),
-	}, []ethcommon.Address{}, []uint32{}, [][32]byte{})
+	}, []ethcommon.Address{mintControllerAddress}, []uint32{}, [][32]byte{})
 
 	if filter != nil {
 		defer filter.Close()
@@ -416,7 +451,7 @@ func (x *MessageMonitorRunner) ConfirmDispatchTxs() bool {
 		return false
 	}
 
-	var success bool
+	success := true
 	for _, tx := range txs {
 		success = x.ConfirmTx(&tx) && success
 	}
@@ -433,7 +468,7 @@ func (x *MessageMonitorRunner) CreateMessagesForTxs() bool {
 		return false
 	}
 
-	var success bool
+	success := true
 	for _, tx := range txs {
 		success = x.CreateMessagesForTx(&tx) && success
 	}

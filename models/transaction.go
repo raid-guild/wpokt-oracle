@@ -27,7 +27,7 @@ type Transaction struct {
 	CreatedAt     time.Time            `bson:"created_at" json:"created_at"`
 	UpdatedAt     time.Time            `bson:"updated_at" json:"updated_at"`
 	Refund        *primitive.ObjectID  `json:"refund" bson:"refund"`
-	Messages      []primitive.ObjectID `json:"message" bson:"message"`
+	Messages      []primitive.ObjectID `json:"messages" bson:"messages"`
 }
 
 type MintMemo struct {

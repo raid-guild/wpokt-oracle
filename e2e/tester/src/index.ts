@@ -3,7 +3,9 @@ import { findNodes } from "./util/mongodb";
 import * as cosmos from "./util/cosmos";
 import * as ethereum from "./util/ethereum";
 import { config } from "./util/config";
-import { cosmosToEthereumFlow } from "./flows/cosmosToEthereum";
+// import { cosmosToEthereumFlow } from "./flows/cosmosToEthereum";
+// import { ethereumToCosmosFlow } from "./flows/ethereumToCosmos";
+import { ethereumToEthereumFlow } from "./flows/ethereumToEthereum";
 
 const init = async () => {
   const nodes = await findNodes();
@@ -61,5 +63,10 @@ before(async () => {
 });
 
 describe("E2E tests", async () => {
-  describe("Cosmos To Ethereum Flow", cosmosToEthereumFlow);
+
+  // describe("Cosmos To Ethereum Flow", cosmosToEthereumFlow);
+
+  // describe("Ethereum To Cosmos Flow", ethereumToCosmosFlow);
+
+  describe("Ethereum To Ethereum Flow", ethereumToEthereumFlow);
 });

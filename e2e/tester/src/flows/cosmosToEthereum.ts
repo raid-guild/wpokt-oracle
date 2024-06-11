@@ -3,7 +3,7 @@ import * as ethereum from "../util/ethereum";
 import * as cosmos from "../util/cosmos";
 import { expect } from "chai";
 import { sleep, debug } from "../util/helpers";
-import { config } from "../util/config";
+import { config, HYPERLANE_VERSION } from "../util/config";
 import { Message, MintMemo, Status } from "../types";
 import { findMessage, findRefund, findTransaction } from "../util/mongodb";
 import { encodeMessage } from "../util/message";
@@ -22,7 +22,7 @@ export const cosmosToEthereumFlow = async () => {
     const fromAddress = await cosmos.getAddress();
     const recipientAddress = await ethereum.getAddress(ethNetwork.chain_id);
     const toAddress = cosmosNetwork.multisig_address;
-    const amount = parseUnits("1", 6);
+    const amount = parseUnits("10", 6);
 
     const memo: MintMemo = {
       address: recipientAddress,
@@ -104,7 +104,7 @@ export const cosmosToEthereumFlow = async () => {
 
     if (!account) return;
 
-    expect(message.content.version).to.equal(cosmos.HYPERLANE_VERSION);
+    expect(message.content.version).to.equal(HYPERLANE_VERSION);
     expect(message.content.nonce).to.equal(account.sequence - 1);
     expect(message.content.origin_domain).to.equal(cosmos.CHAIN_DOMAIN);
     expect(message.content.sender).to.equal(fromHex);
@@ -486,7 +486,7 @@ export const cosmosToEthereumFlow = async () => {
 
       if (!account) return;
 
-      expect(message.content.version).to.equal(cosmos.HYPERLANE_VERSION);
+      expect(message.content.version).to.equal(HYPERLANE_VERSION);
       expect(message.content.nonce).to.be.oneOf(noncesToSee);
       expect(message.content.origin_domain).to.equal(cosmos.CHAIN_DOMAIN);
       expect(message.content.sender).to.equal(fromHex);

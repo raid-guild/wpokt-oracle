@@ -339,7 +339,7 @@ func (x *MessageRelayerRunner) ConfirmFulfillmentTxs() bool {
 		return false
 	}
 
-	var success bool
+	success := true
 	for _, tx := range txs {
 		success = x.ConfirmTx(&tx) && success
 	}
@@ -356,7 +356,7 @@ func (x *MessageRelayerRunner) ConfirmMessages() bool {
 		return false
 	}
 
-	var success bool
+	success := true
 	for _, tx := range txs {
 		success = x.ConfirmMessagesForTx(&tx) && success
 	}

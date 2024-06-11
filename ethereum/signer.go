@@ -36,7 +36,10 @@ type MessageSignerRunner struct {
 	currentEthereumBlockHeight uint64
 	currentCosmosBlockHeight   uint64
 
-	mintControllerMap map[uint32][]byte
+	ethClientMap              map[uint32]eth.EthereumClient
+	mailboxMap                map[uint32]eth.MailboxContract
+	supportedChainIDsEthereum map[uint64]bool
+	mintControllerMap         map[uint32][]byte
 
 	mailbox        eth.MailboxContract
 	mintController eth.MintControllerContract
@@ -237,7 +240,14 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
-	receipt, err := x.client.GetTransactionReceipt(messageDoc.OriginTransactionHash)
+	ethClient, ok := x.ethClientMap[messageDoc.Content.OriginDomain]
+
+	if !ok {
+		logger.Errorf("Ethereum client not found")
+		return false
+	}
+
+	receipt, err := ethClient.GetTransactionReceipt(messageDoc.OriginTransactionHash)
 	if err != nil {
 		logger.WithError(err).Errorf("Error getting tx receipt")
 		return false
@@ -265,16 +275,28 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
+	destMintController, ok := x.mintControllerMap[x.chain.ChainDomain]
 	if !ok {
-		logger.Infof("Mint controller not found")
+		logger.Errorf("Destination mint controller not found")
+		return false
+	}
+
+	mailbox, ok := x.mailboxMap[messageDoc.Content.OriginDomain]
+	if !ok {
+		logger.Errorf("Mailbox not found")
+		return false
+	}
+
+	originMintController, ok := x.mintControllerMap[messageDoc.Content.OriginDomain]
+	if !ok {
+		logger.Errorf("Origin mint controller not found")
 		return false
 	}
 
 	var dispatchEvent *autogen.MailboxDispatch
 	for _, log := range receipt.Logs {
-		if log.Address == x.mailbox.Address() {
-			event, err := x.mailbox.ParseDispatch(*log)
+		if log.Address == mailbox.Address() {
+			event, err := mailbox.ParseDispatch(*log)
 			if err != nil {
 				logger.WithError(err).Errorf("Error parsing dispatch event")
 				continue
@@ -283,8 +305,12 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 				logger.Infof("Event destination is not this chain")
 				continue
 			}
-			if !bytes.Equal(event.Recipient[12:32], mintController) {
+			if !bytes.Equal(event.Recipient[12:32], destMintController) {
 				logger.Infof("Event recipient is not mint controller")
+				continue
+			}
+			if !bytes.Equal(event.Sender.Bytes(), originMintController) {
+				logger.Infof("Event sender is not mint controller")
 				continue
 			}
 			if !bytes.Equal(event.Message, messageBytes) {
@@ -380,6 +406,7 @@ func NewMessageSigner(
 	config models.EthereumNetworkConfig,
 	cosmosConfig models.CosmosNetworkConfig,
 	mintControllerMap map[uint32][]byte,
+	ethNetworks []models.EthereumNetworkConfig,
 ) service.Runner {
 	logger := log.
 		WithField("module", "ethereum").
@@ -431,12 +458,43 @@ func NewMessageSigner(
 
 	minimumAmount := big.NewInt(int64(cosmosConfig.TxFee))
 
+	ethClientMap := make(map[uint32]eth.EthereumClient)
+	mailboxMap := make(map[uint32]eth.MailboxContract)
+	supportedChainIDsEthereum := make(map[uint64]bool)
+
+	for _, ethConfig := range ethNetworks {
+		if ethConfig.ChainID == config.ChainID {
+			continue
+		}
+		ethClient, err := eth.NewClient(ethConfig)
+		if err != nil {
+			logger.WithError(err).
+				WithField("chain_name", ethConfig.ChainName).
+				WithField("chain_id", ethConfig.ChainID).
+				Fatalf("Error creating ethereum client")
+		}
+		ethClientMap[ethClient.Chain().ChainDomain] = ethClient
+		mailboxAddress := common.HexToAddress(ethConfig.MailboxAddress)
+		mailbox, err := eth.NewMailboxContract(mailboxAddress, ethClient.GetClient())
+		if err != nil {
+			logger.WithError(err).
+				WithField("chain_name", ethConfig.ChainName).
+				WithField("chain_id", ethConfig.ChainID).
+				Fatalf("Error creating mailbox contract")
+		}
+		mailboxMap[ethClient.Chain().ChainDomain] = mailbox
+		supportedChainIDsEthereum[ethConfig.ChainID] = true
+	}
+
 	x := &MessageSignerRunner{
 		timeout: time.Duration(config.TimeoutMS) * time.Millisecond,
 
 		currentEthereumBlockHeight: 0,
 
-		mintControllerMap: mintControllerMap,
+		mintControllerMap:         mintControllerMap,
+		ethClientMap:              ethClientMap,
+		mailboxMap:                mailboxMap,
+		supportedChainIDsEthereum: supportedChainIDsEthereum,
 
 		mailbox:        mailbox,
 		mintController: mintController,

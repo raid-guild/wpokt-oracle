@@ -123,6 +123,7 @@ func (x *MessageSignerRunner) SignMessage(
 			return false
 		}
 		if maxSequence != nil {
+			logger.Debugf("Max sequence from db: %d", *maxSequence)
 			sequence = *maxSequence + 1
 		} else {
 			account, err := x.client.GetAccount(x.multisigAddress)
@@ -130,6 +131,7 @@ func (x *MessageSignerRunner) SignMessage(
 				logger.WithError(err).Error("Error getting account")
 				return false
 			}
+			logger.Debugf("Account sequence: %d", account.Sequence)
 			sequence = account.Sequence
 		}
 		log.Infof("Sequence: %d", sequence)
@@ -290,13 +292,15 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
-	client, ok := x.ethClientMap[x.chain.ChainDomain]
+	originDomain := messageDoc.Content.OriginDomain
+
+	client, ok := x.ethClientMap[originDomain]
 	if !ok {
 		logger.Infof("Ethereum client not found")
 		return false
 	}
 
-	mailbox, ok := x.mailboxMap[x.chain.ChainDomain]
+	mailbox, ok := x.mailboxMap[originDomain]
 	if !ok {
 		logger.Infof("Mailbox not found")
 		return false
@@ -757,13 +761,15 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndBroadcastMessage(messageDoc *
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "broadcast-ethereum-message")
 	logger.Debugf("Broadcasting ethereum message")
 
-	client, ok := x.ethClientMap[x.chain.ChainDomain]
+	originDomain := messageDoc.Content.OriginDomain
+
+	client, ok := x.ethClientMap[originDomain]
 	if !ok {
 		logger.Infof("Ethereum client not found")
 		return false
 	}
 
-	mailbox, ok := x.mailboxMap[x.chain.ChainDomain]
+	mailbox, ok := x.mailboxMap[originDomain]
 	if !ok {
 		logger.Infof("Mailbox not found")
 		return false

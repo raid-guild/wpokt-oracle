@@ -87,7 +87,7 @@ func main() {
 	mintControllerMap := NewMintControllerMap(config)
 
 	for _, ethNetwork := range config.EthereumNetworks {
-		chainService := ethereum.NewEthereumChainService(ethNetwork, cosmosNetwork, mintControllerMap, config.Mnemonic, &wg, nodeHealth)
+		chainService := ethereum.NewEthereumChainService(ethNetwork, cosmosNetwork, mintControllerMap, config.EthereumNetworks, config.Mnemonic, &wg, nodeHealth)
 		services = append(services, chainService)
 	}
 

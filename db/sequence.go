@@ -37,7 +37,7 @@ func FindMaxSequenceFromRefunds() (*uint64, error) {
 }
 
 func FindMaxSequenceFromMessages(chain models.Chain) (*uint64, error) {
-	filter := bson.M{"chain": chain, "sequence": bson.M{"$ne": nil}}
+	filter := bson.M{"content.destination_domain": chain.ChainDomain, "sequence": bson.M{"$ne": nil}}
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: filter}},
 		{{Key: "$group", Value: bson.D{

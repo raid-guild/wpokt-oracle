@@ -293,7 +293,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 
 		if txResponse.Code != 0 {
 			logger.Infof("Found tx with non-zero code")
-			success = success && x.CreateTransaction(txResponse, models.TransactionStatusFailed)
+			success = x.CreateTransaction(txResponse, models.TransactionStatusFailed) && success
 			continue
 		}
 		logger.Debugf("Found successful tx")
@@ -302,7 +302,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 		err = tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			logger.WithError(err).Errorf("Error unmarshalling tx")
-			success = success && x.CreateTransaction(txResponse, models.TransactionStatusInvalid)
+			success = x.CreateTransaction(txResponse, models.TransactionStatusInvalid) && success
 			continue
 		}
 
@@ -377,7 +377,7 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 		}
 		if txResponse.Code != 0 {
 			logger.Infof("Found tx with error")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusFailed})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusFailed}) && success
 			continue
 		}
 		logger.
@@ -387,42 +387,42 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 		err = tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			logger.Errorf("Error unmarshalling tx")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins received events")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		_, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins spent events")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsZero() || coinsSpent.IsZero() {
 			logger.
 				Debugf("Found tx with zero coins")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsLTE(x.feeAmount) {
 			logger.
 				Debugf("Found tx with amount too low")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		txHeight := txResponse.Height
 		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
 			logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
@@ -436,26 +436,26 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 		if confirmations >= x.confirmations {
 			update["status"] = models.TransactionStatusConfirmed
 		} else {
-			success = success && x.UpdateTransaction(&txDoc, update)
+			success = x.UpdateTransaction(&txDoc, update) && success
 			continue
 		}
 
 		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
 			logger.Debugf("Found tx with invalid coins")
-			success = success && x.UpdateTransaction(&txDoc, update)
+			success = x.UpdateTransaction(&txDoc, update) && success
 			continue
 		}
 
 		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
-			success = success && x.UpdateTransaction(&txDoc, update)
+			success = x.UpdateTransaction(&txDoc, update) && success
 
 			continue
 		}
 
 		logger.WithField("memo", memo).Debugf("Found valid memo")
-		success = success && x.UpdateTransaction(&txDoc, update)
+		success = x.UpdateTransaction(&txDoc, update) && success
 	}
 
 	return success
@@ -480,7 +480,7 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 		}
 		if txResponse.Code != 0 {
 			logger.Infof("Found tx with error")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusFailed})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusFailed}) && success
 			continue
 		}
 		logger.
@@ -490,42 +490,42 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 		err = tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			logger.Errorf("Error unmarshalling tx")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins received events")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins spent events")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsZero() || coinsSpent.IsZero() {
 			logger.
 				Debugf("Found tx with zero coins")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsLTE(x.feeAmount) {
 			logger.
 				Debugf("Found tx with amount too low")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
 		txHeight := txResponse.Height
 		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
 			logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
-			success = success && x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid})
+			success = x.UpdateTransaction(&txDoc, bson.M{"status": models.TransactionStatusInvalid}) && success
 			continue
 		}
 
@@ -537,14 +537,14 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 		}
 
 		if confirmations < x.confirmations {
-			success = success && x.UpdateTransaction(&txDoc, update)
+			success = x.UpdateTransaction(&txDoc, update) && success
 			continue
 		}
 
 		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
 			logger.Debugf("Found tx with invalid coins")
 			if refundCreated := x.CreateRefund(txResponse, &txDoc, coinsSpentSender, coinsSpent); refundCreated {
-				success = success && refundCreated
+				success = refundCreated && success
 			} else {
 				success = false
 			}
@@ -555,7 +555,7 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
 			if refundCreated := x.CreateRefund(txResponse, &txDoc, coinsSpentSender, coinsSpent); refundCreated {
-				success = success && refundCreated
+				success = refundCreated && success
 			} else {
 				success = false
 			}
@@ -565,7 +565,7 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 
 		logger.WithField("memo", memo).Debugf("Found valid memo")
 		if messageCreated := x.CreateMessage(txResponse, tx, &txDoc, coinsSpentSender, coinsSpent, memo); messageCreated {
-			success = success && messageCreated
+			success = messageCreated && success
 		} else {
 			success = false
 		}

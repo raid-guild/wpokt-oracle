@@ -316,11 +316,11 @@ func (x *MessageRelayerRunner) SyncNewBlocks() bool {
 				endBlockHeight = x.currentBlockHeight
 			}
 			x.logger.Info("Syncing blocks from blockNumber: ", i, " to blockNumber: ", endBlockHeight)
-			success = success && x.SyncBlocks(uint64(i), uint64(endBlockHeight))
+			success = x.SyncBlocks(uint64(i), uint64(endBlockHeight)) && success
 		}
 	} else {
 		x.logger.Info("Syncing blocks from blockNumber: ", x.startBlockHeight, " to blockNumber: ", x.currentBlockHeight)
-		success = success && x.SyncBlocks(uint64(x.startBlockHeight), uint64(x.currentBlockHeight))
+		success = x.SyncBlocks(uint64(x.startBlockHeight), uint64(x.currentBlockHeight)) && success
 	}
 
 	if success {

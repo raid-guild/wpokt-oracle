@@ -381,7 +381,7 @@ func (x *MessageSignerRunner) SignMessages() bool {
 	x.logger.Infof("Found %d pending messages", len(messages))
 	success := true
 	for _, messageDoc := range messages {
-		success = success && x.ValidateEthereumTxAndSignMessage(&messageDoc)
+		success = x.ValidateEthereumTxAndSignMessage(&messageDoc) && success
 	}
 
 	return success
@@ -845,7 +845,7 @@ func (x *MessageSignerRunner) BroadcastMessages() bool {
 	x.logger.Infof("Found %d signed messages", len(messages))
 	success := true
 	for _, messageDoc := range messages {
-		success = success && x.ValidateEthereumTxAndBroadcastMessage(&messageDoc)
+		success = x.ValidateEthereumTxAndBroadcastMessage(&messageDoc) && success
 	}
 
 	return success
@@ -1047,7 +1047,7 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 		}
 		if txResponse.Code != 0 {
 			logger.Infof("Found tx with error")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
@@ -1055,42 +1055,42 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 		err = tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			logger.Errorf("Error unmarshalling tx")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins received events")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins spent events")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsZero() || coinsSpent.IsZero() {
 			logger.
 				Debugf("Found tx with zero coins")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsLTE(x.feeAmount) {
 			logger.
 				Debugf("Found tx with amount too low")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		txHeight := txResponse.Height
 		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
 			logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
@@ -1098,25 +1098,25 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 
 		if confirmations < x.confirmations {
 			logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending}) && success
 			continue
 		}
 
 		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
 			logger.Debugf("Found tx with invalid coins")
-			success = success && x.BroadcastRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent)
+			success = x.BroadcastRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
 			continue
 		}
 
 		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
-			success = success && x.BroadcastRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent)
+			success = x.BroadcastRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
 			continue
 		}
 
 		logger.WithField("memo", memo).Errorf("Found refund with a valid memo")
-		success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+		success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 	}
 
 	return success
@@ -1145,7 +1145,7 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 		}
 		if txResponse.Code != 0 {
 			logger.Infof("Found tx with error")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
@@ -1153,42 +1153,42 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 		err = tx.Unmarshal(txResponse.Tx.Value)
 		if err != nil {
 			logger.Errorf("Error unmarshalling tx")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins received events")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
 		if err != nil {
 			logger.WithError(err).Errorf("Error parsing coins spent events")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsZero() || coinsSpent.IsZero() {
 			logger.
 				Debugf("Found tx with zero coins")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		if coinsReceived.IsLTE(x.feeAmount) {
 			logger.
 				Debugf("Found tx with amount too low")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
 		txHeight := txResponse.Height
 		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
 			logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
@@ -1196,25 +1196,25 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 
 		if confirmations < x.confirmations {
 			logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
-			success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending})
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending}) && success
 			continue
 		}
 
 		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
 			logger.Debugf("Found tx with invalid coins")
-			success = success && x.SignRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent)
+			success = x.SignRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
 			continue
 		}
 
 		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
 		if err != nil {
 			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
-			success = success && x.SignRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent)
+			success = x.SignRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
 			continue
 		}
 
 		logger.WithField("memo", memo).Errorf("Found refund with a valid memo")
-		success = success && x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+		success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 	}
 
 	return success

@@ -13,7 +13,7 @@ export const ethereumToEthereumFlow = async () => {
   const ethNetworkTwo = config.ethereum_networks[1];
 
   it("should initiate order and fulfill order on the other chain", async () => {
-    debug("\nTesting -- should initiate order and transfer amount from vault");
+    debug("\nTesting -- should initiate order and fulfill order on the other chain");
 
     const fromAddress = await ethereum.getAddress(ethNetworkOne.chain_id);
     const recipientAddress = fromAddress;

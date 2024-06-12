@@ -2,7 +2,7 @@ import yaml from "js-yaml";
 import fs from "fs";
 
 const CONFIG_PATH =
-  process.env.CONFIG_PATH || "../config/tester/config.local.yml";
+  process.env.CONFIG_PATH || "../defaults/config.local.one.yml";
 
 // TODO: This should be changed 
 export const HYPERLANE_VERSION = 0;

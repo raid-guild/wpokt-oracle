@@ -4,7 +4,6 @@ WORKDIR /app
 
 # copy the source code
 COPY . .
-COPY ./docker/set_eth_envs.sh ./set_eth_envs.sh
 RUN go mod download
 
 
@@ -61,6 +60,8 @@ RUN chown -R app:app /bin/oracle
 RUN chmod +x /bin/oracle
 
 RUN chown -R app:app /app
+
+RUN mv /app/docker/set_eth_envs.sh /app/set_eth_envs.sh
 
 # switch to app user
 USER app

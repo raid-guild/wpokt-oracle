@@ -1,5 +1,5 @@
 {
-  "name": "e2e",
+  "name": "oracle-e2e-tests",
   "version": "0.1.0",
   "main": "index.ts",
   "author": "dan13ram",

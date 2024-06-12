@@ -6,12 +6,57 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/go-bip39"
-
 	hdwallet "github.com/dan13ram/go-ethereum-hdwallet"
 
-	"github.com/dan13ram/wpokt-oracle/scripts/utils"
+	"github.com/dan13ram/wpokt-oracle/common"
+
+	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/go-bip39"
+
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
 )
+
+var (
+	DefaultAlgo = hd.Secp256k1
+)
+
+const (
+	DefaultEntropySize     = 256
+	DefaultBIP39Passphrase = ""
+	DefaultCosmosHDPath    = "m/44'/118'/0'/0/0"
+	DefaultBech32Prefix    = "pokt"
+
+	DefaultETHHDPath = "m/44'/60'/0'/0/0"
+)
+
+func NewMnemonic() (string, error) {
+	// Default number of words (24): This generates a mnemonic directly from the
+	// number of words by reading system entropy.
+	entropy, err := bip39.NewEntropy(DefaultEntropySize)
+	if err != nil {
+		return "", err
+	}
+
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	if err != nil {
+		return "", err
+	}
+
+	return mnemonic, nil
+}
+
+func NewAccount(mnemonic string) (crypto.PrivKey, error) {
+
+	// create master key and derive first key for keyring
+	derivedPriv, err := DefaultAlgo.Derive()(mnemonic, DefaultBIP39Passphrase, DefaultCosmosHDPath)
+	if err != nil {
+		return nil, err
+	}
+
+	privKey := DefaultAlgo.Generate()(derivedPriv)
+
+	return privKey, nil
+}
 
 func main() {
 
@@ -23,7 +68,7 @@ func main() {
 	flag.Parse()
 
 	if mnemonic == "" {
-		mnemonic, err = utils.NewMnemonic()
+		mnemonic, err = NewMnemonic()
 		if err != nil {
 			fmt.Printf("Error generating mnemonic: %v\n", err)
 			return
@@ -47,7 +92,7 @@ func main() {
 
 	{
 		// cosmos
-		privKey, err := utils.NewAccount(mnemonic)
+		privKey, err := NewAccount(mnemonic)
 		if err != nil {
 			fmt.Printf("Error generating account: %v\n", err)
 			return
@@ -62,15 +107,13 @@ func main() {
 
 		fmt.Println("commos address: ", hex.EncodeToString(address.Bytes()))
 
-		bech32, err := utils.Bech32FromAddressBytes(address.Bytes())
+		bech32, err := common.Bech32FromBytes(DefaultBech32Prefix, address.Bytes())
 		if err != nil {
 			fmt.Printf("Error converting address to bech32: %v\n", err)
 			return
 		}
 
 		fmt.Println("cosmos bech32 address: ", bech32)
-
-		// utils.TestAddress(bech32)
 	}
 
 	fmt.Println()
@@ -79,7 +122,7 @@ func main() {
 		// ethereum
 		wallet, err := hdwallet.NewFromMnemonic(mnemonic)
 
-		path := hdwallet.MustParseDerivationPath(utils.DefaultETHHDPath)
+		path := hdwallet.MustParseDerivationPath(common.DefaultETHHDPath)
 		account, err := wallet.Derive(path, false)
 		if err != nil {
 			fmt.Printf("Error deriving account: %v\n", err)

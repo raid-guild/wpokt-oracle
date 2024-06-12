@@ -1,96 +1,50 @@
+version: "3.8"
+
 services:
-  wpokt.validator1:
-    image: dan13ram/wpokt-validator:latest
-    restart: always
-    volumes:
-      - ./config/validator/config.validator1.yml:/home/app/config.yml
-    command: sh -c "sleep 30 && /bin/validator --config /home/app/config.yml"
+  wpokt-hyperlane-one:
+    image: dan13ram/wpokt-hyperlane-contracts:v0.0.1
+    network_mode: host
     environment:
-      LOG_LEVEL: debug
+      PORT: "38545"
+      CHAIN_ID: "38545"
+    ports:
+      - "38545:38545"
+    expose:
+      - "38545"
 
-  wpokt.validator2:
-    image: dan13ram/wpokt-validator:latest
-    restart: always
-    volumes:
-      - ./config/validator/config.validator2.yml:/home/app/config.yml
-    command: sh -c "sleep 30 && /bin/validator --config /home/app/config.yml"
+  wpokt-hyperlane-two:
+    image: dan13ram/wpokt-hyperlane-contracts:v0.0.1
+    network_mode: host
     environment:
-      LOG_LEVEL: debug
+      PORT: "38546"
+      CHAIN_ID: "38546"
+    ports:
+      - "38546:38546"
+    expose:
+      - "38546"
 
-  wpokt.validator3:
-    image: dan13ram/wpokt-validator:latest
-    restart: always
-    volumes:
-      - ./config/validator/config.validator3.yml:/home/app/config.yml
-    command: sh -c "sleep 30 && /bin/validator --config /home/app/config.yml"
-    environment:
-      LOG_LEVEL: debug
+  oracle-one:
+    image: dan13ram/wpokt-oracle:v0.0.1
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.one.yml"]
 
-  wpokt.mongodb:
+  oracle-two:
+    image: dan13ram/wpokt-oracle:v0.0.1
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.two.yml"]
+
+  oracle-three:
+    image: dan13ram/wpokt-oracle:v0.0.1
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.three.yml"]
+
+  mongodb:
     image: mongo
+    network_mode: host
     volumes:
-      - /tmp/data/validator/mongodb:/data/db
+      - /tmp/data/oracle/mongodb:/data/db
     ports:
       - "27017:27017"
     expose:
       - "27017"
     command: mongod --quiet --logpath /dev/null
-
-  wpokt.localnet:
-    image: dan13ram/wpokt-localnet:latest
-    command: "/app/docker/entrypoint.sh"
-    ports:
-      - "8545:8545"
-    expose:
-      - "8545"
-
-  node1.pokt.localnet:
-    image: dan13ram/pokt-localnet:latest
-    command: "/usr/bin/expect /root/entrypoint.sh"
-    ports:
-      - "8081:8081"
-      - "26657:26657"
-    expose:
-      - "8081"
-      - "26656"
-      - "26657"
-      - "46656"
-    volumes:
-      - ./config/node/config.node1.json:/root/.pocket/config/config.json
-      - /tmp/data/node/node1.pokt.localnet:/root/.pocket/data
-    env_file:
-      - ./config/node/node1.env
-
-  node2.pokt.localnet:
-    image: dan13ram/pokt-localnet:latest
-    command: "/usr/bin/expect /root/entrypoint.sh"
-    ports:
-      - "8082:8081"
-      - "26658:26657"
-    expose:
-      - "8081"
-      - "26656"
-      - "26657"
-      - "46656"
-    volumes:
-      - ./config/node/config.node2.json:/root/.pocket/config/config.json
-      - /tmp/data/node/node2.pokt.localnet:/root/.pocket/data
-    env_file:
-      - ./config/node/node2.env
-
-  node3.pokt.localnet:
-    image: dan13ram/pokt-localnet:latest
-    command: "/usr/bin/expect /root/entrypoint.sh"
-    ports:
-      - "8083:8081"
-      - "26659:26657"
-    expose:
-      - "8081"
-      - "26656"
-      - "26657"
-      - "46656"
-    volumes:
-      - ./config/node/config.node3.json:/root/.pocket/config/config.json
-      - /tmp/data/node/node3.pokt.localnet:/root/.pocket/data
-    env_file:
-      - ./config/node/node3.env

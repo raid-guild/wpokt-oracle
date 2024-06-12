@@ -11,9 +11,9 @@ import (
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 
 	"github.com/dan13ram/wpokt-oracle/common"
-
-	"github.com/dan13ram/wpokt-oracle/scripts/utils"
 )
+
+const DefaultBech32Prefix = "pokt"
 
 func main() {
 	var publickeys string
@@ -62,11 +62,10 @@ func main() {
 	pk := multisig.NewLegacyAminoPubKey(threshold, pKeys)
 	log.Printf("multisig address: %v", strings.ToLower(pk.Address().String()))
 
-	bech32, err := utils.Bech32FromAddressBytes(pk.Address().Bytes())
+	bech32, err := common.Bech32FromBytes(DefaultBech32Prefix, pk.Address().Bytes())
 	if err != nil {
 		log.Fatalf("error encoding address: %v", err)
 	}
 	log.Printf("multisig address bech32: %v", bech32)
 
-	// utils.TestAddress(bech32)
 }

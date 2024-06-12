@@ -55,16 +55,16 @@ func NewEthereumTransaction(
 }
 
 func NewCosmosTransaction(
-	tx *sdk.TxResponse,
+	txRes *sdk.TxResponse,
 	chain models.Chain,
 	fromAddress []byte,
 	toAddress []byte,
 	txStatus models.TransactionStatus,
 ) (models.Transaction, error) {
 
-	txHash := common.Ensure0xPrefix(tx.TxHash)
+	txHash := common.Ensure0xPrefix(txRes.TxHash)
 	if len(txHash) != 66 {
-		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", tx.TxHash)
+		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", txRes.TxHash)
 	}
 
 	txFrom, err := common.AddressHexFromBytes(fromAddress)
@@ -81,7 +81,7 @@ func NewCosmosTransaction(
 		Hash:        txHash,
 		FromAddress: txFrom,
 		ToAddress:   txTo,
-		BlockHeight: uint64(tx.Height),
+		BlockHeight: uint64(txRes.Height),
 		Chain:       chain,
 		Status:      txStatus,
 		CreatedAt:   time.Now(),

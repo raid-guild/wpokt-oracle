@@ -8,7 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	multisigtypes "github.com/cosmos/cosmos-sdk/crypto/types/multisig"
-	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/ethereum/go-ethereum/core/types"
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -40,29 +39,21 @@ import (
 )
 
 type MessageSignerRunner struct {
-	currentBlockHeight uint64
-
-	multisigAddress   string
-	multisigThreshold uint64
-	multisigPk        *multisig.LegacyAminoPubKey
+	multisigPk *multisig.LegacyAminoPubKey
+	signerKey  crypto.PrivKey
 
 	mintControllerMap         map[uint32][]byte
 	ethClientMap              map[uint32]eth.EthereumClient
 	mailboxMap                map[uint32]eth.MailboxContract
-	supportedChainIDsEthereum map[uint64]bool
+	supportedChainIDsEthereum map[uint32]bool
 
-	signerKey crypto.PrivKey
-
-	bech32Prefix string
-	coinDenom    string
-	feeAmount    sdk.Coin
-
-	confirmations uint64
-
+	config models.CosmosNetworkConfig
 	chain  models.Chain
 	client cosmos.CosmosClient
 
 	logger *log.Entry
+
+	currentBlockHeight uint64
 }
 
 func (x *MessageSignerRunner) Run() {
@@ -126,7 +117,7 @@ func (x *MessageSignerRunner) SignMessage(
 			logger.Debugf("Max sequence from db: %d", *maxSequence)
 			sequence = *maxSequence + 1
 		} else {
-			account, err := x.client.GetAccount(x.multisigAddress)
+			account, err := x.client.GetAccount(x.config.MultisigAddress)
 			if err != nil {
 				logger.WithError(err).Error("Error getting account")
 				return false
@@ -154,16 +145,16 @@ func (x *MessageSignerRunner) SignMessage(
 		logger.WithError(err).Errorf("Error parsing to address")
 		return false
 	}
-	amount := sdk.NewCoin(x.coinDenom, math.NewInt(int64(messageDoc.Content.MessageBody.Amount)))
+	amount := sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(messageDoc.Content.MessageBody.Amount)))
 
 	if messageDoc.TransactionBody == "" {
 		txBody, err := util.NewSendTx(
-			x.bech32Prefix,
+			x.config.Bech32Prefix,
 			x.multisigPk.Address().Bytes(),
 			toAddr,
 			amount,
-			"Message from "+messageDoc.OriginTransactionHash,
-			x.feeAmount,
+			"Message from "+messageDoc.OriginTransactionHash+" on "+x.chain.ChainID,
+			sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(x.config.TxFee))),
 		)
 		if err != nil {
 			logger.WithError(err).Errorf("Error creating tx body")
@@ -173,9 +164,9 @@ func (x *MessageSignerRunner) SignMessage(
 	}
 
 	// can ignore error here because we already validated
-	tx, _ := util.ParseTxBody(x.bech32Prefix, messageDoc.TransactionBody)
+	tx, _ := util.ParseTxBody(x.config.Bech32Prefix, messageDoc.TransactionBody)
 
-	txConfig := util.NewTxConfig(x.bech32Prefix)
+	txConfig := util.NewTxConfig(x.config.Bech32Prefix)
 
 	txBuilder, err := txConfig.WrapTxBuilder(tx)
 	if err != nil {
@@ -195,7 +186,7 @@ func (x *MessageSignerRunner) SignMessage(
 		return false
 	}
 
-	account, err := x.client.GetAccount(x.multisigAddress)
+	account, err := x.client.GetAccount(x.config.MultisigAddress)
 
 	if err != nil {
 		logger.WithError(err).Error("Error getting account")
@@ -270,7 +261,7 @@ func (x *MessageSignerRunner) SignMessage(
 		"sequence":         &seq,
 	}
 
-	if len(signatures) >= int(x.multisigThreshold) {
+	if len(signatures) >= int(x.config.MultisigThreshold) {
 		update["status"] = models.MessageStatusSigned
 	}
 
@@ -402,18 +393,12 @@ func (x *MessageSignerRunner) UpdateRefund(
 func (x *MessageSignerRunner) ValidateRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
-	spender string,
+	spenderAddress []byte,
 	amount sdk.Coin,
 ) bool {
 	logger := x.logger.
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "validate-refund")
-
-	spenderAddress, err := common.AddressBytesFromBech32(x.bech32Prefix, spender)
-	if err != nil {
-		logger.WithError(err).Errorf("Error parsing spender address")
-		return false
-	}
 
 	recipientAddress, err := common.BytesFromAddressHex(refundDoc.Recipient)
 	if err != nil {
@@ -426,13 +411,13 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	refundAmount := sdk.NewCoin(x.coinDenom, math.NewInt(int64(refundDoc.Amount)))
+	refundAmount := sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(refundDoc.Amount)))
 	if !amount.IsEqual(refundAmount) {
 		logger.Errorf("Amount does not match refund amount")
 		return false
 	}
 
-	tx, err := util.ParseTxBody(x.bech32Prefix, refundDoc.TransactionBody)
+	tx, err := util.ParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing tx body")
 		return false
@@ -447,14 +432,16 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	refundFinalAmount := refundAmount.Sub(x.feeAmount)
+	feeAmount := sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(x.config.TxFee)))
+
+	refundFinalAmount := refundAmount.Sub(feeAmount)
 
 	if !msg.Amount[0].IsEqual(refundFinalAmount) {
 		logger.Errorf("Amount does not match refund final amount")
 		return false
 	}
 
-	fromAddress, err := common.AddressBytesFromBech32(x.bech32Prefix, msg.FromAddress)
+	fromAddress, err := common.AddressBytesFromBech32(x.config.Bech32Prefix, msg.FromAddress)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing from address")
 		return false
@@ -465,7 +452,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	toAddress, err := common.AddressBytesFromBech32(x.bech32Prefix, msg.ToAddress)
+	toAddress, err := common.AddressBytesFromBech32(x.config.Bech32Prefix, msg.ToAddress)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing to address")
 		return false
@@ -492,7 +479,7 @@ func isTxSigner(user []byte, signers [][]byte) bool {
 func (x *MessageSignerRunner) SignRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
-	spender string,
+	spender []byte,
 	amount sdk.Coin,
 ) bool {
 
@@ -520,7 +507,7 @@ func (x *MessageSignerRunner) SignRefund(
 		if maxSequence != nil {
 			sequence = *maxSequence + 1
 		} else {
-			account, err := x.client.GetAccount(x.multisigAddress)
+			account, err := x.client.GetAccount(x.config.MultisigAddress)
 			if err != nil {
 				logger.WithError(err).Error("Error getting account")
 				return false
@@ -543,18 +530,13 @@ func (x *MessageSignerRunner) SignRefund(
 	}
 
 	if refundDoc.TransactionBody == "" {
-		toAddr, err := common.AddressBytesFromBech32(x.bech32Prefix, spender)
-		if err != nil {
-			x.logger.WithError(err).Errorf("Error parsing spender address")
-			return false
-		}
 		txBody, err := util.NewSendTx(
-			x.bech32Prefix,
+			x.config.Bech32Prefix,
 			x.multisigPk.Address().Bytes(),
-			toAddr,
+			spender,
 			amount,
 			"Refund for "+refundDoc.OriginTransactionHash,
-			x.feeAmount,
+			sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(x.config.TxFee))),
 		)
 		if err != nil {
 			logger.WithError(err).Errorf("Error creating tx body")
@@ -564,9 +546,9 @@ func (x *MessageSignerRunner) SignRefund(
 	}
 
 	// can ignore error here because we already validated
-	tx, _ := util.ParseTxBody(x.bech32Prefix, refundDoc.TransactionBody)
+	tx, _ := util.ParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
 
-	txConfig := util.NewTxConfig(x.bech32Prefix)
+	txConfig := util.NewTxConfig(x.config.Bech32Prefix)
 
 	txBuilder, err := txConfig.WrapTxBuilder(tx)
 	if err != nil {
@@ -586,7 +568,7 @@ func (x *MessageSignerRunner) SignRefund(
 		return false
 	}
 
-	account, err := x.client.GetAccount(x.multisigAddress)
+	account, err := x.client.GetAccount(x.config.MultisigAddress)
 
 	if err != nil {
 		logger.WithError(err).Error("Error getting account")
@@ -661,7 +643,7 @@ func (x *MessageSignerRunner) SignRefund(
 		"sequence":         &seq,
 	}
 
-	if len(signatures) >= int(x.multisigThreshold) {
+	if len(signatures) >= int(x.config.MultisigThreshold) {
 		update["status"] = models.RefundStatusSigned
 	}
 
@@ -687,13 +669,13 @@ func (x *MessageSignerRunner) BroadcastMessage(
 		WithField("tx_hash", messageDoc.OriginTransactionHash).
 		WithField("section", "broadcast-message")
 
-	tx, err := util.ParseTxBody(x.bech32Prefix, messageDoc.TransactionBody)
+	tx, err := util.ParseTxBody(x.config.Bech32Prefix, messageDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing tx body")
 		return false
 	}
 
-	txCfg := util.NewTxConfig(x.bech32Prefix)
+	txCfg := util.NewTxConfig(x.config.Bech32Prefix)
 
 	txBuilder, err := txCfg.WrapTxBuilder(tx)
 	if err != nil {
@@ -867,12 +849,12 @@ func (x *MessageSignerRunner) ValidateSignatures(
 		return false
 	}
 
-	if len(sigV2s) < int(x.multisigThreshold) {
+	if len(sigV2s) < int(x.config.MultisigThreshold) {
 		logger.Errorf("Not enough signatures")
 		return false
 	}
 
-	account, err := x.client.GetAccount(x.multisigAddress)
+	account, err := x.client.GetAccount(x.config.MultisigAddress)
 
 	if err != nil {
 		logger.WithError(err).Error("Error getting account")
@@ -944,7 +926,7 @@ func (x *MessageSignerRunner) ValidateSignatures(
 func (x *MessageSignerRunner) BroadcastRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
-	spender string,
+	spender []byte,
 	amount sdk.Coin,
 ) bool {
 
@@ -958,13 +940,13 @@ func (x *MessageSignerRunner) BroadcastRefund(
 		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
 	}
 
-	tx, err := util.ParseTxBody(x.bech32Prefix, refundDoc.TransactionBody)
+	tx, err := util.ParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing tx body")
 		return false
 	}
 
-	txCfg := util.NewTxConfig(x.bech32Prefix)
+	txCfg := util.NewTxConfig(x.config.Bech32Prefix)
 
 	txBuilder, err := txCfg.WrapTxBuilder(tx)
 	if err != nil {
@@ -1017,15 +999,7 @@ func (x *MessageSignerRunner) BroadcastRefund(
 		"transaction_hash": txHash0x,
 	}
 
-	success := x.UpdateRefund(refundDoc, update)
-
-	if success {
-		refundDoc.TransactionHash = txHash0x
-		refundDoc.TransactionBody = string(txJSON)
-		refundDoc.Status = models.RefundStatusBroadcasted
-	}
-
-	return true
+	return x.UpdateRefund(refundDoc, update)
 }
 
 func (x *MessageSignerRunner) BroadcastRefunds() bool {
@@ -1045,78 +1019,30 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 			success = false
 			continue
 		}
-		if txResponse.Code != 0 {
-			logger.Infof("Found tx with error")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
 
-		tx := &tx.Tx{}
-		err = tx.Unmarshal(txResponse.Tx.Value)
+		result, err := util.ValidateCosmosTx(txResponse, x.config, x.supportedChainIDsEthereum)
+
 		if err != nil {
-			logger.Errorf("Error unmarshalling tx")
+			logger.WithError(err).Errorf("Error validating tx")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
-		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
-		if err != nil {
-			logger.WithError(err).Errorf("Error parsing coins received events")
+		if !result.NeedsRefund || result.TxStatus != models.TransactionStatusPending {
+			logger.Debugf("Tx does not need refund")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
-		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
-		if err != nil {
-			logger.WithError(err).Errorf("Error parsing coins spent events")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
+		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
 
-		if coinsReceived.IsZero() || coinsSpent.IsZero() {
-			logger.
-				Debugf("Found tx with zero coins")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
-
-		if coinsReceived.IsLTE(x.feeAmount) {
-			logger.
-				Debugf("Found tx with amount too low")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
-
-		txHeight := txResponse.Height
-		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
-			logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
-
-		confirmations := x.currentBlockHeight - uint64(txHeight)
-
-		if confirmations < x.confirmations {
+		if confirmations < x.config.Confirmations {
 			logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending}) && success
 			continue
 		}
 
-		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
-			logger.Debugf("Found tx with invalid coins")
-			success = x.BroadcastRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
-			continue
-		}
-
-		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
-		if err != nil {
-			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
-			success = x.BroadcastRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
-			continue
-		}
-
-		logger.WithField("memo", memo).Errorf("Found refund with a valid memo")
-		success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
+		success = x.BroadcastRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
 	}
 
 	return success
@@ -1143,78 +1069,30 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 			success = false
 			continue
 		}
-		if txResponse.Code != 0 {
-			logger.Infof("Found tx with error")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
 
-		tx := &tx.Tx{}
-		err = tx.Unmarshal(txResponse.Tx.Value)
+		result, err := util.ValidateCosmosTx(txResponse, x.config, x.supportedChainIDsEthereum)
+
 		if err != nil {
-			logger.Errorf("Error unmarshalling tx")
+			logger.WithError(err).Errorf("Error validating tx")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
-		coinsReceived, err := util.ParseCoinsReceivedEvents(x.coinDenom, x.multisigAddress, txResponse.Events)
-		if err != nil {
-			logger.WithError(err).Errorf("Error parsing coins received events")
+		if !result.NeedsRefund || result.TxStatus != models.TransactionStatusPending {
+			logger.Debugf("Tx does not need refund")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
-		coinsSpentSender, coinsSpent, err := util.ParseCoinsSpentEvents(x.coinDenom, txResponse.Events)
-		if err != nil {
-			logger.WithError(err).Errorf("Error parsing coins spent events")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
+		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
 
-		if coinsReceived.IsZero() || coinsSpent.IsZero() {
-			logger.
-				Debugf("Found tx with zero coins")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
-
-		if coinsReceived.IsLTE(x.feeAmount) {
-			logger.
-				Debugf("Found tx with amount too low")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
-
-		txHeight := txResponse.Height
-		if txHeight <= 0 || uint64(txHeight) > x.currentBlockHeight {
-			logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
-			continue
-		}
-
-		confirmations := x.currentBlockHeight - uint64(txHeight)
-
-		if confirmations < x.confirmations {
+		if confirmations < x.config.Confirmations {
 			logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending}) && success
 			continue
 		}
 
-		if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
-			logger.Debugf("Found tx with invalid coins")
-			success = x.SignRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
-			continue
-		}
-
-		memo, err := util.ValidateMemo(tx.Body.Memo, x.supportedChainIDsEthereum)
-		if err != nil {
-			logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
-			success = x.SignRefund(txResponse, &refundDoc, coinsSpentSender, coinsSpent) && success
-			continue
-		}
-
-		logger.WithField("memo", memo).Errorf("Found refund with a valid memo")
-		success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
+		success = x.SignRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
 	}
 
 	return success
@@ -1262,8 +1140,6 @@ func NewMessageSigner(
 		logger.WithError(err).Errorf("Error creating cosmos client")
 	}
 
-	feeAmount := sdk.NewCoin("upokt", math.NewInt(int64(config.TxFee)))
-
 	privKey, err := common.CosmosPrivateKeyFromMnemonic(mnemonic)
 	if err != nil {
 		logger.WithError(err).Fatalf("Error getting private key from mnemonic")
@@ -1271,7 +1147,7 @@ func NewMessageSigner(
 
 	ethClientMap := make(map[uint32]eth.EthereumClient)
 	mailboxMap := make(map[uint32]eth.MailboxContract)
-	supportedChainIDsEthereum := make(map[uint64]bool)
+	supportedChainIDsEthereum := make(map[uint32]bool)
 
 	for _, ethConfig := range ethNetworks {
 		ethClient, err := eth.NewClient(ethConfig)
@@ -1281,40 +1157,35 @@ func NewMessageSigner(
 				WithField("chain_id", ethConfig.ChainID).
 				Fatalf("Error creating ethereum client")
 		}
-		ethClientMap[ethClient.Chain().ChainDomain] = ethClient
-		mailboxAddress := common.HexToAddress(ethConfig.MailboxAddress)
-		mailbox, err := eth.NewMailboxContract(mailboxAddress, ethClient.GetClient())
+		chainDomain := ethClient.Chain().ChainDomain
+		mailbox, err := eth.NewMailboxContract(common.HexToAddress(ethConfig.MailboxAddress), ethClient.GetClient())
 		if err != nil {
 			logger.WithError(err).
 				WithField("chain_name", ethConfig.ChainName).
 				WithField("chain_id", ethConfig.ChainID).
 				Fatalf("Error creating mailbox contract")
 		}
-		mailboxMap[ethClient.Chain().ChainDomain] = mailbox
-		supportedChainIDsEthereum[ethConfig.ChainID] = true
+		ethClientMap[chainDomain] = ethClient
+		mailboxMap[chainDomain] = mailbox
+		supportedChainIDsEthereum[chainDomain] = true
 	}
 
 	x := &MessageSignerRunner{
-		multisigPk:        multisigPk,
-		multisigThreshold: config.MultisigThreshold,
-		multisigAddress:   multisigAddress,
+		multisigPk: multisigPk,
 
 		currentBlockHeight: 0,
 		client:             client,
-		feeAmount:          feeAmount,
 
 		signerKey: privKey,
 
-		chain:         util.ParseChain(config),
-		confirmations: config.Confirmations,
+		chain: util.ParseChain(config),
 
 		mintControllerMap:         mintControllerMap,
 		ethClientMap:              ethClientMap,
 		mailboxMap:                mailboxMap,
 		supportedChainIDsEthereum: supportedChainIDsEthereum,
 
-		bech32Prefix: config.Bech32Prefix,
-		coinDenom:    config.CoinDenom,
+		config: config,
 
 		logger: logger,
 	}

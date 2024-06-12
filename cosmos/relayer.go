@@ -19,22 +19,16 @@ import (
 )
 
 type MessageRelayerRunner struct {
-	startBlockHeight   uint64
-	currentBlockHeight uint64
+	multisigPk *multisig.LegacyAminoPubKey
 
-	multisigAddress   string
-	multisigThreshold uint64
-	multisigPk        *multisig.LegacyAminoPubKey
-
-	bech32Prefix string
-	coinDenom    string
-
-	confirmations uint64
-
+	config models.CosmosNetworkConfig
 	chain  models.Chain
 	client cosmos.CosmosClient
 
 	logger *log.Entry
+
+	startBlockHeight   uint64
+	currentBlockHeight uint64
 }
 
 func (x *MessageRelayerRunner) Run() {
@@ -301,7 +295,7 @@ func (x *MessageRelayerRunner) RelayTransactions() bool {
 			"confirmations": confirmations,
 		}
 
-		if confirmations < x.confirmations {
+		if confirmations < x.config.Confirmations {
 			success = success && x.UpdateTransaction(&txDoc, update)
 			continue
 		}
@@ -388,19 +382,14 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 	}
 
 	x := &MessageRelayerRunner{
-		multisigPk:        multisigPk,
-		multisigThreshold: config.MultisigThreshold,
-		multisigAddress:   multisigAddress,
+		multisigPk: multisigPk,
 
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 		client:             client,
 
-		chain:         util.ParseChain(config),
-		confirmations: config.Confirmations,
-
-		bech32Prefix: config.Bech32Prefix,
-		coinDenom:    config.CoinDenom,
+		chain:  util.ParseChain(config),
+		config: config,
 
 		logger: logger,
 	}

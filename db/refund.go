@@ -19,7 +19,6 @@ func NewRefund(
 	txDoc *models.Transaction,
 	recipientAddress []byte,
 	amountCoin sdk.Coin,
-	txBody string,
 ) (models.Refund, error) {
 
 	if txRes == nil || txDoc == nil {
@@ -43,7 +42,6 @@ func NewRefund(
 		OriginTransactionHash: txDoc.Hash,
 		Recipient:             recipient,
 		Amount:                amount,
-		TransactionBody:       txBody,
 		Signatures:            []models.Signature{},
 		Transaction:           nil,
 		Sequence:              nil,

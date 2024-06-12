@@ -9,15 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"cosmossdk.io/math"
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
@@ -36,12 +31,10 @@ type MessageSignerRunner struct {
 	currentEthereumBlockHeight uint64
 	currentCosmosBlockHeight   uint64
 
-	ethClientMap              map[uint32]eth.EthereumClient
-	mailboxMap                map[uint32]eth.MailboxContract
-	supportedChainIDsEthereum map[uint64]bool
-	mintControllerMap         map[uint32][]byte
+	ethClientMap      map[uint32]eth.EthereumClient
+	mailboxMap        map[uint32]eth.MailboxContract
+	mintControllerMap map[uint32][]byte
 
-	mailbox        eth.MailboxContract
 	mintController eth.MintControllerContract
 	warpISM        eth.WarpISMContract
 
@@ -54,8 +47,6 @@ type MessageSignerRunner struct {
 	chain models.Chain
 
 	privateKey *ecdsa.PrivateKey
-
-	minimumAmount *big.Int
 
 	// TODO: validate maximumAmount
 	maximumAmount *big.Int
@@ -159,80 +150,52 @@ func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.
 		logger.WithError(err).Errorf("Error getting tx")
 		return false
 	}
-	if txResponse.Code != 0 {
-		logger.Infof("Found tx with error")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+
+	supportedChainIDsEthereum := map[uint32]bool{
+		uint32(x.chain.ChainDomain): true,
 	}
 
-	tx := &tx.Tx{}
-	err = tx.Unmarshal(txResponse.Tx.Value)
+	result, err := cosmosUtil.ValidateCosmosTx(txResponse, x.cosmosConfig, supportedChainIDsEthereum)
+
 	if err != nil {
-		logger.Errorf("Error unmarshalling tx")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
-	}
-
-	coinsReceived, err := cosmosUtil.ParseCoinsReceivedEvents(x.cosmosConfig.CoinDenom, x.cosmosConfig.MultisigAddress, txResponse.Events)
-	if err != nil {
-		logger.WithError(err).Errorf("Error parsing coins received events")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
-	}
-
-	_, coinsSpent, err := cosmosUtil.ParseCoinsSpentEvents(x.cosmosConfig.CoinDenom, txResponse.Events)
-	if err != nil {
-		logger.WithError(err).Errorf("Error parsing coins spent events")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
-	}
-
-	if coinsReceived.IsZero() || coinsSpent.IsZero() {
-		logger.
-			Debugf("Found tx with zero coins")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
-	}
-
-	feeAmount := sdk.NewCoin("upokt", math.NewInt(x.minimumAmount.Int64()))
-
-	if coinsReceived.IsLTE(feeAmount) {
-		logger.
-			Debugf("Found tx with amount too low")
+		logger.WithError(err).Errorf("Error validating tx response")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	txHeight := txResponse.Height
-	if txHeight <= 0 || uint64(txHeight) > x.currentCosmosBlockHeight {
-		logger.WithField("tx_height", txHeight).Debugf("Found tx with invalid height")
+	if result.TxStatus != models.TransactionStatusPending {
+		logger.Debugf("Found tx with status %s", result.TxStatus)
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
 	}
 
-	confirmations := x.currentCosmosBlockHeight - uint64(txHeight)
+	if result.NeedsRefund {
+		logger.Debugf("Found tx with needs refund")
+		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+	}
+
+	confirmations := x.currentCosmosBlockHeight - uint64(txResponse.Height)
 
 	if confirmations < x.cosmosConfig.Confirmations {
 		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusPending})
-
 	}
 
-	if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
-		logger.Debugf("Found tx with invalid coins")
+	if messageDoc.Content.MessageBody.Amount != result.Amount.Amount.Uint64() {
+		logger.Debugf("Found tx with amount mismatch")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
 	}
 
-	supportedChainIDs := make(map[uint64]bool)
-	supportedChainIDs[uint64(x.chain.ChainDomain)] = true
-
-	memo, err := cosmosUtil.ValidateMemo(tx.Body.Memo, supportedChainIDs)
-	if err != nil {
-		logger.WithError(err).WithField("memo", tx.Body.Memo).Debugf("Found invalid memo")
+	if !strings.EqualFold(messageDoc.Content.MessageBody.SenderAddress, common.HexFromBytes(result.SenderAddress)) {
+		logger.Debugf("Found tx with sender mismatch")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-
 	}
 
-	logger.WithField("memo", memo).Infof("Found message with a valid memo")
+	if !strings.EqualFold(messageDoc.Content.MessageBody.RecipientAddress, result.Memo.Address) {
+		logger.Debugf("Found tx with recipient mismatch")
+		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+	}
+
+	log.Debugf("Found valid tx with message to be signed")
+
 	return x.SignMessage(messageDoc)
 }
 
@@ -425,13 +388,6 @@ func NewMessageSigner(
 		logger.Fatalf("Error creating ethereum client: %s", err)
 	}
 
-	logger.Debug("Connecting to mailbox contract at: ", config.MailboxAddress)
-	mailbox, err := eth.NewMailboxContract(common.HexToAddress(config.MailboxAddress), client.GetClient())
-	if err != nil {
-		logger.Fatal("Error connecting to mailbox contract: ", err)
-	}
-	logger.Debug("Connected to mailbox contract")
-
 	logger.Debug("Connecting to mint controller contract at: ", config.MintControllerAddress)
 	mintController, err := eth.NewMintControllerContract(common.HexToAddress(config.MintControllerAddress), client.GetClient())
 	if err != nil {
@@ -456,34 +412,29 @@ func NewMessageSigner(
 		logger.Fatalf("Error creating cosmos client: %s", err)
 	}
 
-	minimumAmount := big.NewInt(int64(cosmosConfig.TxFee))
-
 	ethClientMap := make(map[uint32]eth.EthereumClient)
 	mailboxMap := make(map[uint32]eth.MailboxContract)
-	supportedChainIDsEthereum := make(map[uint64]bool)
 
 	for _, ethConfig := range ethNetworks {
+		var ethClient eth.EthereumClient
+		var err error
 		if ethConfig.ChainID == config.ChainID {
-			continue
+			ethClient = client
+		} else {
+			ethClient, err = eth.NewClient(ethConfig)
+			if err != nil {
+				logger.WithError(err).
+					Fatalf("Error creating ethereum client for chain ID %s", ethConfig.ChainID)
+			}
 		}
-		ethClient, err := eth.NewClient(ethConfig)
+		mailbox, err := eth.NewMailboxContract(common.HexToAddress(ethConfig.MailboxAddress), ethClient.GetClient())
 		if err != nil {
 			logger.WithError(err).
-				WithField("chain_name", ethConfig.ChainName).
-				WithField("chain_id", ethConfig.ChainID).
-				Fatalf("Error creating ethereum client")
+				Fatalf("Error creating mailbox contract for chain ID %s", ethConfig.ChainID)
 		}
-		ethClientMap[ethClient.Chain().ChainDomain] = ethClient
-		mailboxAddress := common.HexToAddress(ethConfig.MailboxAddress)
-		mailbox, err := eth.NewMailboxContract(mailboxAddress, ethClient.GetClient())
-		if err != nil {
-			logger.WithError(err).
-				WithField("chain_name", ethConfig.ChainName).
-				WithField("chain_id", ethConfig.ChainID).
-				Fatalf("Error creating mailbox contract")
-		}
-		mailboxMap[ethClient.Chain().ChainDomain] = mailbox
-		supportedChainIDsEthereum[ethConfig.ChainID] = true
+		chainDomain := ethClient.Chain().ChainDomain
+		ethClientMap[chainDomain] = ethClient
+		mailboxMap[chainDomain] = mailbox
 	}
 
 	x := &MessageSignerRunner{
@@ -491,12 +442,10 @@ func NewMessageSigner(
 
 		currentEthereumBlockHeight: 0,
 
-		mintControllerMap:         mintControllerMap,
-		ethClientMap:              ethClientMap,
-		mailboxMap:                mailboxMap,
-		supportedChainIDsEthereum: supportedChainIDsEthereum,
+		mintControllerMap: mintControllerMap,
+		ethClientMap:      ethClientMap,
+		mailboxMap:        mailboxMap,
 
-		mailbox:        mailbox,
 		mintController: mintController,
 		warpISM:        warpISM,
 
@@ -510,8 +459,7 @@ func NewMessageSigner(
 		cosmosClient: cosmosClient,
 		cosmosConfig: cosmosConfig,
 
-		numSigners:    0,
-		minimumAmount: minimumAmount,
+		numSigners: 0,
 
 		logger: logger,
 	}
@@ -537,10 +485,6 @@ func NewMessageSigner(
 	}
 
 	x.UpdateMaxMintLimit()
-
-	if x.maximumAmount == nil || x.maximumAmount.Cmp(x.minimumAmount) != 1 {
-		x.logger.Fatalf("Invalid max mint limit")
-	}
 
 	logger.Infof("Initialized")
 

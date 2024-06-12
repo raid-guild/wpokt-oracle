@@ -27,7 +27,8 @@ func ParseMessageSenderEvent(
 
 func ParseCoinsReceivedEvents(
 	denom string,
-	receiver string, events []abci.Event,
+	receiver string,
+	events []abci.Event,
 ) (sdk.Coin, error) {
 	total := sdk.NewCoin(denom, math.NewInt(0))
 	for _, event := range events {

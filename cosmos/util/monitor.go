@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-func ValidateMemo(txMemo string, supportedChainIDsEthereum map[uint64]bool) (models.MintMemo, error) {
+func ValidateMemo(txMemo string, supportedChainIDsEthereum map[uint32]bool) (models.MintMemo, error) {
 	var memo models.MintMemo
 
 	err := json.Unmarshal([]byte(txMemo), &memo)
@@ -34,7 +34,7 @@ func ValidateMemo(txMemo string, supportedChainIDsEthereum map[uint64]bool) (mod
 		return memo, fmt.Errorf("invalid chain id: %s", memo.ChainID)
 	}
 
-	if _, ok := supportedChainIDsEthereum[chainID]; !ok {
+	if _, ok := supportedChainIDsEthereum[uint32(chainID)]; !ok {
 		return memo, fmt.Errorf("unsupported chain id: %s", memo.ChainID)
 	}
 

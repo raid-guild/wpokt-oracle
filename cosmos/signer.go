@@ -2,6 +2,7 @@ package cosmos
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -108,24 +109,11 @@ func (x *MessageSignerRunner) SignMessage(
 		sequence = *messageDoc.Sequence
 	} else {
 		var err error
-		maxSequence, err := db.FindMaxSequence(x.chain)
+		sequence, err = x.FindMaxSequence()
 		if err != nil {
-			logger.WithError(err).Error("Error getting sequence from db")
+			logger.WithError(err).Error("Error getting sequence")
 			return false
 		}
-		if maxSequence != nil {
-			logger.Debugf("Max sequence from db: %d", *maxSequence)
-			sequence = *maxSequence + 1
-		} else {
-			account, err := x.client.GetAccount(x.config.MultisigAddress)
-			if err != nil {
-				logger.WithError(err).Error("Error getting account")
-				return false
-			}
-			logger.Debugf("Account sequence: %d", account.Sequence)
-			sequence = account.Sequence
-		}
-		log.Infof("Sequence: %d", sequence)
 	}
 
 	for _, sig := range messageDoc.Signatures {
@@ -265,16 +253,22 @@ func (x *MessageSignerRunner) SignMessage(
 		update["status"] = models.MessageStatusSigned
 	}
 
+	lockID, err := db.LockWriteSequence()
+	if err != nil {
+		logger.WithError(err).Error("Error locking sequence")
+		return false
+	}
+
 	err = db.UpdateMessage(messageDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating message")
 		return false
 	}
 
-	messageDoc.TransactionBody = string(txBody)
-	messageDoc.Signatures = signatures
-	messageDoc.Sequence = &seq
-	messageDoc.Status = models.MessageStatusPending
+	if err = db.Unlock(lockID); err != nil {
+		logger.WithError(err).Error("Error unlocking sequence")
+		return false
+	}
 
 	return true
 }
@@ -354,7 +348,22 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	return x.SignMessage(messageDoc)
+	lockID, err := db.LockWriteMessage(messageDoc)
+	// lock before signing so that no other validator adds a signature at the same time
+	if err != nil {
+		logger.WithError(err).Error("Error locking message")
+		return false
+	}
+
+	signed := x.SignMessage(messageDoc)
+
+	if err = db.Unlock(lockID); err != nil {
+		logger.WithError(err).Error("Error unlocking message")
+		return false
+	}
+
+	return signed
+
 }
 
 func (x *MessageSignerRunner) SignMessages() bool {
@@ -476,6 +485,33 @@ func isTxSigner(user []byte, signers [][]byte) bool {
 	return false
 }
 
+func (x *MessageSignerRunner) FindMaxSequence() (uint64, error) {
+	lockID, err := db.LockReadSequences()
+	if err != nil {
+		return 0, fmt.Errorf("could not lock sequences: %w", err)
+	}
+	maxSequence, err := db.FindMaxSequence(x.chain)
+	if err != nil {
+		return 0, err
+	}
+	account, err := x.client.GetAccount(x.config.MultisigAddress)
+	if err != nil {
+		return 0, err
+	}
+	if maxSequence == nil {
+		return account.Sequence, nil
+	}
+	nextSequence := *maxSequence + 1
+	if nextSequence > account.Sequence {
+		return nextSequence, nil
+	}
+
+	if err = db.Unlock(lockID); err != nil {
+		return 0, fmt.Errorf("could not unlock sequences: %w", err)
+	}
+	return account.Sequence, nil
+}
+
 func (x *MessageSignerRunner) SignRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
@@ -487,34 +523,17 @@ func (x *MessageSignerRunner) SignRefund(
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "sign-refund")
 
-	valid := x.ValidateRefund(txResponse, refundDoc, spender, amount)
-	if !valid {
-		logger.Warnf("Invalid refund")
-		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
-	}
-
 	var sequence uint64
 
 	if refundDoc.Sequence != nil {
 		sequence = *refundDoc.Sequence
 	} else {
 		var err error
-		maxSequence, err := db.FindMaxSequence(x.chain)
+		sequence, err = x.FindMaxSequence()
 		if err != nil {
-			logger.WithError(err).Error("Error getting sequence from db")
+			logger.WithError(err).Error("Error getting sequence")
 			return false
 		}
-		if maxSequence != nil {
-			sequence = *maxSequence + 1
-		} else {
-			account, err := x.client.GetAccount(x.config.MultisigAddress)
-			if err != nil {
-				logger.WithError(err).Error("Error getting account")
-				return false
-			}
-			sequence = account.Sequence
-		}
-		log.Infof("Sequence: %d", sequence)
 	}
 
 	for _, sig := range refundDoc.Signatures {
@@ -647,23 +666,27 @@ func (x *MessageSignerRunner) SignRefund(
 		update["status"] = models.RefundStatusSigned
 	}
 
+	lockID, err := db.LockWriteSequence()
+	if err != nil {
+		logger.WithError(err).Error("Error locking sequence")
+		return false
+	}
+
 	err = db.UpdateRefund(refundDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating refund")
 		return false
 	}
 
-	refundDoc.TransactionBody = string(txBody)
-	refundDoc.Signatures = signatures
-	refundDoc.Sequence = &seq
-	refundDoc.Status = models.RefundStatusPending
+	if err = db.Unlock(lockID); err != nil {
+		logger.WithError(err).Error("Error unlocking sequence")
+		return false
+	}
 
 	return true
 }
 
-func (x *MessageSignerRunner) BroadcastMessage(
-	messageDoc *models.Message,
-) bool {
+func (x *MessageSignerRunner) BroadcastMessage(messageDoc *models.Message) bool {
 
 	logger := x.logger.
 		WithField("tx_hash", messageDoc.OriginTransactionHash).
@@ -814,7 +837,21 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndBroadcastMessage(messageDoc *
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	return x.BroadcastMessage(messageDoc)
+	lockID, err := db.LockWriteMessage(messageDoc)
+	// lock before signing so that no other validator adds a signature at the same time
+	if err != nil {
+		logger.WithError(err).Error("Error locking message")
+		return false
+	}
+
+	broadcasted := x.BroadcastMessage(messageDoc)
+
+	if err = db.Unlock(lockID); err != nil {
+		logger.WithError(err).Error("Error unlocking message")
+		return false
+	}
+
+	return broadcasted
 }
 
 func (x *MessageSignerRunner) BroadcastMessages() bool {
@@ -1042,7 +1079,20 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 			continue
 		}
 
+		lockID, err := db.LockWriteRefund(&refundDoc)
+		// lock before signing so that no other validator adds a signature at the same time
+		if err != nil {
+			logger.WithError(err).Error("Error locking refund")
+			success = false
+			continue
+		}
+
 		success = x.BroadcastRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
+
+		if err = db.Unlock(lockID); err != nil {
+			logger.WithError(err).Error("Error unlocking refund")
+			success = false
+		}
 	}
 
 	return success
@@ -1084,6 +1134,11 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 			continue
 		}
 
+		if !x.ValidateRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) {
+			logger.Warnf("Invalid refund")
+			return x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+		}
+
 		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
 
 		if confirmations < x.config.Confirmations {
@@ -1092,7 +1147,20 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 			continue
 		}
 
+		lockID, err := db.LockWriteRefund(&refundDoc)
+		// lock before signing so that no other validator adds a signature at the same time
+		if err != nil {
+			logger.WithError(err).Error("Error locking refund")
+			success = false
+			continue
+		}
+
 		success = x.SignRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
+
+		if err = db.Unlock(lockID); err != nil {
+			logger.WithError(err).Error("Error unlocking refund")
+			success = false
+		}
 	}
 
 	return success

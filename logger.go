@@ -32,7 +32,7 @@ func init() {
 func initLogger(config models.LoggerConfig) {
 	logLevel := strings.ToLower(config.Level)
 
-	logger.Debug("Initializing logger with level: ", logLevel)
+	logger.Debug("Initializing logger")
 
 	switch logLevel {
 	case "trace":
@@ -65,6 +65,7 @@ func initLogger(config models.LoggerConfig) {
 	}
 
 	logger.
-		WithField("format", logFormat).
-		Info("Logger initialized with level: ", logLevel)
+		WithField("log_format", logFormat).
+		WithField("log_level", logLevel).
+		Info("Initialized logger")
 }

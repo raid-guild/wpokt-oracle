@@ -25,6 +25,6 @@ func InitConfig(yamlFile string, envFile string) models.Config {
 			WithFields(log.Fields{"error": err}).
 			Fatal("Config validation failed")
 	}
-	logger.Info("Config initialized")
+	logger.Info("Initialized config")
 	return gsmConfig
 }

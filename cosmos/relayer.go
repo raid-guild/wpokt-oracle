@@ -33,9 +33,9 @@ type MessageRelayerRunner struct {
 
 func (x *MessageRelayerRunner) Run() {
 	x.UpdateCurrentHeight()
-	x.SyncRefunds()
-	x.SyncMessages()
-	x.RelayTransactions()
+	x.CreateTxForRefunds()
+	x.CreateTxMessages()
+	x.ConfirmTransactions()
 }
 
 func (x *MessageRelayerRunner) Height() uint64 {
@@ -162,7 +162,7 @@ func (x *MessageRelayerRunner) CreateRefundTransaction(
 	return x.UpdateRefund(refundDoc.ID, bson.M{"transaction": insertedID})
 }
 
-func (x *MessageRelayerRunner) SyncRefunds() bool {
+func (x *MessageRelayerRunner) CreateTxForRefunds() bool {
 	x.logger.Infof("Relaying refunds")
 	refunds, err := db.GetBroadcastedRefunds()
 	if err != nil {
@@ -178,7 +178,7 @@ func (x *MessageRelayerRunner) SyncRefunds() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) SyncMessages() bool {
+func (x *MessageRelayerRunner) CreateTxMessages() bool {
 	x.logger.Infof("Relaying messages")
 	messages, err := db.GetBroadcastedMessages(x.chain)
 	if err != nil {
@@ -243,7 +243,7 @@ func (x *MessageRelayerRunner) ResetMessage(
 	return x.UpdateMessage(messageID, update)
 }
 
-func (x *MessageRelayerRunner) RelayTransactions() bool {
+func (x *MessageRelayerRunner) ConfirmTransactions() bool {
 	x.logger.Infof("Relaying transactions")
 	txs, err := db.GetPendingTransactionsFrom(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 
 type WarpISMContract interface {
 	ValidatorCount(opts *bind.CallOpts) (*big.Int, error)
+	SignerThreshold(opts *bind.CallOpts) (*big.Int, error)
 	Eip712Domain(opts *bind.CallOpts) (util.DomainData, error)
 }
 
@@ -27,6 +28,10 @@ func (x *WarpISMContractImpl) Address() common.Address {
 
 func (x *WarpISMContractImpl) ValidatorCount(opts *bind.CallOpts) (*big.Int, error) {
 	return x.contract.ValidatorCount(opts)
+}
+
+func (x *WarpISMContractImpl) SignerThreshold(opts *bind.CallOpts) (*big.Int, error) {
+	return x.contract.SignerThreshold(opts)
 }
 
 func (x *WarpISMContractImpl) Eip712Domain(opts *bind.CallOpts) (util.DomainData, error) {

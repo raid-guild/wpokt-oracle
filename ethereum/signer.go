@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -50,8 +49,9 @@ type MessageSignerRunner struct {
 	// TODO: validate maximumAmount
 	maximumAmount *big.Int
 
-	numSigners int64
-	domain     util.DomainData
+	numSigners      int64
+	signerThreshold int64
+	domain          util.DomainData
 
 	logger *log.Entry
 }
@@ -115,20 +115,21 @@ func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-message")
 	logger.Debugf("Signing message")
 
-	err := util.SignMessage(messageDoc, x.domain, x.privateKey)
+	lockID, err := db.LockWriteMessage(messageDoc)
+	if err != nil {
+		logger.WithError(err).Errorf("Error locking message")
+		return false
+	}
+
+	err = util.SignMessage(messageDoc, x.domain, x.privateKey)
 	if err != nil {
 		logger.WithError(err).Errorf("Error signing message")
 		return false
 	}
 
-	logger.Infof("Signed message")
-
 	status := models.MessageStatusPending
 
-	fmt.Println("len(messageDoc.Signatures): ", len(messageDoc.Signatures))
-	fmt.Println("x.numSigners: ", x.numSigners)
-
-	if len(messageDoc.Signatures) >= int(x.numSigners) {
+	if len(messageDoc.Signatures) >= int(x.signerThreshold) {
 		status = models.MessageStatusSigned
 	}
 
@@ -137,7 +138,14 @@ func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 		"signatures": messageDoc.Signatures,
 	}
 
-	return x.UpdateMessage(messageDoc, update)
+	updated := x.UpdateMessage(messageDoc, update)
+
+	if err := db.Unlock(lockID); err != nil {
+		logger.WithError(err).Errorf("Error unlocking message")
+		return false
+	}
+
+	return updated
 }
 
 func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.Message) bool {
@@ -294,19 +302,31 @@ func (x *MessageSignerRunner) SignMessages() bool {
 	return success
 }
 
-func (x *MessageSignerRunner) UpdateValidatorCount() {
+func (x *MessageSignerRunner) UpdateValidatorCountAndSignerThreshold() {
 	x.logger.Debug("Fetching validator count")
 	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
 	defer cancel()
 	opts := &bind.CallOpts{Context: ctx, Pending: false}
 	count, err := x.warpISM.ValidatorCount(opts)
-
 	if err != nil {
 		x.logger.WithError(err).Error("Error fetching validator count")
 		return
 	}
 	x.logger.Debug("Fetched validator count")
+
+	x.logger.Debug("Fetching signer threshold")
+	ctx, cancel = context.WithTimeout(context.Background(), x.timeout)
+	defer cancel()
+	opts = &bind.CallOpts{Context: ctx, Pending: false}
+	threshold, err := x.warpISM.SignerThreshold(opts)
+	if err != nil {
+		x.logger.WithError(err).Error("Error fetching signer threshold")
+		return
+	}
+	x.logger.Debug("Fetched signer threshold")
+
 	x.numSigners = count.Int64()
+	x.signerThreshold = threshold.Int64()
 }
 
 func (x *MessageSignerRunner) UpdateDomainData() {
@@ -397,14 +417,14 @@ func NewMessageSigner(
 		} else {
 			ethClient, err = eth.NewClient(ethConfig)
 			if err != nil {
-				logger.WithError(err).
-					Fatalf("Error creating ethereum client for chain ID %s", ethConfig.ChainID)
+				logger.WithError(err).WithField("eth_chain_id", ethConfig.ChainID).
+					Fatalf("Error creating ethereum client")
 			}
 		}
 		mailbox, err := eth.NewMailboxContract(common.HexToAddress(ethConfig.MailboxAddress), ethClient.GetClient())
 		if err != nil {
-			logger.WithError(err).
-				Fatalf("Error creating mailbox contract for chain ID %s", ethConfig.ChainID)
+			logger.WithError(err).WithField("eth_chain_id", ethConfig.ChainID).
+				Fatalf("Error creating mailbox contract")
 		}
 		chainDomain := ethClient.Chain().ChainDomain
 		ethClientMap[chainDomain] = ethClient
@@ -432,17 +452,22 @@ func NewMessageSigner(
 		cosmosClient: cosmosClient,
 		cosmosConfig: cosmosConfig,
 
-		numSigners: 0,
+		numSigners:      0,
+		signerThreshold: 0,
 
 		logger: logger,
 	}
 
 	x.UpdateCurrentBlockHeight()
 
-	x.UpdateValidatorCount()
+	x.UpdateValidatorCountAndSignerThreshold()
 
 	if x.numSigners != int64(len(config.OracleAddresses)) {
 		x.logger.Fatalf("Invalid number of signers")
+	}
+
+	if x.signerThreshold < 1 || x.signerThreshold > x.numSigners {
+		x.logger.Fatalf("Invalid signer threshold")
 	}
 
 	x.UpdateDomainData()

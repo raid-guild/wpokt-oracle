@@ -353,7 +353,12 @@ func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerSer
 	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
-func NewMessageMonitor(config models.CosmosNetworkConfig, mintControllerMap map[uint32][]byte, ethNetworks []models.EthereumNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runner {
+func NewMessageMonitor(
+	config models.CosmosNetworkConfig,
+	mintControllerMap map[uint32][]byte,
+	ethNetworks []models.EthereumNetworkConfig,
+	lastHealth *models.RunnerServiceStatus,
+) service.Runner {
 	logger := log.
 		WithField("module", "cosmos").
 		WithField("service", "monitor").

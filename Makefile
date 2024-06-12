@@ -27,8 +27,7 @@ docker_build :; docker buildx build . -t dan13ram/wpokt-oracle:v0.0.1 --file ./d
 docker_dev :; YAML_FILE=/app/defaults/config.local.one.yml docker compose -f docker/docker-compose.yml up
 
 .PHONY: localnet_up
-localnet_up: clean_tmp_data ## Start the localnet
-	docker compose -f e2e/docker-compose.yml up --force-recreate
+localnet_up:; docker compose -f e2e/docker-compose.yml up --force-recreate
 
 .PHONY: prompt_user
 prompt_user:
@@ -42,4 +41,4 @@ docker_wipe: prompt_user ## [WARNING] Remove all the docker containers, images a
 	docker volume ls -q | xargs -r -I {} docker volume rm {}
 
 .PHONY: e2e_tests
-e2e_tests :; cd e2e && yarn install && yarn debug-test
+e2e_tests :; cd e2e && yarn install && yarn test

@@ -126,6 +126,10 @@ func signTypedData(
 	}
 
 	signature, err := crypto.Sign(sighash, key)
+	if err != nil {
+		return nil, err
+	}
+
 	if signature[64] == 0 || signature[64] == 1 {
 		signature[64] += 27
 	}

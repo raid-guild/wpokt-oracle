@@ -120,6 +120,7 @@ func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 		logger.WithError(err).Errorf("Error locking message")
 		return false
 	}
+	defer db.Unlock(lockID)
 
 	err = util.SignMessage(messageDoc, x.domain, x.privateKey)
 	if err != nil {
@@ -139,11 +140,6 @@ func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 	}
 
 	updated := x.UpdateMessage(messageDoc, update)
-
-	if err := db.Unlock(lockID); err != nil {
-		logger.WithError(err).Errorf("Error unlocking message")
-		return false
-	}
 
 	return updated
 }
@@ -399,6 +395,9 @@ func NewMessageSigner(
 	privateKey, err := common.EthereumPrivateKeyFromMnemonic(mnemonic)
 	if err != nil {
 		logger.Fatalf("Error getting private key from mnemonic: %s", err)
+	}
+	if privateKey == nil {
+		logger.Fatalf("Private key is nil")
 	}
 
 	cosmosClient, err := cosmos.NewClient(cosmosConfig)

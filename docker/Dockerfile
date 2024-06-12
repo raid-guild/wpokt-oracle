@@ -8,7 +8,7 @@ RUN go mod download
 
 
 # build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/oracle
+RUN GOOS=linux go build -o /bin/oracle
 
 # set environment variables
 

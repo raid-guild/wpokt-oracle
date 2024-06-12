@@ -259,14 +259,11 @@ func (x *MessageSignerRunner) SignMessage(
 		return false
 	}
 
+	defer db.Unlock(lockID)
+
 	err = db.UpdateMessage(messageDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating message")
-		return false
-	}
-
-	if err = db.Unlock(lockID); err != nil {
-		logger.WithError(err).Error("Error unlocking sequence")
 		return false
 	}
 
@@ -355,15 +352,9 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 		return false
 	}
 
-	signed := x.SignMessage(messageDoc)
+	defer db.Unlock(lockID)
 
-	if err = db.Unlock(lockID); err != nil {
-		logger.WithError(err).Error("Error unlocking message")
-		return false
-	}
-
-	return signed
-
+	return x.SignMessage(messageDoc)
 }
 
 func (x *MessageSignerRunner) SignMessages() bool {
@@ -424,6 +415,10 @@ func (x *MessageSignerRunner) ValidateRefund(
 	if !amount.IsEqual(refundAmount) {
 		logger.Errorf("Amount does not match refund amount")
 		return false
+	}
+
+	if refundDoc.TransactionBody == "" {
+		return true
 	}
 
 	tx, err := util.ParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
@@ -490,6 +485,8 @@ func (x *MessageSignerRunner) FindMaxSequence() (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("could not lock sequences: %w", err)
 	}
+	defer db.Unlock(lockID)
+
 	maxSequence, err := db.FindMaxSequence(x.chain)
 	if err != nil {
 		return 0, err
@@ -506,9 +503,6 @@ func (x *MessageSignerRunner) FindMaxSequence() (uint64, error) {
 		return nextSequence, nil
 	}
 
-	if err = db.Unlock(lockID); err != nil {
-		return 0, fmt.Errorf("could not unlock sequences: %w", err)
-	}
 	return account.Sequence, nil
 }
 
@@ -672,14 +666,11 @@ func (x *MessageSignerRunner) SignRefund(
 		return false
 	}
 
+	defer db.Unlock(lockID)
+
 	err = db.UpdateRefund(refundDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating refund")
-		return false
-	}
-
-	if err = db.Unlock(lockID); err != nil {
-		logger.WithError(err).Error("Error unlocking sequence")
 		return false
 	}
 
@@ -844,14 +835,10 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndBroadcastMessage(messageDoc *
 		return false
 	}
 
-	broadcasted := x.BroadcastMessage(messageDoc)
+	defer db.Unlock(lockID)
 
-	if err = db.Unlock(lockID); err != nil {
-		logger.WithError(err).Error("Error unlocking message")
-		return false
-	}
+	return x.BroadcastMessage(messageDoc)
 
-	return broadcasted
 }
 
 func (x *MessageSignerRunner) BroadcastMessages() bool {

@@ -45,6 +45,9 @@ sample.env
 # scripts not needed on image
 scripts/
 
+# test files
+*_test.go
+
 # e2e test files
 e2e/
 

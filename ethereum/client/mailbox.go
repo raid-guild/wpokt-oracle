@@ -13,6 +13,7 @@ type MailboxContract interface {
 	Address() common.Address
 	FilterDispatch(opts *bind.FilterOpts, sender []common.Address, destination []uint32, recipient [][32]byte) (MailboxDispatchIterator, error)
 	ParseDispatch(log types.Log) (*autogen.MailboxDispatch, error)
+	ParseDispatchId(log types.Log) (*autogen.MailboxDispatchId, error)
 }
 
 type MailboxDispatchIterator interface {
@@ -49,6 +50,10 @@ type MailboxContractImpl struct {
 
 func (x *MailboxContractImpl) ParseDispatch(log types.Log) (*autogen.MailboxDispatch, error) {
 	return x.contract.ParseDispatch(log)
+}
+
+func (x *MailboxContractImpl) ParseDispatchId(log types.Log) (*autogen.MailboxDispatchId, error) {
+	return x.contract.ParseDispatchId(log)
 }
 
 func (x *MailboxContractImpl) Address() common.Address {

@@ -65,7 +65,19 @@ func (x *MessageMonitorRunner) UpdateCurrentBlockHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatch) bool {
+func (x *MessageMonitorRunner) UpdateTransaction(
+	tx *models.Transaction,
+	update bson.M,
+) bool {
+	err := db.UpdateTransaction(tx.ID, update)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error updating transaction")
+		return false
+	}
+	return true
+}
+
+func (x *MessageMonitorRunner) IsValidEvent(event *autogen.MailboxDispatch) bool {
 	if event == nil {
 		x.logger.Error("HandleDispatchEvent: event is nil")
 		return false
@@ -87,6 +99,7 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		x.logger.Errorf("Mint controller not found for chain domain: %d", x.chain.ChainDomain)
 		return false
 	}
+
 	if !bytes.Equal(event.Sender.Bytes(), mintController) {
 		x.logger.Errorf("Sender does not match mint controller for chain domain: %d", x.chain.ChainDomain)
 		return false
@@ -112,6 +125,15 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		return false
 	}
 
+	return true
+}
+
+func (x *MessageMonitorRunner) CreateTxForDispatchEvent(event *autogen.MailboxDispatch) bool {
+	if !x.IsValidEvent(event) {
+		x.logger.Infof("Invalid dispatch event")
+		return false
+	}
+
 	txHash := event.Raw.TxHash.String()
 
 	tx, isPending, err := x.client.GetTransactionByHash(txHash)
@@ -127,6 +149,7 @@ func (x *MessageMonitorRunner) HandleDispatchEvent(event *autogen.MailboxDispatc
 		x.logger.Infof("Transaction is pending")
 		return false
 	}
+
 	receipt, err := x.client.GetTransactionReceipt(txHash)
 	if err != nil {
 		x.logger.WithError(err).Error("Error getting transaction receipt")
@@ -173,26 +196,7 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 
 	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
 		x.logger.Infof("Transaction failed")
-		return false
-	}
-
-	confirmations := x.currentBlockHeight - txDoc.BlockHeight
-	if confirmations < x.confirmations {
-		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
-		return false
-	}
-
-	update := bson.M{
-		"confirmations": confirmations,
-		"status":        models.TransactionStatusConfirmed,
-	}
-
-	err = db.UpdateTransaction(txDoc.ID, update)
-	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txDoc.Hash).
-			Errorf("Error updating transaction")
-		return false
+		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusFailed})
 	}
 
 	var events []*autogen.MailboxDispatch
@@ -203,40 +207,30 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 				logger.WithError(err).Errorf("Error parsing dispatch event")
 				continue
 			}
-			destMintController, ok := x.mintControllerMap[event.Destination]
-			if !ok {
-				logger.Infof("Event destination is not supported")
-				continue
-			}
-			if !bytes.Equal(event.Recipient[12:32], destMintController) {
-				logger.Infof("Event recipient is not known mint controller")
-				continue
-			}
-			mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
-			if !ok {
-				logger.Infof("Chain domain is not supported")
-				continue
-			}
-			if !bytes.Equal(event.Sender.Bytes(), mintController) {
-				logger.Infof("Event sender is not known mint controller")
+			if !x.IsValidEvent(event) {
 				continue
 			}
 			events = append(events, event)
-			break
 		}
 	}
 
 	if len(events) == 0 {
 		logger.Infof("No dispatch events found")
-		err := db.UpdateTransaction(txDoc.ID, bson.M{"status": models.TransactionStatusInvalid})
-		if err != nil {
-			logger.WithError(err).Errorf("Error updating transaction")
-			return false
-		}
-		return true
+		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusInvalid})
 	}
 
-	return true
+	confirmations := x.currentBlockHeight - txDoc.BlockHeight
+	if confirmations < x.confirmations {
+		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
+		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusPending})
+	}
+
+	update := bson.M{
+		"confirmations": confirmations,
+		"status":        models.TransactionStatusConfirmed,
+	}
+
+	return x.UpdateTransaction(txDoc, update)
 }
 
 func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bool {
@@ -255,13 +249,13 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 
 	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
 		x.logger.Infof("Transaction failed")
-		return false
+		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusFailed})
 	}
 
 	confirmations := x.currentBlockHeight - txDoc.BlockHeight
 	if confirmations < x.confirmations {
 		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
-		return false
+		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusPending})
 	}
 
 	var events []*autogen.MailboxDispatch
@@ -272,54 +266,23 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 				logger.WithError(err).Errorf("Error parsing dispatch event")
 				continue
 			}
-			destMintController, ok := x.mintControllerMap[event.Destination]
-			if !ok {
-				logger.Infof("Event destination is not supported")
-				continue
-			}
-			if !bytes.Equal(event.Recipient[12:32], destMintController) {
-				logger.Infof("Event recipient is not known mint controller")
-				continue
-			}
-			mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
-			if !ok {
-				logger.Infof("Chain domain is not supported")
-				continue
-			}
-			if !bytes.Equal(event.Sender.Bytes(), mintController) {
-				logger.Infof("Event sender is not known mint controller")
+			if x.IsValidEvent(event) {
 				continue
 			}
 			events = append(events, event)
-			break
 		}
 	}
 
 	if len(events) == 0 {
-		return false
+		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusInvalid})
 	}
 
 	success := true
+
 	for _, event := range events {
-
 		var messageContent models.MessageContent
-		err := messageContent.DecodeFromBytes(event.Message)
-		if err != nil {
-			x.logger.WithError(err).Error("Error decoding message content")
-			success = false
-		}
 
-		if messageContent.DestinationDomain != event.Destination {
-			x.logger.Errorf("Destination domain does not match message content destination domain: %d", event.Destination)
-			success = false
-		}
-
-		recipientHex := "0x" + hex.EncodeToString(event.Recipient[12:32])
-
-		if !strings.EqualFold(messageContent.Recipient, recipientHex) {
-			x.logger.Errorf("Recipient does not match message content recipient: %s", recipientHex)
-			success = false
-		}
+		messageContent.DecodeFromBytes(event.Message) // event was validated
 
 		message, err := db.NewMessage(txDoc, messageContent, models.MessageStatusPending)
 		if err != nil {
@@ -402,7 +365,7 @@ func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 			continue
 		}
 
-		success = x.HandleDispatchEvent(event) && success
+		success = x.CreateTxForDispatchEvent(event) && success
 	}
 
 	if err := filter.Error(); err != nil {

@@ -2,7 +2,6 @@ package ethereum
 
 import (
 	"context"
-	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -32,8 +31,6 @@ type MessageRelayerRunner struct {
 	confirmations uint64
 
 	chain models.Chain
-
-	minimumAmount *big.Int
 
 	logger *log.Entry
 }

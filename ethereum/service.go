@@ -46,7 +46,7 @@ func NewEthereumChainService(
 
 	var signerRunner service.Runner = &service.EmptyRunner{}
 	if config.MessageSigner.Enabled {
-		signerRunner = NewMessageSigner(mnemonic, config, cosmosConfig, mintControllerMap, ethNetworks)
+		signerRunner = NewMessageSigner(mnemonic, config, cosmosConfig, ethNetworks)
 	}
 	signerRunnerService := service.NewRunnerService(
 		"signer",

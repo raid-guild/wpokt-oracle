@@ -31,9 +31,8 @@ type MessageSignerRunner struct {
 	currentEthereumBlockHeight uint64
 	currentCosmosBlockHeight   uint64
 
-	ethClientMap      map[uint32]eth.EthereumClient
-	mailboxMap        map[uint32]eth.MailboxContract
-	mintControllerMap map[uint32][]byte
+	ethClientMap map[uint32]eth.EthereumClient
+	mailboxMap   map[uint32]eth.MailboxContract
 
 	mintController eth.MintControllerContract
 	warpISM        eth.WarpISMContract
@@ -172,13 +171,6 @@ func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	confirmations := x.currentCosmosBlockHeight - uint64(txResponse.Height)
-
-	if confirmations < x.cosmosConfig.Confirmations {
-		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusPending})
-	}
-
 	if messageDoc.Content.MessageBody.Amount != result.Amount.Amount.Uint64() {
 		logger.Debugf("Found tx with amount mismatch")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
@@ -192,6 +184,13 @@ func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.
 	if !strings.EqualFold(messageDoc.Content.MessageBody.RecipientAddress, result.Memo.Address) {
 		logger.Debugf("Found tx with recipient mismatch")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+	}
+
+	confirmations := x.currentCosmosBlockHeight - uint64(txResponse.Height)
+
+	if confirmations < x.cosmosConfig.Confirmations {
+		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
+		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusPending})
 	}
 
 	log.Debugf("Found valid tx with message to be signed")
@@ -226,22 +225,16 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
+	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
+	if err != nil {
+		logger.WithError(err).Errorf("Error decoding message ID")
+		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+	}
+
 	confirmations := x.currentEthereumBlockHeight - receipt.BlockNumber.Uint64()
 	if confirmations < uint64(x.confirmations) {
 		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusPending})
-	}
-
-	messageBytes, err := messageDoc.Content.EncodeToBytes()
-	if err != nil {
-		logger.WithError(err).Errorf("Error encoding message to bytes")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	destMintController, ok := x.mintControllerMap[x.chain.ChainDomain]
-	if !ok {
-		logger.Errorf("Destination mint controller not found")
-		return false
 	}
 
 	mailbox, ok := x.mailboxMap[messageDoc.Content.OriginDomain]
@@ -250,33 +243,15 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 		return false
 	}
 
-	originMintController, ok := x.mintControllerMap[messageDoc.Content.OriginDomain]
-	if !ok {
-		logger.Errorf("Origin mint controller not found")
-		return false
-	}
-
-	var dispatchEvent *autogen.MailboxDispatch
+	var dispatchEvent *autogen.MailboxDispatchId
 	for _, log := range receipt.Logs {
 		if log.Address == mailbox.Address() {
-			event, err := mailbox.ParseDispatch(*log)
+			event, err := mailbox.ParseDispatchId(*log)
 			if err != nil {
-				logger.WithError(err).Errorf("Error parsing dispatch event")
+				logger.WithError(err).Errorf("Error parsing DispatchId event")
 				continue
 			}
-			if event.Destination != x.chain.ChainDomain {
-				logger.Infof("Event destination is not this chain")
-				continue
-			}
-			if !bytes.Equal(event.Recipient[12:32], destMintController) {
-				logger.Infof("Event recipient is not mint controller")
-				continue
-			}
-			if !bytes.Equal(event.Sender.Bytes(), originMintController) {
-				logger.Infof("Event sender is not mint controller")
-				continue
-			}
-			if !bytes.Equal(event.Message, messageBytes) {
+			if !bytes.Equal(event.MessageId[:], messageIDBytes) {
 				logger.Infof("Message does not match")
 				continue
 			}
@@ -285,7 +260,7 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 		}
 	}
 	if dispatchEvent == nil {
-		logger.Infof("Dispatch event not found")
+		logger.Debugf("DispatchId event not found")
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
@@ -368,7 +343,6 @@ func NewMessageSigner(
 	mnemonic string,
 	config models.EthereumNetworkConfig,
 	cosmosConfig models.CosmosNetworkConfig,
-	mintControllerMap map[uint32][]byte,
 	ethNetworks []models.EthereumNetworkConfig,
 ) service.Runner {
 	logger := log.
@@ -442,9 +416,8 @@ func NewMessageSigner(
 
 		currentEthereumBlockHeight: 0,
 
-		mintControllerMap: mintControllerMap,
-		ethClientMap:      ethClientMap,
-		mailboxMap:        mailboxMap,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
 
 		mintController: mintController,
 		warpISM:        warpISM,

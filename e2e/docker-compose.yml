@@ -28,7 +28,7 @@ services:
     network_mode: host
     entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.one.yml"]
     environment:
-      LOGGER_LEVEL: error
+      LOGGER_LEVEL: info
       LOGGER_FORMAT: text
 
   oracle-two:
@@ -36,7 +36,7 @@ services:
     network_mode: host
     entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.two.yml"]
     environment:
-      LOGGER_LEVEL: error
+      LOGGER_LEVEL: info
       LOGGER_FORMAT: text
 
   oracle-three:
@@ -44,7 +44,7 @@ services:
     network_mode: host
     entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.three.yml"]
     environment:
-      LOGGER_LEVEL: error
+      LOGGER_LEVEL: info
       LOGGER_FORMAT: text
 
   mongodb:

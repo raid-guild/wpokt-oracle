@@ -1,3 +1,5 @@
+one:
+
 mnemonic:  infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve
 num words:  12
 
@@ -10,10 +12,12 @@ eth private key:  4eca29c88eda60d15dfd265ece44d0c2545fe126d3829e305ebb34980c987a
 eth public key:  77af5d7f2ad4f60487b9da0f371b842e7de8e7f18662b0ca6f503d9668d1341dc820e8a11f6051469921b988b703a708cd63ed86e74b0777f25cba2b325206e9
 eth address:  0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb
 
+---
+
+two:
+
 mnemonic:  shy smile praise educate custom fashion gun enjoy zero powder garden second
 num words:  12
-
----
 
 cosmos private key:  64e54489392df2857ceec777f04c93880b68721851f7a0d1d385590c874a44a4
 cosmos public key:  02faaaf0f385bb17381f36dcd86ab2486e8ff8d93440436496665ac007953076c2
@@ -25,6 +29,8 @@ eth public key:  1b88458c81e96d50470a5fd697eb3240907adab0086deb5aee98be41c7c3176
 eth address:  0x958d1F55E14Cba24a077b9634F16f83565fc9411
 
 ---
+
+three:
 
 mnemonic:  wink giant track dwarf visa feed visual drip play grant royal noise
 num words:  12

@@ -11,6 +11,7 @@ import {
   Message,
   CollectionMessages,
 } from "../types";
+import { Hex } from "viem";
 
 const createDatabasePromise = async (): Promise<Db> => {
   const client = new MongoClient(config.mongodb.uri, {});
@@ -28,8 +29,8 @@ export const findNodes = async (): Promise<Node[]> => {
     .toArray() as unknown as Promise<Node[]>;
 };
 
-const ensure0xPrefix = (hex: string): string => {
-  return hex.startsWith("0x") ? hex.toLowerCase() : `0x${hex.toLowerCase()}`;
+const ensure0xPrefix = (hex: string): Hex => {
+  return hex.startsWith("0x") ? hex.toLowerCase() as Hex : `0x${hex.toLowerCase()}`;
 }
 
 export const findMessage = async (txHash: string): Promise<Message | null> => {
@@ -38,6 +39,13 @@ export const findMessage = async (txHash: string): Promise<Message | null> => {
     origin_transaction_hash: ensure0xPrefix(txHash),
   }) as Promise<Message | null>;
 };
+
+export const findMessageByMessageID = async (messageID: Hex): Promise<Message | null> => {
+  const db = await databasePromise;
+  return db.collection(CollectionMessages).findOne({
+    message_id: ensure0xPrefix(messageID),
+  }) as Promise<Message | null>;
+}
 
 export const findTransaction = async (
   txHash: string

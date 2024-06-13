@@ -147,12 +147,11 @@ func SignMessage(
 		return err
 	}
 
-	signatureEncoded := "0x" + hex.EncodeToString(signature)
 	signatures := message.Signatures
 
 	sig := models.Signature{
 		Signer:    strings.ToLower(crypto.PubkeyToAddress(privateKey.PublicKey).Hex()),
-		Signature: signatureEncoded,
+		Signature: common.HexFromBytes(signature),
 	}
 	signatures = append(signatures, sig)
 

@@ -7,206 +7,13 @@ import { config, HYPERLANE_VERSION } from "../util/config";
 import { Message, MintMemo, Status } from "../types";
 import { findMessage, findRefund, findTransaction } from "../util/mongodb";
 import { encodeMessage } from "../util/message";
+import { fulfillSignedMessage } from "./helpers/fulfill";
 
 const POKT_TX_FEE = BigInt(0);
 
 export const cosmosToEthereumFlow = async () => {
   const ethNetwork = config.ethereum_networks[0];
   const cosmosNetwork = config.cosmos_network;
-
-  it("should fulfill on ethereum for send tx to cosmos vault with valid memo", async () => {
-
-    debug("\nTesting -- should fulfill on ethereum for send tx to cosmos vault with valid memo");
-
-    const signer = await cosmos.signerPromise;
-    const fromAddress = await cosmos.getAddress();
-    const recipientAddress = await ethereum.getAddress(ethNetwork.chain_id);
-    const toAddress = cosmosNetwork.multisig_address;
-    const amount = parseUnits("10", 6);
-
-    const memo: MintMemo = {
-      address: recipientAddress,
-      chain_id: ethNetwork.chain_id.toString(),
-    };
-
-    const fromBeforeBalance = await cosmos.getBalance(fromAddress);
-    const toBeforeBalance = await cosmos.getBalance(toAddress);
-
-    debug("Sending transaction...");
-    const sendTx = await cosmos.sendPOKT(
-      signer,
-      toAddress,
-      amount.toString(),
-      JSON.stringify(memo),
-      POKT_TX_FEE.toString(),
-    );
-
-    expect(sendTx).to.not.be.null;
-
-    if (!sendTx) return;
-    debug("Transaction sent: ", sendTx.hash);
-
-    expect(sendTx.hash).to.be.a("string");
-    expect(sendTx.hash).to.have.lengthOf(64);
-    expect(sendTx.code).to.equal(0);
-
-    const fromAfterBalance = await cosmos.getBalance(fromAddress);
-    const toAfterBalance = await cosmos.getBalance(toAddress);
-
-    expect(fromAfterBalance).to.equal(fromBeforeBalance - amount - POKT_TX_FEE);
-    expect(toAfterBalance).to.equal(toBeforeBalance + amount);
-
-    debug("Waiting for transaction to be created...");
-    await sleep(1500);
-
-    let txHash = "0x" + sendTx.hash.toLowerCase();
-    const originTxHash = txHash;
-
-    let tx = await findTransaction(txHash);
-
-    expect(tx).to.not.be.null;
-
-    if (!tx) return;
-    debug("Transaction created");
-
-    const fromHex = cosmos.bech32ToHex(fromAddress);
-    const toHex = cosmos.bech32ToHex(toAddress);
-
-    expect(tx.block_height.toString()).to.equal(sendTx.height.toString());
-    expect(tx.from_address).to.equal(fromHex);
-    expect(tx.to_address).to.equal(toHex);
-    expect(tx.status).to.oneOf([Status.PENDING, Status.CONFIRMED]);
-
-    await sleep(3000);
-
-    tx = await findTransaction(txHash);
-
-    expect(tx).to.not.be.null;
-
-    if (!tx) return;
-
-    expect(tx.status).to.equal(Status.CONFIRMED);
-    debug("Transaction confirmed");
-
-    let message = await findMessage(txHash);
-
-    expect(message).to.not.be.null;
-
-    if (!message) return;
-    debug("Message created");
-
-    expect(message.origin_transaction_hash).to.equal(txHash);
-    expect(message.origin_transaction.toString()).to.equal(tx._id?.toString());
-
-    const account = await cosmos.getAccount(fromAddress);
-
-    expect(account).to.not.be.null;
-
-    if (!account) return;
-
-    expect(message.content.version).to.equal(HYPERLANE_VERSION);
-    expect(message.content.nonce).to.equal(account.sequence - 1);
-    expect(message.content.origin_domain).to.equal(cosmos.CHAIN_DOMAIN);
-    expect(message.content.sender).to.equal(fromHex);
-    expect(message.content.destination_domain).to.equal(ethNetwork.chain_id);
-    expect(message.content.recipient).to.equal(ethNetwork.mint_controller_address.toLowerCase());
-    expect(message.content.message_body.sender_address).to.equal(fromHex);
-    expect(message.content.message_body.recipient_address).to.equal(recipientAddress.toLowerCase());
-    expect(message.content.message_body.amount.toString()).to.equal(amount.toString());
-
-    expect(message.status).to.oneOf([Status.PENDING, Status.SIGNED]);
-
-    await sleep(2200);
-
-    tx = await findTransaction(txHash);
-
-    expect(tx).to.not.be.null;
-
-    if (!tx) return;
-
-    expect(tx.messages.length).to.equal(1);
-    expect(tx.messages[0].toString()).to.equal(message._id?.toString());
-
-    message = await findMessage(txHash);
-
-    expect(message).to.not.be.null;
-
-    if (!message) return;
-
-    expect(message.status).to.be.equal(Status.SIGNED);
-    debug("Message signed");
-
-    expect(message.signatures.length).to.be.greaterThanOrEqual(2);
-
-    const beforeWPOKTBalance = await ethereum.getWPOKTBalance(ethNetwork.chain_id, recipientAddress);
-
-    debug("Fulfilling Order...");
-
-    const messageBytes = encodeMessage(message.content);
-
-    const metadata = concatHex(message.signatures.map((s) => s.signature));
-
-    const fulfillmentTx = await ethereum.fulfillOrder(ethNetwork.chain_id, metadata, messageBytes);
-
-    expect(fulfillmentTx).to.not.be.null;
-
-    if (!fulfillmentTx) return;
-    debug("Fulfilled: ", fulfillmentTx.transactionHash);
-
-    const fulfillmentEvent = ethereum.findFulfillmentEvent(fulfillmentTx);
-
-    expect(fulfillmentEvent).to.not.be.null;
-
-    if (!fulfillmentEvent) return;
-
-    expect(fulfillmentEvent.orderId.toLowerCase()).to.equal(message.message_id);
-
-    const afterWPOKTBalance = await ethereum.getWPOKTBalance(ethNetwork.chain_id, recipientAddress);
-
-    expect(afterWPOKTBalance).to.equal(beforeWPOKTBalance + amount);
-    debug("Fulfillment success");
-
-    await sleep(3000);
-
-    txHash = fulfillmentTx.transactionHash.toLowerCase();
-
-    tx = await findTransaction(txHash);
-
-    expect(tx).to.not.be.null;
-
-    if (!tx) return;
-    debug("Fulfillment transaction created");
-
-    expect(tx.status).to.oneOf([Status.PENDING, Status.CONFIRMED]);
-    expect(tx.from_address).to.equal(await ethereum.getAddress(ethNetwork.chain_id));
-    expect(tx.to_address).to.equal(ethNetwork.mint_controller_address.toLowerCase());
-
-    await sleep(3000);
-
-    tx = await findTransaction(txHash);
-
-    expect(tx).to.not.be.null;
-
-    if (!tx) return;
-
-    expect(tx.status).to.equal(Status.CONFIRMED);
-    expect(tx.messages.length).to.equal(1);
-    expect(tx.messages[0].toString()).to.equal(message._id?.toString());
-
-    message = await findMessage(originTxHash);
-
-    expect(message).to.not.be.null;
-
-    if (!message) return;
-
-    expect(message.status).to.equal(Status.SUCCESS);
-    expect(message.transaction_hash.toLowerCase()).to.equal(tx.hash);
-
-    expect(message.transaction).to.not.be.null;
-    expect(message.transaction?.toString()).to.equal(tx._id?.toString());
-
-    debug("Fullfillment success");
-  });
 
 
   it("should refund amount for send tx to vault with invalid memo", async () => {
@@ -267,7 +74,9 @@ export const cosmosToEthereumFlow = async () => {
 
     if (!account) return;
 
-    await sleep(2500);
+    debug("Waiting for transaction to be confirmed...");
+
+    await sleep(5000);
 
     tx = await findTransaction(txHash);
 
@@ -295,7 +104,7 @@ export const cosmosToEthereumFlow = async () => {
 
     expect(refund.status).to.oneOf([Status.PENDING, Status.SIGNED, Status.BROADCASTED]);
 
-    await sleep(2200);
+    await sleep(2500);
 
     tx = await findTransaction(txHash);
 
@@ -347,7 +156,7 @@ export const cosmosToEthereumFlow = async () => {
     expect(tx.from_address).to.equal(toHex);
     expect(tx.to_address).to.equal(fromHex);
 
-    await sleep(3500);
+    await sleep(4000);
 
     tx = await findTransaction(txHash);
 
@@ -357,6 +166,8 @@ export const cosmosToEthereumFlow = async () => {
 
     expect(tx.status).to.equal(Status.CONFIRMED);
     expect(tx.refund).to.not.be.null;
+
+    debug("Refund transaction confirmed");
 
     if (!tx.refund) return;
 
@@ -380,6 +191,113 @@ export const cosmosToEthereumFlow = async () => {
     expect(afterBalance).to.equal(beforeBalance - BigInt(2) * POKT_TX_FEE);
 
     debug("Refund success");
+  });
+
+  it("should fulfill on ethereum for send tx to cosmos vault with valid memo", async () => {
+
+    debug("\nTesting -- should fulfill on ethereum for send tx to cosmos vault with valid memo");
+
+    const signer = await cosmos.signerPromise;
+    const fromAddress = await cosmos.getAddress();
+    const recipientAddress = await ethereum.getAddress(ethNetwork.chain_id);
+    const toAddress = cosmosNetwork.multisig_address;
+    const amount = parseUnits("10", 6);
+
+    const memo: MintMemo = {
+      address: recipientAddress,
+      chain_id: ethNetwork.chain_id.toString(),
+    };
+
+    const fromBeforeBalance = await cosmos.getBalance(fromAddress);
+    const toBeforeBalance = await cosmos.getBalance(toAddress);
+
+    debug("Sending transaction...");
+    const sendTx = await cosmos.sendPOKT(
+      signer,
+      toAddress,
+      amount.toString(),
+      JSON.stringify(memo),
+      POKT_TX_FEE.toString(),
+    );
+
+    expect(sendTx).to.not.be.null;
+
+    if (!sendTx) return;
+    debug("Transaction sent: ", sendTx.hash);
+
+    expect(sendTx.hash).to.be.a("string");
+    expect(sendTx.hash).to.have.lengthOf(64);
+    expect(sendTx.code).to.equal(0);
+
+    const fromAfterBalance = await cosmos.getBalance(fromAddress);
+    const toAfterBalance = await cosmos.getBalance(toAddress);
+
+    expect(fromAfterBalance).to.equal(fromBeforeBalance - amount - POKT_TX_FEE);
+    expect(toAfterBalance).to.equal(toBeforeBalance + amount);
+
+    debug("Waiting for transaction to be created...");
+    await sleep(1500);
+
+    let txHash = "0x" + sendTx.hash.toLowerCase();
+
+    let tx = await findTransaction(txHash);
+
+    expect(tx).to.not.be.null;
+
+    if (!tx) return;
+    debug("Transaction created");
+
+    const fromHex = cosmos.bech32ToHex(fromAddress);
+    const toHex = cosmos.bech32ToHex(toAddress);
+
+    expect(tx.block_height.toString()).to.equal(sendTx.height.toString());
+    expect(tx.from_address).to.equal(fromHex);
+    expect(tx.to_address).to.equal(toHex);
+    expect(tx.status).to.oneOf([Status.PENDING, Status.CONFIRMED]);
+
+    await sleep(3500);
+
+    tx = await findTransaction(txHash);
+
+    expect(tx).to.not.be.null;
+
+    if (!tx) return;
+
+    expect(tx.status).to.equal(Status.CONFIRMED);
+    debug("Transaction confirmed");
+
+    let message = await findMessage(txHash);
+
+    expect(message).to.not.be.null;
+
+    if (!message) return;
+    debug("Message created");
+
+    expect(message.origin_transaction_hash).to.equal(txHash);
+    expect(message.origin_transaction.toString()).to.equal(tx._id?.toString());
+
+    const account = await cosmos.getAccount(fromAddress);
+
+    expect(account).to.not.be.null;
+
+    if (!account) return;
+
+    expect(message.content.version).to.equal(HYPERLANE_VERSION);
+    expect(message.content.nonce).to.equal(account.sequence - 1);
+    expect(message.content.origin_domain).to.equal(cosmos.CHAIN_DOMAIN);
+    expect(message.content.sender).to.equal(fromHex);
+    expect(message.content.destination_domain).to.equal(ethNetwork.chain_id);
+    expect(message.content.recipient).to.equal(ethNetwork.mint_controller_address.toLowerCase());
+    expect(message.content.message_body.sender_address).to.equal(fromHex);
+    expect(message.content.message_body.recipient_address).to.equal(recipientAddress.toLowerCase());
+    expect(message.content.message_body.amount.toString()).to.equal(amount.toString());
+
+    expect(message.status).to.oneOf([Status.PENDING, Status.SIGNED]);
+
+    debug("Waiting for message to be signed...");
+    await sleep(3500);
+
+    await fulfillSignedMessage(message.message_id);
   });
 
   it("should do multiple consecutive mints", async () => {
@@ -459,7 +377,7 @@ export const cosmosToEthereumFlow = async () => {
 
     debug(`Waiting for messages to be signed...`);
 
-    await sleep(6000);
+    await sleep(9000);
 
     const noncesToSee = sendTxs.map((_, i) => (i + startNonce));
 

@@ -204,7 +204,6 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 		if log.Address == x.mailbox.Address() {
 			event, err := x.mailbox.ParseDispatch(*log)
 			if err != nil {
-				logger.WithError(err).Errorf("Error parsing dispatch event")
 				continue
 			}
 			if !x.IsValidEvent(event) {
@@ -215,7 +214,7 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 	}
 
 	if len(events) == 0 {
-		logger.Infof("No dispatch events found")
+		logger.WithField("tx_hash", txDoc.Hash).Warnf("No dispatch events found")
 		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusInvalid})
 	}
 
@@ -243,18 +242,18 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 
 	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
 	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction receipt")
+		logger.WithError(err).Error("Error getting transaction receipt")
 		return false
 	}
 
 	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		x.logger.Infof("Transaction failed")
+		logger.Infof("Transaction failed")
 		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusFailed})
 	}
 
 	confirmations := x.currentBlockHeight - txDoc.BlockHeight
 	if confirmations < x.confirmations {
-		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
+		logger.Infof("Transaction has not enough confirmations: %d", confirmations)
 		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusPending})
 	}
 
@@ -263,10 +262,9 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 		if log.Address == x.mailbox.Address() {
 			event, err := x.mailbox.ParseDispatch(*log)
 			if err != nil {
-				logger.WithError(err).Errorf("Error parsing dispatch event")
 				continue
 			}
-			if x.IsValidEvent(event) {
+			if !x.IsValidEvent(event) {
 				continue
 			}
 			events = append(events, event)
@@ -274,6 +272,7 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 	}
 
 	if len(events) == 0 {
+		logger.WithField("tx_hash", txDoc.Hash).Warnf("No dispatch events found")
 		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusInvalid})
 	}
 

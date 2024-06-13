@@ -6,7 +6,7 @@ all: clean install test build
 dev : dev_one
 
 .PHONY: dev_one
-dev_one:; CGO_ENABLED=0 go run . --yaml ./defaults/config.local.one.yml
+dev_one:; go run . --yaml ./defaults/config.local.one.yml
 
 .PHONY: dev_two
 dev_two:; go run . --yaml ./defaults/config.local.two.yml

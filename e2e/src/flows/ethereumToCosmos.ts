@@ -91,7 +91,8 @@ export const ethereumToCosmosFlow = async () => {
     expect(tx.block_height.toString()).to.equal(dispatchTx.blockNumber.toString());
     expect(tx.status).to.be.oneOf([Status.PENDING, Status.CONFIRMED]);
 
-    await sleep(6000);
+    debug("Waiting for message to be confirmed...");
+    await sleep(5000);
 
     tx = await findTransaction(originTxHash);
 

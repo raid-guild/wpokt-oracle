@@ -33,11 +33,11 @@ const ensure0xPrefix = (hex: string): Hex => {
   return hex.startsWith("0x") ? hex.toLowerCase() as Hex : `0x${hex.toLowerCase()}`;
 }
 
-export const findMessage = async (txHash: string): Promise<Message | null> => {
+export const findMessagesByTxHash = async (txHash: string): Promise<Message[]> => {
   const db = await databasePromise;
-  return db.collection(CollectionMessages).findOne({
+  return db.collection(CollectionMessages).find({
     origin_transaction_hash: ensure0xPrefix(txHash),
-  }) as Promise<Message | null>;
+  }).toArray() as unknown as Promise<Message[]>;
 };
 
 export const findMessageByMessageID = async (messageID: Hex): Promise<Message | null> => {
@@ -48,11 +48,13 @@ export const findMessageByMessageID = async (messageID: Hex): Promise<Message | 
 }
 
 export const findTransaction = async (
-  txHash: string
+  txHash: string,
+  chain_id: string | number | bigint | Long,
 ): Promise<Transaction | null> => {
   const db = await databasePromise;
   return db.collection(CollectionTransactions).findOne({
     hash: ensure0xPrefix(txHash),
+    "chain.chain_id": chain_id.toString(),
   }) as Promise<Transaction | null>;
 };
 

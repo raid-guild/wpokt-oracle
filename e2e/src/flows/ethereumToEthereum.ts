@@ -2,8 +2,8 @@ import { Hex, concatHex, parseUnits } from "viem";
 import * as ethereum from "../util/ethereum";
 import { expect } from "chai";
 import { config, HYPERLANE_VERSION } from "../util/config";
-import { Status } from "../types";
-import { findMessage, findTransaction } from "../util/mongodb";
+import { Message, Status } from "../types";
+import { findMessageByMessageID, findMessagesByTxHash, findTransaction } from "../util/mongodb";
 import { sleep, debug } from "../util/helpers";
 import { addressHexToBytes32, decodeMessage, encodeMessage } from "../util/message";
 
@@ -74,7 +74,7 @@ export const ethereumToEthereumFlow = async () => {
 
     const originTxHash = dispatchTx.transactionHash.toLowerCase();
 
-    let tx = await findTransaction(originTxHash);
+    let tx = await findTransaction(originTxHash, ethNetworkOne.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -91,7 +91,7 @@ export const ethereumToEthereumFlow = async () => {
     debug("Waiting for transaction to be confirmed...");
     await sleep(5000);
 
-    tx = await findTransaction(originTxHash);
+    tx = await findTransaction(originTxHash, ethNetworkOne.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -101,8 +101,12 @@ export const ethereumToEthereumFlow = async () => {
 
     debug("Transaction confirmed");
 
-    let message = await findMessage(originTxHash);
+    let messages = await findMessagesByTxHash(originTxHash);
 
+    expect(messages).to.not.be.null;
+    expect(messages.length).to.equal(1);
+
+    let message: Message | null = messages[0];
     expect(message).to.not.be.null;
 
     if (!message) return;
@@ -116,7 +120,7 @@ export const ethereumToEthereumFlow = async () => {
 
     await sleep(3500);
 
-    message = await findMessage(originTxHash);
+    message = await findMessageByMessageID(message.message_id);
 
     expect(message).to.not.be.null;
 
@@ -129,7 +133,7 @@ export const ethereumToEthereumFlow = async () => {
     await sleep(2000);
 
 
-    tx = await findTransaction(originTxHash);
+    tx = await findTransaction(originTxHash, ethNetworkOne.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -168,7 +172,7 @@ export const ethereumToEthereumFlow = async () => {
 
     const txHash = fulfillmentTx.transactionHash.toLowerCase();
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, ethNetworkTwo.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -181,7 +185,7 @@ export const ethereumToEthereumFlow = async () => {
 
     await sleep(3000);
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, ethNetworkTwo.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -191,7 +195,7 @@ export const ethereumToEthereumFlow = async () => {
     expect(tx.messages.length).to.equal(1);
     expect(tx.messages[0].toString()).to.equal(message._id?.toString());
 
-    message = await findMessage(originTxHash);
+    message = await findMessageByMessageID(message.message_id);
 
     expect(message).to.not.be.null;
 

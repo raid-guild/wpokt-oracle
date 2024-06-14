@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { sleep, debug } from "../util/helpers";
 import { config, HYPERLANE_VERSION } from "../util/config";
 import { Message, MintMemo, Status } from "../types";
-import { findMessage, findRefund, findTransaction } from "../util/mongodb";
+import { findMessagesByTxHash, findRefund, findTransaction } from "../util/mongodb";
 import { encodeMessage } from "../util/message";
 import { fulfillSignedMessage } from "./helpers/fulfill";
 
@@ -14,7 +14,6 @@ const POKT_TX_FEE = BigInt(0);
 export const cosmosToEthereumFlow = async () => {
   const ethNetwork = config.ethereum_networks[0];
   const cosmosNetwork = config.cosmos_network;
-
 
   it("should refund amount for send tx to vault with invalid memo", async () => {
 
@@ -53,7 +52,7 @@ export const cosmosToEthereumFlow = async () => {
     let txHash = "0x" + sendTx.hash.toLowerCase();
     const originTxHash = txHash;
 
-    let tx = await findTransaction(txHash);
+    let tx = await findTransaction(txHash, cosmosNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -78,7 +77,7 @@ export const cosmosToEthereumFlow = async () => {
 
     await sleep(5000);
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, cosmosNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -106,7 +105,7 @@ export const cosmosToEthereumFlow = async () => {
 
     await sleep(2500);
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, cosmosNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -131,7 +130,7 @@ export const cosmosToEthereumFlow = async () => {
 
     debug("Refunding Order...");
 
-    await sleep(3000);
+    await sleep(4000);
 
     refund = await findRefund(txHash);
 
@@ -145,7 +144,7 @@ export const cosmosToEthereumFlow = async () => {
 
     txHash = refund.transaction_hash.toLowerCase();
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, cosmosNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -158,7 +157,7 @@ export const cosmosToEthereumFlow = async () => {
 
     await sleep(4000);
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, cosmosNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -189,6 +188,99 @@ export const cosmosToEthereumFlow = async () => {
     const afterBalance = await cosmos.getBalance(fromAddress);
 
     expect(afterBalance).to.equal(beforeBalance - BigInt(2) * POKT_TX_FEE);
+
+    debug("Refund success");
+  });
+
+  it("should do consecutive successful refunds", async () => {
+
+    debug("\nTesting -- should do consecutive successful refunds");
+
+    const signer = await cosmos.signerPromise;
+    const fromAddress = await cosmos.getAddress();
+    const toAddress = cosmosNetwork.multisig_address;
+    const beforeBalance = await cosmos.getBalance(fromAddress);
+
+
+    const memo = "not a json";
+
+    const amounts = [
+      parseUnits("1", 6),
+      parseUnits("2", 6),
+      parseUnits("3", 6),
+    ];
+
+
+    debug("Sending transactions...");
+
+    const sendTxs: Array<cosmos.CosmosTx> = [];
+
+    for (let i = 0; i < amounts.length; i++) {
+      const amount = amounts[i];
+
+      const sendTx = await cosmos.sendPOKT(
+        signer,
+        toAddress,
+        amount.toString(),
+        memo,
+        POKT_TX_FEE.toString(),
+      );
+
+      expect(sendTx).to.not.be.null;
+
+      if (!sendTx) return;
+
+      debug(`Transaction ${i} sent: `, sendTx.hash);
+
+      sendTxs.push(sendTx);
+    }
+
+
+    expect(sendTxs).to.not.be.null;
+    expect(sendTxs.length).to.equal(amounts.length);
+
+    if (!sendTxs) return;
+
+    debug("Waiting for transactions to be created...");
+    await sleep(5000);
+
+    for (let i = 0; i < amounts.length; i++) {
+      const sendTx = sendTxs[i];
+      const txHash = "0x" + sendTx.hash.toLowerCase();
+
+      let tx = await findTransaction(txHash, cosmosNetwork.chain_id);
+
+      expect(tx).to.not.be.null;
+
+      if (!tx) return;
+
+      expect(tx.status).to.equal(Status.CONFIRMED);
+      debug(`Transaction ${i} confirmed`);
+    }
+
+    debug("Waiting for refunds to be created...");
+
+    await sleep(8000);
+
+    for (let i = 0; i < amounts.length; i++) {
+      const sendTx = sendTxs[i];
+      const txHash = "0x" + sendTx.hash.toLowerCase();
+
+      let refund = await findRefund(txHash);
+
+      expect(refund).to.not.be.null;
+
+      if (!refund) return;
+      expect(refund.status).to.equal(Status.SUCCESS);
+
+      debug(`Refund ${i} success`);
+
+      expect(refund.transaction).to.not.be.null;
+    }
+
+    const afterBalance = await cosmos.getBalance(fromAddress);
+
+    expect(afterBalance).to.equal(beforeBalance - BigInt(2 * amounts.length) * POKT_TX_FEE);
 
     debug("Refund success");
   });
@@ -240,7 +332,7 @@ export const cosmosToEthereumFlow = async () => {
 
     let txHash = "0x" + sendTx.hash.toLowerCase();
 
-    let tx = await findTransaction(txHash);
+    let tx = await findTransaction(txHash, cosmosNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -257,7 +349,7 @@ export const cosmosToEthereumFlow = async () => {
 
     await sleep(3500);
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, cosmosNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -266,7 +358,12 @@ export const cosmosToEthereumFlow = async () => {
     expect(tx.status).to.equal(Status.CONFIRMED);
     debug("Transaction confirmed");
 
-    let message = await findMessage(txHash);
+    let messages = await findMessagesByTxHash(txHash);
+
+    expect(messages).to.not.be.null;
+    expect(messages.length).to.equal(1);
+
+    let message = messages[0];
 
     expect(message).to.not.be.null;
 
@@ -388,10 +485,14 @@ export const cosmosToEthereumFlow = async () => {
 
       if (!sendTx) return;
 
-      const message = await findMessage(sendTx.hash);
-
       const txHash = "0x" + sendTx.hash.toLowerCase();
 
+      let messages = await findMessagesByTxHash(txHash);
+
+      expect(messages).to.not.be.null;
+      expect(messages.length).to.equal(1);
+
+      let message = messages[0];
       expect(message).to.not.be.null;
 
       if (!message) return;
@@ -468,8 +569,12 @@ export const cosmosToEthereumFlow = async () => {
         expect(oldMessage).to.not.be.null;
         if (!oldMessage) return;
 
-        const message = await findMessage(oldMessage.origin_transaction_hash);
+        const messages = await findMessagesByTxHash(oldMessage.origin_transaction_hash);
 
+        expect(messages).to.not.be.null;
+        expect(messages.length).to.equal(1);
+
+        let message = messages[0];
         expect(message).to.not.be.null;
 
         if (!message) return;

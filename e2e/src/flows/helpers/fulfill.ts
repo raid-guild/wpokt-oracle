@@ -4,9 +4,14 @@ import { findTransaction, findMessageByMessageID } from '../../util/mongodb';
 import { config } from '../../util/config';
 import { debug, sleep } from '../../util/helpers';
 import * as ethereum from '../../util/ethereum';
+import * as cosmos from '../../util/cosmos';
 import { expect } from 'chai';
-import { decodeMessage, encodeMessage } from '../../util/message';
+import { encodeMessage } from '../../util/message';
 import { Status } from '../../types';
+
+const isCosmosDomain = (domain: Long) => {
+  return cosmos.CHAIN_DOMAIN === domain.toNumber();
+}
 
 export const fulfillSignedMessage = async (message_id: Hex) => {
   debug("Fulfilling message: ", message_id);
@@ -25,7 +30,9 @@ export const fulfillSignedMessage = async (message_id: Hex) => {
 
   if (!ethNetwork) return;
 
-  let tx = await findTransaction(message.origin_transaction_hash);
+  let originChainId = isCosmosDomain(message.content.origin_domain) ? config.cosmos_network.chain_id : message.content.origin_domain;
+
+  let tx = await findTransaction(message.origin_transaction_hash, originChainId);
 
   expect(tx).to.not.be.null;
 
@@ -71,7 +78,7 @@ export const fulfillSignedMessage = async (message_id: Hex) => {
 
   let fulfillmentTxHash = fulfillmentTx.transactionHash.toLowerCase();
 
-  tx = await findTransaction(fulfillmentTxHash);
+  tx = await findTransaction(fulfillmentTxHash, ethNetwork.chain_id);
 
   expect(tx).to.not.be.null;
 
@@ -84,7 +91,7 @@ export const fulfillSignedMessage = async (message_id: Hex) => {
 
   await sleep(3000);
 
-  tx = await findTransaction(fulfillmentTxHash);
+  tx = await findTransaction(fulfillmentTxHash, ethNetwork.chain_id);
 
   expect(tx).to.not.be.null;
 

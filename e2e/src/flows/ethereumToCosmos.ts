@@ -3,8 +3,8 @@ import * as ethereum from "../util/ethereum";
 import * as cosmos from "../util/cosmos";
 import { expect } from "chai";
 import { config, HYPERLANE_VERSION } from "../util/config";
-import { Status } from "../types";
-import { findMessage, findTransaction } from "../util/mongodb";
+import { Message, Status } from "../types";
+import { findMessageByMessageID, findMessagesByTxHash, findTransaction } from "../util/mongodb";
 import { sleep, debug } from "../util/helpers";
 import { addressHexToBytes32, decodeMessage } from "../util/message";
 
@@ -77,7 +77,7 @@ export const ethereumToCosmosFlow = async () => {
 
     const originTxHash = dispatchTx.transactionHash.toLowerCase();
 
-    let tx = await findTransaction(originTxHash);
+    let tx = await findTransaction(originTxHash, ethNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -94,7 +94,7 @@ export const ethereumToCosmosFlow = async () => {
     debug("Waiting for message to be confirmed...");
     await sleep(5000);
 
-    tx = await findTransaction(originTxHash);
+    tx = await findTransaction(originTxHash, ethNetwork.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -104,7 +104,12 @@ export const ethereumToCosmosFlow = async () => {
 
     debug("Transaction confirmed");
 
-    let message = await findMessage(originTxHash);
+    let messages = await findMessagesByTxHash(originTxHash);
+
+    expect(messages).to.not.be.null;
+    expect(messages.length).to.equal(1);
+
+    let message: Message | null = messages[0];
 
     expect(message).to.not.be.null;
 
@@ -119,7 +124,7 @@ export const ethereumToCosmosFlow = async () => {
 
     await sleep(3500);
 
-    message = await findMessage(originTxHash);
+    message = await findMessageByMessageID(message.message_id);
 
     expect(message).to.not.be.null;
 
@@ -131,7 +136,7 @@ export const ethereumToCosmosFlow = async () => {
 
     await sleep(2000);
 
-    message = await findMessage(originTxHash);
+    message = await findMessageByMessageID(message.message_id);
 
     expect(message).to.not.be.null;
 
@@ -145,7 +150,7 @@ export const ethereumToCosmosFlow = async () => {
 
     debug("Message broadcasted");
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, config.cosmos_network.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -159,7 +164,7 @@ export const ethereumToCosmosFlow = async () => {
 
     await sleep(3500);
 
-    tx = await findTransaction(txHash);
+    tx = await findTransaction(txHash, config.cosmos_network.chain_id);
 
     expect(tx).to.not.be.null;
 
@@ -169,7 +174,7 @@ export const ethereumToCosmosFlow = async () => {
     expect(tx.messages.length).to.equal(1);
     expect(tx.messages[0].toString()).to.equal(message._id?.toString());
 
-    message = await findMessage(originTxHash);
+    message = await findMessageByMessageID(message.message_id);
 
     expect(message).to.not.be.null;
 
@@ -180,8 +185,6 @@ export const ethereumToCosmosFlow = async () => {
 
     expect(message.transaction).to.not.be.null;
     expect(message.transaction?.toString()).to.equal(tx._id?.toString());
-
-
 
     const recipientAfterBalance = await cosmos.getBalance(recipientBech32);
     expect(recipientAfterBalance).to.equal(

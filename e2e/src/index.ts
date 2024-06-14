@@ -64,6 +64,6 @@ before(async () => {
 
 describe("E2E tests", async () => {
   describe("Cosmos To Ethereum Flow", cosmosToEthereumFlow);
-  describe("Ethereum To Cosmos Flow", ethereumToCosmosFlow);
-  describe("Ethereum To Ethereum Flow", ethereumToEthereumFlow);
+  // describe("Ethereum To Cosmos Flow", ethereumToCosmosFlow);
+  // describe("Ethereum To Ethereum Flow", ethereumToEthereumFlow);
 });

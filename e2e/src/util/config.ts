@@ -4,8 +4,13 @@ import fs from "fs";
 const CONFIG_PATH =
   process.env.CONFIG_PATH || "../defaults/config.local.one.yml";
 
-// TODO: This should be changed
-export const HYPERLANE_VERSION = 0;
+export const HyperlaneVersion = 0; // TODO: This should be changed when contracts are upgraded
+export const PausableIsm = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const Mailbox = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+export const WarpISM = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
+export const Token = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
+export const MintController = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+export const AccountFactory = "0x610178dA211FEF7D417bC0e6FeD39F05609AD788";
 
 export type Config = {
   mnemonic: string;

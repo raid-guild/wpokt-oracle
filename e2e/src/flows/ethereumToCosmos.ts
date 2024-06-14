@@ -2,7 +2,7 @@ import { parseUnits, TransactionReceipt } from "viem";
 import * as ethereum from "../util/ethereum";
 import * as cosmos from "../util/cosmos";
 import { expect } from "chai";
-import { config, HYPERLANE_VERSION } from "../util/config";
+import { config, HyperlaneVersion } from "../util/config";
 import { Message, Status } from "../types";
 import {
   findMessageByMessageID,
@@ -74,7 +74,7 @@ export const ethereumToCosmosFlow = async () => {
 
     debug("Message found");
 
-    expect(messageContent.version).to.equal(HYPERLANE_VERSION);
+    expect(messageContent.version).to.equal(HyperlaneVersion);
     // expect(messageContent.nonce).to.equal(0);
     expect(messageContent.origin_domain.toNumber()).to.equal(
       ethNetwork.chain_id,

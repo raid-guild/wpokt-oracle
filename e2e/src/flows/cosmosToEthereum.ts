@@ -3,7 +3,7 @@ import * as ethereum from "../util/ethereum";
 import * as cosmos from "../util/cosmos";
 import { expect } from "chai";
 import { sleep, debug } from "../util/helpers";
-import { config, HYPERLANE_VERSION } from "../util/config";
+import { config, HyperlaneVersion } from "../util/config";
 import { Message, MintMemo, Status } from "../types";
 import {
   findMessagesByTxHash,
@@ -384,7 +384,7 @@ export const cosmosToEthereumFlow = async () => {
 
     if (!account) return;
 
-    expect(message.content.version).to.equal(HYPERLANE_VERSION);
+    expect(message.content.version).to.equal(HyperlaneVersion);
     expect(message.content.nonce.toNumber()).to.equal(account.sequence - 1);
     expect(message.content.origin_domain.toNumber()).to.equal(
       cosmos.CHAIN_DOMAIN,
@@ -519,7 +519,7 @@ export const cosmosToEthereumFlow = async () => {
 
       if (!account) return;
 
-      expect(message.content.version).to.equal(HYPERLANE_VERSION);
+      expect(message.content.version).to.equal(HyperlaneVersion);
       expect(message.content.nonce.toNumber()).to.be.oneOf(noncesToSee);
       expect(message.content.origin_domain.toNumber()).to.equal(
         cosmos.CHAIN_DOMAIN,

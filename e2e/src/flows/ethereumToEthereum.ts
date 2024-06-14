@@ -60,9 +60,9 @@ export const ethereumToEthereumFlow = async () => {
 
     expect(messageContent.version).to.equal(HYPERLANE_VERSION);
     // expect(messageContent.nonce).to.equal(0);
-    expect(messageContent.origin_domain).to.equal(ethNetworkOne.chain_id);
+    expect(messageContent.origin_domain.toNumber()).to.equal(ethNetworkOne.chain_id);
     expect(messageContent.sender).to.equal(ethNetworkOne.mint_controller_address.toLowerCase());
-    expect(messageContent.destination_domain).to.equal(ethNetworkTwo.chain_id);
+    expect(messageContent.destination_domain.toNumber()).to.equal(ethNetworkTwo.chain_id);
     expect(messageContent.recipient).to.equal(destMintControllerAddress);
     expect(messageContent.message_body.sender_address).to.equal(fromAddress);
     expect(messageContent.message_body.recipient_address).to.equal(recipientAddress);

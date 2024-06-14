@@ -2,6 +2,7 @@ import {
   Hex, encodePacked, encodeAbiParameters,
   decodeAbiParameters
 } from "viem";
+import { Long } from "mongodb";
 import { MessageBody, MessageContent } from "../types";
 
 
@@ -46,7 +47,7 @@ export function formatMessageBody(
 const encodeMessageBody = (messageBody: MessageBody): Hex => {
   return formatMessageBody(
     messageBody.recipient_address,
-    BigInt(messageBody.amount),
+    BigInt(messageBody.amount.toString()),
     messageBody.sender_address
   );
 }
@@ -59,7 +60,7 @@ const decodeMessageBody = (messageBody: Hex): MessageBody => {
 
   return {
     recipient_address: decoded[0].toLowerCase() as Hex,
-    amount: Number(decoded[1]),
+    amount: new Long(decoded[1].toString()),
     sender_address: decoded[2].toLowerCase() as Hex,
   };
 }
@@ -72,10 +73,10 @@ export const encodeMessage = (message: MessageContent): Hex => {
 
   return formatMessage(
     message.version,
-    message.nonce,
-    message.origin_domain,
+    message.nonce.toNumber(),
+    message.origin_domain.toNumber(),
     message.sender,
-    message.destination_domain,
+    message.destination_domain.toNumber(),
     message.recipient,
     messageBodyHex
   );
@@ -116,10 +117,10 @@ export function decodeMessage(encodedMessage: Hex): MessageContent {
 
   return {
     version,
-    nonce,
-    origin_domain: originDomain,
+    nonce: new Long(nonce),
+    origin_domain: new Long(originDomain),
     sender,
-    destination_domain: destinationDomain,
+    destination_domain: new Long(destinationDomain),
     recipient,
     message_body,
   };

@@ -1,5 +1,5 @@
 // Import the required dependencies for primitive types and date handling
-import { ObjectId } from 'mongodb';
+import { ObjectId, Long } from 'mongodb';
 import { Hex } from 'viem';
 
 // Assuming Chain type is imported from a local file
@@ -10,24 +10,24 @@ export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'invalid';
 
 // Define the Transaction type
 export type Transaction = {
-  _id?: ObjectId;
-  hash: Hex;
-  from_address: Hex;
-  to_address: Hex;
-  block_height: number;
-  confirmations: number;
-  chain: Chain;
-  status: TransactionStatus;
-  created_at: Date;
-  updated_at: Date;
-  refund?: ObjectId;
-  messages: ObjectId[];
+  readonly _id: ObjectId;
+  readonly hash: Hex;
+  readonly from_address: Hex;
+  readonly to_address: Hex;
+  readonly block_height: Long;
+  readonly confirmations: Long;
+  readonly chain: Chain;
+  readonly status: TransactionStatus;
+  readonly created_at: Date;
+  readonly updated_at: Date;
+  readonly refund?: ObjectId | null;
+  readonly messages: ObjectId[];
 };
 
 // Define the MintMemo type
 export type MintMemo = {
-  address: Hex;
-  chain_id: string;
+  readonly address: Hex;
+  readonly chain_id: string;
 };
 
 export const CollectionTransactions = 'transactions';

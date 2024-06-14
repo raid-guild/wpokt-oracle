@@ -70,6 +70,10 @@ func NewMessage(
 	content models.MessageContent,
 	status models.MessageStatus,
 ) (models.Message, error) {
+	if (originTxDoc == nil) || (originTxDoc.ID == nil) || (originTxDoc.Hash == "") {
+		return models.Message{}, fmt.Errorf("originTxDoc is nil")
+	}
+
 	messageIDBytes, err := content.MessageID()
 	if err != nil {
 		return models.Message{}, err
@@ -77,7 +81,7 @@ func NewMessage(
 	messageID := common.HexFromBytes(messageIDBytes)
 
 	return models.Message{
-		OriginTransaction:     originTxDoc.ID,
+		OriginTransaction:     *originTxDoc.ID,
 		OriginTransactionHash: originTxDoc.Hash,
 		MessageID:             messageID,
 		Content:               content,

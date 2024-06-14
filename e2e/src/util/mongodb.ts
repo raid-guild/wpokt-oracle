@@ -14,7 +14,7 @@ import {
 import { Hex } from "viem";
 
 const createDatabasePromise = async (): Promise<Db> => {
-  const client = new MongoClient(config.mongodb.uri, {});
+  const client = new MongoClient(config.mongodb.uri, { promoteLongs: false });
 
   await client.connect();
   return client.db(config.mongodb.database);

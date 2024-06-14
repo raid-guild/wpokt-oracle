@@ -21,7 +21,7 @@ func NewRefund(
 	amountCoin sdk.Coin,
 ) (models.Refund, error) {
 
-	if txRes == nil || txDoc == nil {
+	if txRes == nil || txDoc == nil || txDoc.Hash == "" || txDoc.ID == nil {
 		return models.Refund{}, fmt.Errorf("txRes or txDoc is nil")
 	}
 
@@ -38,7 +38,7 @@ func NewRefund(
 	amount := amountCoin.Amount.Uint64()
 
 	return models.Refund{
-		OriginTransaction:     txDoc.ID,
+		OriginTransaction:     *txDoc.ID,
 		OriginTransactionHash: txDoc.Hash,
 		Recipient:             recipient,
 		Amount:                amount,

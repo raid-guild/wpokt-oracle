@@ -137,14 +137,14 @@ const (
 
 type Message struct {
 	ID                    *primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	OriginTransaction     *primitive.ObjectID `json:"origin_transaction" bson:"origin_transaction"`
+	OriginTransaction     primitive.ObjectID  `json:"origin_transaction" bson:"origin_transaction"`
 	OriginTransactionHash string              `json:"origin_transaction_hash" bson:"origin_transaction_hash"`
 	MessageID             string              `json:"message_id" bson:"message_id"`
 	Content               MessageContent      `json:"content" bson:"content"`
 	TransactionBody       string              `json:"transaction_body" bson:"transaction_body"`
 	Signatures            []Signature         `json:"signatures" bson:"signatures"`
-	Transaction           *primitive.ObjectID `json:"transaction" bson:"transaction"`
 	Sequence              *uint64             `json:"sequence" bson:"sequence"` // account sequence for submitting the transaction
+	Transaction           *primitive.ObjectID `json:"transaction" bson:"transaction"`
 	TransactionHash       string              `json:"transaction_hash" bson:"transaction_hash"`
 	Status                MessageStatus       `json:"status" bson:"status"`
 	CreatedAt             time.Time           `bson:"created_at" json:"created_at"`

@@ -123,7 +123,7 @@ export const cosmosToEthereumFlow = async () => {
     if (!refund) return;
 
 
-    expect(refund.sequence).to.equal(account.sequence);
+    expect(refund.sequence?.toString()).to.equal(account.sequence.toString());
     expect(refund.status).to.be.oneOf([Status.SIGNED, Status.BROADCASTED]);
     debug("Refund signed");
 
@@ -283,10 +283,10 @@ export const cosmosToEthereumFlow = async () => {
     if (!account) return;
 
     expect(message.content.version).to.equal(HYPERLANE_VERSION);
-    expect(message.content.nonce).to.equal(account.sequence - 1);
-    expect(message.content.origin_domain).to.equal(cosmos.CHAIN_DOMAIN);
+    expect(message.content.nonce.toNumber()).to.equal(account.sequence - 1);
+    expect(message.content.origin_domain.toNumber()).to.equal(cosmos.CHAIN_DOMAIN);
     expect(message.content.sender).to.equal(fromHex);
-    expect(message.content.destination_domain).to.equal(ethNetwork.chain_id);
+    expect(message.content.destination_domain.toNumber()).to.equal(ethNetwork.chain_id);
     expect(message.content.recipient).to.equal(ethNetwork.mint_controller_address.toLowerCase());
     expect(message.content.message_body.sender_address).to.equal(fromHex);
     expect(message.content.message_body.recipient_address).to.equal(recipientAddress.toLowerCase());
@@ -405,10 +405,10 @@ export const cosmosToEthereumFlow = async () => {
       if (!account) return;
 
       expect(message.content.version).to.equal(HYPERLANE_VERSION);
-      expect(message.content.nonce).to.be.oneOf(noncesToSee);
-      expect(message.content.origin_domain).to.equal(cosmos.CHAIN_DOMAIN);
+      expect(message.content.nonce.toNumber()).to.be.oneOf(noncesToSee);
+      expect(message.content.origin_domain.toNumber()).to.equal(cosmos.CHAIN_DOMAIN);
       expect(message.content.sender).to.equal(fromHex);
-      expect(message.content.destination_domain).to.equal(ethNetwork.chain_id);
+      expect(message.content.destination_domain.toNumber()).to.equal(ethNetwork.chain_id);
       expect(message.content.recipient).to.equal(ethNetwork.mint_controller_address.toLowerCase());
       expect(message.content.message_body.sender_address).to.equal(fromHex);
       expect(message.content.message_body.recipient_address).to.equal(recipientAddress.toLowerCase());
@@ -418,9 +418,9 @@ export const cosmosToEthereumFlow = async () => {
       debug(`Message ${i} signed`);
 
       const nonce = message.content.nonce;
-      noncesToSee.splice(noncesToSee.indexOf(nonce), 1);
+      noncesToSee.splice(noncesToSee.indexOf(nonce.toNumber()), 1);
 
-      const sortedIndex = nonce - startNonce;
+      const sortedIndex = nonce.toNumber() - startNonce;
       sortedMessages[sortedIndex] = message;
     }
 
@@ -457,7 +457,7 @@ export const cosmosToEthereumFlow = async () => {
         await ethereum.getWPOKTBalance(ethNetwork.chain_id, recipientAddress);
 
       expect(afterWPOKTBalance).to.equal(
-        beforeWPOKTBalance + BigInt(message.content.message_body.amount),
+        beforeWPOKTBalance + BigInt(message.content.message_body.amount.toString()),
       );
     }
 

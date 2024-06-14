@@ -17,9 +17,9 @@ export const fulfillSignedMessage = async (message_id: Hex) => {
   if (!message) return;
 
   const recipientAddress = message.content.message_body.recipient_address;
-  const amount = BigInt(message.content.message_body.amount);
+  const amount = BigInt(message.content.message_body.amount.toString());
 
-  const ethNetwork = config.ethereum_networks.find((n) => n.chain_id === message?.content.destination_domain);
+  const ethNetwork = config.ethereum_networks.find((n) => n.chain_id === message?.content.destination_domain.toNumber());
 
   expect(ethNetwork).to.not.be.null;
 

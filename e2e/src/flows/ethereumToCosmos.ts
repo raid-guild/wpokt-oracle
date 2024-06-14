@@ -63,9 +63,9 @@ export const ethereumToCosmosFlow = async () => {
 
     expect(messageContent.version).to.equal(HYPERLANE_VERSION);
     // expect(messageContent.nonce).to.equal(0);
-    expect(messageContent.origin_domain).to.equal(ethNetwork.chain_id);
+    expect(messageContent.origin_domain.toNumber()).to.equal(ethNetwork.chain_id);
     expect(messageContent.sender).to.equal(ethNetwork.mint_controller_address.toLowerCase());
-    expect(messageContent.destination_domain).to.equal(cosmos.CHAIN_DOMAIN);
+    expect(messageContent.destination_domain.toNumber()).to.equal(cosmos.CHAIN_DOMAIN);
     expect(messageContent.recipient).to.equal(destMintControllerAddress);
     expect(messageContent.message_body.sender_address).to.equal(fromAddress);
     expect(messageContent.message_body.recipient_address).to.equal(recipientAddress);

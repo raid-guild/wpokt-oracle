@@ -1,5 +1,5 @@
 // Import the required dependencies for primitive types and date handling
-import { ObjectId } from 'mongodb';
+import { ObjectId, Long } from 'mongodb';
 import { Hex } from 'viem';
 
 // Define the ChainType type
@@ -7,40 +7,40 @@ export type ChainType = 'ethereum' | 'cosmos';
 
 // Define the RunnerServiceStatus type
 export type RunnerServiceStatus = {
-  name: string;
-  enabled: boolean;
-  blockHeight: number;
-  lastRun_at: Date;
-  nextRun_at: Date;
+  readonly name: string;
+  readonly enabled: boolean;
+  readonly blockHeight: Long;
+  readonly lastRun_at: Date;
+  readonly nextRun_at: Date;
 };
 
 // Define the Chain type
 export type Chain = {
-  chain_id: string;
-  chain_name: string;
-  chain_domain: number;
-  chain_type: ChainType;
+  readonly chain_id: string;
+  readonly chain_name: string;
+  readonly chain_domain: Long;
+  readonly chain_type: ChainType;
 };
 
 // Define the ChainServiceHealth type
 export type ChainServiceHealth = {
-  chain: Chain;
-  message_monitor?: RunnerServiceStatus;
-  message_signer?: RunnerServiceStatus;
-  message_relayer?: RunnerServiceStatus;
+  readonly chain: Chain;
+  readonly message_monitor?: RunnerServiceStatus | null;
+  readonly message_signer?: RunnerServiceStatus | null;
+  readonly message_relayer?: RunnerServiceStatus | null;
 };
 
 // Define the Node type
 export type Node = {
-  _id?: ObjectId;
-  cosmos_address: Hex;
-  eth_address: Hex;
-  hostname: string;
-  oracle_id: string;
-  supported_chains: Chain[];
-  health: ChainServiceHealth[];
-  created_at: Date;
-  updated_at: Date;
+  readonly _id: ObjectId;
+  readonly cosmos_address: Hex;
+  readonly eth_address: Hex;
+  readonly hostname: string;
+  readonly oracle_id: string;
+  readonly supported_chains: Chain[];
+  readonly health: ChainServiceHealth[];
+  readonly created_at: Date;
+  readonly updated_at: Date;
 };
 
 export const CollectionNodes = 'nodes';

@@ -22,7 +22,7 @@ const init = async () => {
     "with chain ID",
     config.cosmos_network.chain_id,
     "at",
-    config.cosmos_network.rpc_url
+    config.cosmos_network.rpc_url,
   );
 
   console.log("Pocket domain:", cosmos.CHAIN_DOMAIN);
@@ -31,13 +31,11 @@ const init = async () => {
 
   console.log("Pocket balance:", formatUnits(cosmosBalance, 6), "POKT");
 
-
   console.log("Ethereum networks:");
 
   console.log("Number of networks:", config.ethereum_networks.length);
 
   for (const network of config.ethereum_networks) {
-
     const ethAddress = await ethereum.getAddress(network.chain_id);
 
     console.log("Ethereum address:", ethAddress);
@@ -48,7 +46,7 @@ const init = async () => {
       "with chain ID",
       network.chain_id,
       "at",
-      network.rpc_url
+      network.rpc_url,
     );
 
     const ethBalance = await ethereum.getBalance(network.chain_id, ethAddress);
@@ -64,6 +62,6 @@ before(async () => {
 
 describe("E2E tests", async () => {
   describe("Cosmos To Ethereum Flow", cosmosToEthereumFlow);
-  // describe("Ethereum To Cosmos Flow", ethereumToCosmosFlow);
-  // describe("Ethereum To Ethereum Flow", ethereumToEthereumFlow);
+  describe("Ethereum To Cosmos Flow", ethereumToCosmosFlow);
+  describe("Ethereum To Ethereum Flow", ethereumToEthereumFlow);
 });

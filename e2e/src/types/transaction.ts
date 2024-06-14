@@ -1,12 +1,12 @@
 // Import the required dependencies for primitive types and date handling
-import { ObjectId, Long } from 'mongodb';
-import { Hex } from 'viem';
+import { ObjectId, Long } from "mongodb";
+import { Hex } from "viem";
 
 // Assuming Chain type is imported from a local file
-import { Chain } from './node';
+import { Chain } from "./node";
 
 // Define the TransactionStatus type
-export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'invalid';
+export type TransactionStatus = "pending" | "confirmed" | "failed" | "invalid";
 
 // Define the Transaction type
 export type Transaction = {
@@ -30,4 +30,4 @@ export type MintMemo = {
   readonly chain_id: string;
 };
 
-export const CollectionTransactions = 'transactions';
+export const CollectionTransactions = "transactions";

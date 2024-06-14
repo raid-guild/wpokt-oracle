@@ -5,7 +5,11 @@ import { expect } from "chai";
 import { sleep, debug } from "../util/helpers";
 import { config, HYPERLANE_VERSION } from "../util/config";
 import { Message, MintMemo, Status } from "../types";
-import { findMessagesByTxHash, findRefund, findTransaction } from "../util/mongodb";
+import {
+  findMessagesByTxHash,
+  findRefund,
+  findTransaction,
+} from "../util/mongodb";
 import { encodeMessage } from "../util/message";
 import { fulfillSignedMessage } from "./helpers/fulfill";
 
@@ -16,8 +20,9 @@ export const cosmosToEthereumFlow = async () => {
   const cosmosNetwork = config.cosmos_network;
 
   it("should refund amount for send tx to vault with invalid memo", async () => {
-
-    debug("\nTesting -- should refund amount for send tx to vault with invalid memo");
+    debug(
+      "\nTesting -- should refund amount for send tx to vault with invalid memo",
+    );
 
     const signer = await cosmos.signerPromise;
     const fromAddress = await cosmos.getAddress();
@@ -101,7 +106,11 @@ export const cosmosToEthereumFlow = async () => {
     expect(refund.transaction_body).to.not.be.null;
     expect(refund.transaction_body).to.not.equal("");
 
-    expect(refund.status).to.oneOf([Status.PENDING, Status.SIGNED, Status.BROADCASTED]);
+    expect(refund.status).to.oneOf([
+      Status.PENDING,
+      Status.SIGNED,
+      Status.BROADCASTED,
+    ]);
 
     await sleep(2500);
 
@@ -121,7 +130,6 @@ export const cosmosToEthereumFlow = async () => {
 
     if (!refund) return;
 
-
     expect(refund.sequence?.toString()).to.equal(account.sequence.toString());
     expect(refund.status).to.be.oneOf([Status.SIGNED, Status.BROADCASTED]);
     debug("Refund signed");
@@ -140,7 +148,6 @@ export const cosmosToEthereumFlow = async () => {
 
     expect(refund.status).to.equal(Status.BROADCASTED);
     expect(refund.transaction_hash).to.not.be.null;
-
 
     txHash = refund.transaction_hash.toLowerCase();
 
@@ -184,7 +191,6 @@ export const cosmosToEthereumFlow = async () => {
     expect(refund.transaction).to.not.be.null;
     expect(refund.transaction?.toString()).to.equal(tx._id?.toString());
 
-
     const afterBalance = await cosmos.getBalance(fromAddress);
 
     expect(afterBalance).to.equal(beforeBalance - BigInt(2) * POKT_TX_FEE);
@@ -193,14 +199,12 @@ export const cosmosToEthereumFlow = async () => {
   });
 
   it("should do consecutive successful refunds", async () => {
-
     debug("\nTesting -- should do consecutive successful refunds");
 
     const signer = await cosmos.signerPromise;
     const fromAddress = await cosmos.getAddress();
     const toAddress = cosmosNetwork.multisig_address;
     const beforeBalance = await cosmos.getBalance(fromAddress);
-
 
     const memo = "not a json";
 
@@ -209,7 +213,6 @@ export const cosmosToEthereumFlow = async () => {
       parseUnits("2", 6),
       parseUnits("3", 6),
     ];
-
 
     debug("Sending transactions...");
 
@@ -234,7 +237,6 @@ export const cosmosToEthereumFlow = async () => {
 
       sendTxs.push(sendTx);
     }
-
 
     expect(sendTxs).to.not.be.null;
     expect(sendTxs.length).to.equal(amounts.length);
@@ -280,14 +282,17 @@ export const cosmosToEthereumFlow = async () => {
 
     const afterBalance = await cosmos.getBalance(fromAddress);
 
-    expect(afterBalance).to.equal(beforeBalance - BigInt(2 * amounts.length) * POKT_TX_FEE);
+    expect(afterBalance).to.equal(
+      beforeBalance - BigInt(2 * amounts.length) * POKT_TX_FEE,
+    );
 
     debug("Refund success");
   });
 
   it("should fulfill on ethereum for send tx to cosmos vault with valid memo", async () => {
-
-    debug("\nTesting -- should fulfill on ethereum for send tx to cosmos vault with valid memo");
+    debug(
+      "\nTesting -- should fulfill on ethereum for send tx to cosmos vault with valid memo",
+    );
 
     const signer = await cosmos.signerPromise;
     const fromAddress = await cosmos.getAddress();
@@ -381,13 +386,23 @@ export const cosmosToEthereumFlow = async () => {
 
     expect(message.content.version).to.equal(HYPERLANE_VERSION);
     expect(message.content.nonce.toNumber()).to.equal(account.sequence - 1);
-    expect(message.content.origin_domain.toNumber()).to.equal(cosmos.CHAIN_DOMAIN);
+    expect(message.content.origin_domain.toNumber()).to.equal(
+      cosmos.CHAIN_DOMAIN,
+    );
     expect(message.content.sender).to.equal(fromHex);
-    expect(message.content.destination_domain.toNumber()).to.equal(ethNetwork.chain_id);
-    expect(message.content.recipient).to.equal(ethNetwork.mint_controller_address.toLowerCase());
+    expect(message.content.destination_domain.toNumber()).to.equal(
+      ethNetwork.chain_id,
+    );
+    expect(message.content.recipient).to.equal(
+      ethNetwork.mint_controller_address.toLowerCase(),
+    );
     expect(message.content.message_body.sender_address).to.equal(fromHex);
-    expect(message.content.message_body.recipient_address).to.equal(recipientAddress.toLowerCase());
-    expect(message.content.message_body.amount.toString()).to.equal(amount.toString());
+    expect(message.content.message_body.recipient_address).to.equal(
+      recipientAddress.toLowerCase(),
+    );
+    expect(message.content.message_body.amount.toString()).to.equal(
+      amount.toString(),
+    );
 
     expect(message.status).to.oneOf([Status.PENDING, Status.SIGNED]);
 
@@ -408,9 +423,9 @@ export const cosmosToEthereumFlow = async () => {
     const fromHex = cosmos.bech32ToHex(fromAddress);
 
     const amounts = [
-      parseUnits("1", 6),
-      parseUnits("2", 6),
-      parseUnits("3", 6),
+      parseUnits("10", 6),
+      parseUnits("20", 6),
+      parseUnits("30", 6),
     ];
 
     const account = await cosmos.getAccount(fromAddress);
@@ -418,7 +433,6 @@ export const cosmosToEthereumFlow = async () => {
     expect(account).to.not.be.null;
 
     if (!account) return;
-
 
     const startNonce = account.sequence;
 
@@ -476,7 +490,7 @@ export const cosmosToEthereumFlow = async () => {
 
     await sleep(9000);
 
-    const noncesToSee = sendTxs.map((_, i) => (i + startNonce));
+    const noncesToSee = sendTxs.map((_, i) => i + startNonce);
 
     const sortedMessages: Array<Message | null> = [null, null, null];
 
@@ -507,13 +521,23 @@ export const cosmosToEthereumFlow = async () => {
 
       expect(message.content.version).to.equal(HYPERLANE_VERSION);
       expect(message.content.nonce.toNumber()).to.be.oneOf(noncesToSee);
-      expect(message.content.origin_domain.toNumber()).to.equal(cosmos.CHAIN_DOMAIN);
+      expect(message.content.origin_domain.toNumber()).to.equal(
+        cosmos.CHAIN_DOMAIN,
+      );
       expect(message.content.sender).to.equal(fromHex);
-      expect(message.content.destination_domain.toNumber()).to.equal(ethNetwork.chain_id);
-      expect(message.content.recipient).to.equal(ethNetwork.mint_controller_address.toLowerCase());
+      expect(message.content.destination_domain.toNumber()).to.equal(
+        ethNetwork.chain_id,
+      );
+      expect(message.content.recipient).to.equal(
+        ethNetwork.mint_controller_address.toLowerCase(),
+      );
       expect(message.content.message_body.sender_address).to.equal(fromHex);
-      expect(message.content.message_body.recipient_address).to.equal(recipientAddress.toLowerCase());
-      expect(message.content.message_body.amount.toString()).to.be.oneOf(amounts.map((a) => a.toString()));
+      expect(message.content.message_body.recipient_address).to.equal(
+        recipientAddress.toLowerCase(),
+      );
+      expect(message.content.message_body.amount.toString()).to.be.oneOf(
+        amounts.map((a) => a.toString()),
+      );
       expect(message.signatures.length).to.be.greaterThanOrEqual(2);
       expect(message.status).to.equal(Status.SIGNED);
       debug(`Message ${i} signed`);
@@ -535,17 +559,20 @@ export const cosmosToEthereumFlow = async () => {
 
       debug(`Fulfilling Order ${i}...`);
 
-
       const beforeWPOKTBalance = await ethereum.getWPOKTBalance(
         ethNetwork.chain_id,
-        recipientAddress
+        recipientAddress,
       );
 
       const messageBytes = encodeMessage(message.content);
 
       const metadata = concatHex(message.signatures.map((s) => s.signature));
 
-      const fulfillmentTx = await ethereum.fulfillOrder(ethNetwork.chain_id, metadata, messageBytes);
+      const fulfillmentTx = await ethereum.fulfillOrder(
+        ethNetwork.chain_id,
+        metadata,
+        messageBytes,
+      );
 
       expect(fulfillmentTx).to.not.be.null;
 
@@ -554,11 +581,14 @@ export const cosmosToEthereumFlow = async () => {
 
       fulfillmentTxs.push(fulfillmentTx);
 
-      const afterWPOKTBalance =
-        await ethereum.getWPOKTBalance(ethNetwork.chain_id, recipientAddress);
+      const afterWPOKTBalance = await ethereum.getWPOKTBalance(
+        ethNetwork.chain_id,
+        recipientAddress,
+      );
 
       expect(afterWPOKTBalance).to.equal(
-        beforeWPOKTBalance + BigInt(message.content.message_body.amount.toString()),
+        beforeWPOKTBalance +
+        BigInt(message.content.message_body.amount.toString()),
       );
     }
 
@@ -569,7 +599,9 @@ export const cosmosToEthereumFlow = async () => {
         expect(oldMessage).to.not.be.null;
         if (!oldMessage) return;
 
-        const messages = await findMessagesByTxHash(oldMessage.origin_transaction_hash);
+        const messages = await findMessagesByTxHash(
+          oldMessage.origin_transaction_hash,
+        );
 
         expect(messages).to.not.be.null;
         expect(messages.length).to.equal(1);
@@ -590,5 +622,4 @@ export const cosmosToEthereumFlow = async () => {
       }),
     );
   });
-
 };

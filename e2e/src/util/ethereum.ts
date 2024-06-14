@@ -185,9 +185,14 @@ export const initiateOrder = async (
     senderAddress,
   );
 
-  const args = [destinationDomain, addressHexToBytes32(destMintControllerAddress), messageBody];
+  const args = [
+    destinationDomain,
+    addressHexToBytes32(destMintControllerAddress),
+    messageBody,
+  ];
 
-  const mintControllerAddress = networkConfig[chain_id].mint_controller_address as Hex;
+  const mintControllerAddress = networkConfig[chain_id]
+    .mint_controller_address as Hex;
 
   const approveHash = await wallet.writeContract({
     address: networkConfig[chain_id].omni_token_address as Hex,

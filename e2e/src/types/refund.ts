@@ -1,12 +1,17 @@
 // Import the required dependencies for primitive types and date handling
-import { ObjectId, Long } from 'mongodb';
-import { Hex } from 'viem';
+import { ObjectId, Long } from "mongodb";
+import { Hex } from "viem";
 
 // Assuming Signature type is imported from a local file
-import { Signature } from './message';
+import { Signature } from "./message";
 
 // Define the RefundStatus type
-export type RefundStatus = 'pending' | 'signed' | 'broadcasted' | 'success' | 'invalid';
+export type RefundStatus =
+  | "pending"
+  | "signed"
+  | "broadcasted"
+  | "success"
+  | "invalid";
 
 // Define the Refund type
 export type Refund = {
@@ -25,4 +30,4 @@ export type Refund = {
   readonly updated_at: Date;
 };
 
-export const CollectionRefunds = 'refunds';
+export const CollectionRefunds = "refunds";

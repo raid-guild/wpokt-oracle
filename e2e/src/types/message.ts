@@ -1,6 +1,6 @@
 // Import the required dependencies for primitive types and date handling
-import { ObjectId, Long } from 'mongodb';
-import { Hex } from 'viem';
+import { ObjectId, Long } from "mongodb";
+import { Hex } from "viem";
 
 // Define the MessageContent type
 export type MessageContent = {
@@ -14,7 +14,12 @@ export type MessageContent = {
 };
 
 // Define the MessageStatus type
-export type MessageStatus = 'pending' | 'signed' | 'broadcasted' | 'success' | 'invalid';
+export type MessageStatus =
+  | "pending"
+  | "signed"
+  | "broadcasted"
+  | "success"
+  | "invalid";
 
 // Define the Message type
 export type Message = {
@@ -46,4 +51,4 @@ export type Signature = {
   readonly signature: Hex; // Assuming signature is a string representation
 };
 
-export const CollectionMessages = 'messages';
+export const CollectionMessages = "messages";

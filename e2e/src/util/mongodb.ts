@@ -24,28 +24,38 @@ export const databasePromise: Promise<Db> = createDatabasePromise();
 
 export const findNodes = async (): Promise<Node[]> => {
   const db = await databasePromise;
-  return db.collection(CollectionNodes)
+  return db
+    .collection(CollectionNodes)
     .find({})
     .toArray() as unknown as Promise<Node[]>;
 };
 
 const ensure0xPrefix = (hex: string): Hex => {
-  return hex.startsWith("0x") ? hex.toLowerCase() as Hex : `0x${hex.toLowerCase()}`;
-}
-
-export const findMessagesByTxHash = async (txHash: string): Promise<Message[]> => {
-  const db = await databasePromise;
-  return db.collection(CollectionMessages).find({
-    origin_transaction_hash: ensure0xPrefix(txHash),
-  }).toArray() as unknown as Promise<Message[]>;
+  return hex.startsWith("0x")
+    ? (hex.toLowerCase() as Hex)
+    : `0x${hex.toLowerCase()}`;
 };
 
-export const findMessageByMessageID = async (messageID: Hex): Promise<Message | null> => {
+export const findMessagesByTxHash = async (
+  txHash: string,
+): Promise<Message[]> => {
+  const db = await databasePromise;
+  return db
+    .collection(CollectionMessages)
+    .find({
+      origin_transaction_hash: ensure0xPrefix(txHash),
+    })
+    .toArray() as unknown as Promise<Message[]>;
+};
+
+export const findMessageByMessageID = async (
+  messageID: Hex,
+): Promise<Message | null> => {
   const db = await databasePromise;
   return db.collection(CollectionMessages).findOne({
     message_id: ensure0xPrefix(messageID),
   }) as Promise<Message | null>;
-}
+};
 
 export const findTransaction = async (
   txHash: string,

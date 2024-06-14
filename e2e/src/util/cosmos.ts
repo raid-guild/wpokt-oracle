@@ -1,12 +1,21 @@
-import { DirectSecp256k1HdWallet, OfflineDirectSigner } from "@cosmjs/proto-signing";
-import { Account, Event, IndexedTx, SigningStargateClient, StargateClient } from "@cosmjs/stargate";
+import {
+  DirectSecp256k1HdWallet,
+  OfflineDirectSigner,
+} from "@cosmjs/proto-signing";
+import {
+  Account,
+  Event,
+  IndexedTx,
+  SigningStargateClient,
+  StargateClient,
+} from "@cosmjs/stargate";
 import { config } from "./config";
 import {
   // parseUnits,
   Hex,
 } from "viem";
 import { sleep } from "./helpers";
-import { fromBech32 } from "@cosmjs/encoding"
+import { fromBech32 } from "@cosmjs/encoding";
 import { keccak256 } from "viem";
 
 function getChainDomain(chainId: string) {
@@ -15,14 +24,14 @@ function getChainDomain(chainId: string) {
   return Number(chainDomain & BigInt(0xffffffff)); // Convert to uint32
 }
 
-const FAUCET_MNEMONIC = "baby advance work soap slow exclude blur humble lucky rough teach wide chuckle captain rack laundry butter main very cannon donate armor dress follow";
+const FAUCET_MNEMONIC =
+  "baby advance work soap slow exclude blur humble lucky rough teach wide chuckle captain rack laundry butter main very cannon donate armor dress follow";
 
 const PREFIX = config.cosmos_network.bech32_prefix;
 
 const RPC_ENDPOINT = config.cosmos_network.rpc_url;
 
 const DENOM = config.cosmos_network.coin_denom;
-
 
 export const getAddress = async (): Promise<string> => {
   const signer = await signerPromise;
@@ -40,7 +49,8 @@ export const getAccount = async (address: string): Promise<Account | null> => {
 
 export function bech32ToHex(bech32Address: string): Hex {
   const decoded = fromBech32(bech32Address);
-  return "0x" + Buffer.from(decoded.data).toString('hex').toLowerCase() as Hex;
+  return ("0x" +
+    Buffer.from(decoded.data).toString("hex").toLowerCase()) as Hex;
 }
 
 export const getBalance = async (address: string): Promise<bigint> => {
@@ -56,7 +66,7 @@ export const getBalance = async (address: string): Promise<bigint> => {
 const POLL_INTERVAL = 1000;
 
 export const getTransaction = async (
-  txHash: string
+  txHash: string,
 ): Promise<IndexedTx | null> => {
   const client = await StargateClient.connect(RPC_ENDPOINT);
 
@@ -74,43 +84,52 @@ export const getTransaction = async (
   return null;
 };
 
-
-
 export type CosmosTx = {
   readonly height: number;
   readonly txIndex: number;
   readonly hash: string;
   readonly code: number;
   readonly events: readonly Event[];
-}
+};
 
 export const sendPOKT = async (
   signer: OfflineDirectSigner,
   recipient: string,
   amount: string,
   memo: string = "",
-  feeAmount: string = ""
+  feeAmount: string = "",
 ): Promise<CosmosTx | null> => {
-
-  const client = await SigningStargateClient.connectWithSigner(RPC_ENDPOINT, signer);
+  const client = await SigningStargateClient.connectWithSigner(
+    RPC_ENDPOINT,
+    signer,
+  );
 
   const amountFinal = {
     denom: DENOM, // Replace with your blockchain's denomination
     amount: amount,
   };
   const fee = {
-    amount: feeAmount && feeAmount != "0" ? [{ denom: DENOM, amount: feeAmount }] : [], // Fee in uatom
+    amount:
+      feeAmount && feeAmount != "0"
+        ? [{ denom: DENOM, amount: feeAmount }]
+        : [], // Fee in uatom
     gas: "200000", // Gas limit
   };
 
   const [firstAccount] = await signer.getAccounts();
 
-  const result = await client.sendTokens(firstAccount.address, recipient, [amountFinal], fee, memo);
+  const result = await client.sendTokens(
+    firstAccount.address,
+    recipient,
+    [amountFinal],
+    fee,
+    memo,
+  );
 
   if (result.code !== 0) {
     return {
       ...result,
-      hash: result.transactionHash
+      hash: result.transactionHash,
     };
   }
 
@@ -120,8 +139,10 @@ export const sendPOKT = async (
 };
 
 export const signerPromise = (async (): Promise<DirectSecp256k1HdWallet> => {
-
-  const faucetWallet = await DirectSecp256k1HdWallet.fromMnemonic(FAUCET_MNEMONIC, { prefix: PREFIX });
+  const faucetWallet = await DirectSecp256k1HdWallet.fromMnemonic(
+    FAUCET_MNEMONIC,
+    { prefix: PREFIX },
+  );
 
   // const newSigner = await DirectSecp256k1HdWallet.generate(12, { prefix: PREFIX });
   //

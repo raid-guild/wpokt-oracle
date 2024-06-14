@@ -4,7 +4,7 @@ import fs from "fs";
 const CONFIG_PATH =
   process.env.CONFIG_PATH || "../defaults/config.local.one.yml";
 
-// TODO: This should be changed 
+// TODO: This should be changed
 export const HYPERLANE_VERSION = 0;
 
 export type Config = {
@@ -74,6 +74,5 @@ export type ServiceConfig = {
   enabled: boolean;
   interval_ms: number;
 };
-
 
 export const config = yaml.load(fs.readFileSync(CONFIG_PATH, "utf8")) as Config;

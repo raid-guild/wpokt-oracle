@@ -1,9 +1,9 @@
 // Import the required dependencies for primitive types and date handling
-import { ObjectId, Long } from 'mongodb';
-import { Hex } from 'viem';
+import { ObjectId, Long } from "mongodb";
+import { Hex } from "viem";
 
 // Define the ChainType type
-export type ChainType = 'ethereum' | 'cosmos';
+export type ChainType = "ethereum" | "cosmos";
 
 // Define the RunnerServiceStatus type
 export type RunnerServiceStatus = {
@@ -43,4 +43,4 @@ export type Node = {
   readonly updated_at: Date;
 };
 
-export const CollectionNodes = 'nodes';
+export const CollectionNodes = "nodes";

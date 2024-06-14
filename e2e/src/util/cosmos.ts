@@ -11,7 +11,7 @@ import {
 } from "@cosmjs/stargate";
 import { config } from "./config";
 import {
-  // parseUnits,
+  parseUnits,
   Hex,
 } from "viem";
 import { sleep } from "./helpers";
@@ -34,7 +34,7 @@ const RPC_ENDPOINT = config.cosmos_network.rpc_url;
 const DENOM = config.cosmos_network.coin_denom;
 
 export const getAddress = async (): Promise<string> => {
-  const signer = await signerPromise;
+  const signer = await getSigner();
   const [account] = await signer.getAccounts();
   return account.address;
 };
@@ -138,26 +138,31 @@ export const sendPOKT = async (
   return tx;
 };
 
-export const signerPromise = (async (): Promise<DirectSecp256k1HdWallet> => {
-  const faucetWallet = await DirectSecp256k1HdWallet.fromMnemonic(
-    FAUCET_MNEMONIC,
-    { prefix: PREFIX },
-  );
+let signer: DirectSecp256k1HdWallet | null = null;
 
-  // const newSigner = await DirectSecp256k1HdWallet.generate(12, { prefix: PREFIX });
-  //
-  // const [newAccount] = await newSigner.getAccounts();
-  //
-  // await sendPOKT(
-  //   faucetWallet,
-  //   newAccount.address,
-  //   parseUnits("100", 6).toString(),
-  //   "init"
-  // );
-  //
-  // return newSigner;
+export const getSigner = async (): Promise<DirectSecp256k1HdWallet> => {
 
-  return faucetWallet;
-})();
+  if (!signer) {
+
+    const faucetWallet = await DirectSecp256k1HdWallet.fromMnemonic(
+      FAUCET_MNEMONIC,
+      { prefix: PREFIX },
+    );
+
+    signer = await DirectSecp256k1HdWallet.generate(12, { prefix: PREFIX });
+
+    const [newAccount] = await signer.getAccounts();
+
+    await sendPOKT(
+      faucetWallet,
+      newAccount.address,
+      parseUnits("9999", 6).toString(),
+      "init"
+    );
+
+  }
+
+  return signer;
+}
 
 export const CHAIN_DOMAIN = getChainDomain(config.cosmos_network.chain_id);

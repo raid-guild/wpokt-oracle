@@ -10,10 +10,10 @@ import {
   defineChain,
   encodeEventTopics,
   http,
-  // parseUnits,
+  parseUnits,
 } from "viem";
 import {
-  // generatePrivateKey,
+  generatePrivateKey,
   privateKeyToAccount,
 } from "viem/accounts";
 import { Chain } from "viem/chains";
@@ -132,24 +132,35 @@ export const sendWPOKT = async (
   return receipt;
 };
 
+
+const wallets: Record<number, WalletClient<Transport, Chain, Account>> = {};
+
 export const getWallet: (
   chain_id: number,
 ) => Promise<WalletClient<Transport, Chain, Account>> = async (
   chain_id: number,
 ) => {
-    // const pKey = generatePrivateKey();
-    // const walletClient = createWalletClient({
-    //   account: privateKeyToAccount(pKey),
-    //   chain: chains[chain_id],
-    //   transport: http(),
-    // });
-    //
-    // await sendETH(
-    //   defaultWalletClient(chain_id),
-    //   walletClient.account.address,
-    //   parseUnits("10", 18)
-    // );
-    const walletClient = defaultWalletClient(chain_id);
+
+    let walletClient: WalletClient<Transport, Chain, Account> | undefined = wallets[chain_id];
+
+    if (!walletClient) {
+
+      const pKey = generatePrivateKey();
+
+      walletClient = createWalletClient({
+        account: privateKeyToAccount(pKey),
+        chain: chains[chain_id],
+        transport: http(),
+      });
+
+      await sendETH(
+        defaultWalletClient(chain_id),
+        walletClient.account.address,
+        parseUnits("99", 18)
+      );
+
+      wallets[chain_id] = walletClient;
+    }
 
     return walletClient;
   };

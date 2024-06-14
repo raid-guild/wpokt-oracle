@@ -24,7 +24,7 @@ export const cosmosToEthereumFlow = async () => {
       "\nTesting -- should refund amount for send tx to vault with invalid memo",
     );
 
-    const signer = await cosmos.signerPromise;
+    const signer = await cosmos.getSigner();
     const fromAddress = await cosmos.getAddress();
     const toAddress = cosmosNetwork.multisig_address;
     const amount = parseUnits("1", 6);
@@ -201,7 +201,7 @@ export const cosmosToEthereumFlow = async () => {
   it("should do consecutive successful refunds", async () => {
     debug("\nTesting -- should do consecutive successful refunds");
 
-    const signer = await cosmos.signerPromise;
+    const signer = await cosmos.getSigner();
     const fromAddress = await cosmos.getAddress();
     const toAddress = cosmosNetwork.multisig_address;
     const beforeBalance = await cosmos.getBalance(fromAddress);
@@ -294,7 +294,7 @@ export const cosmosToEthereumFlow = async () => {
       "\nTesting -- should fulfill on ethereum for send tx to cosmos vault with valid memo",
     );
 
-    const signer = await cosmos.signerPromise;
+    const signer = await cosmos.getSigner();
     const fromAddress = await cosmos.getAddress();
     const recipientAddress = await ethereum.getAddress(ethNetwork.chain_id);
     const toAddress = cosmosNetwork.multisig_address;
@@ -415,7 +415,7 @@ export const cosmosToEthereumFlow = async () => {
   it("should do multiple consecutive mints", async () => {
     debug("\nTesting -- should do multiple consecutive mints");
 
-    const signer = await cosmos.signerPromise;
+    const signer = await cosmos.getSigner();
     const fromAddress = await cosmos.getAddress();
     const recipientAddress = await ethereum.getAddress(ethNetwork.chain_id);
     const toAddress = cosmosNetwork.multisig_address;

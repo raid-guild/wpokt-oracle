@@ -1,6 +1,7 @@
 import {
   Account,
   Hex,
+  PublicClient,
   TransactionReceipt,
   Transport,
   WalletClient,
@@ -56,7 +57,7 @@ const networkConfig: Record<number, EthereumNetworkConfig> =
     {},
   );
 
-const defaultWalletClient: (
+const getDefaultWalletClient: (
   chain_id: number,
 ) => WalletClient<Transport, Chain, Account> = (chain_id: number) =>
     createWalletClient({
@@ -65,9 +66,9 @@ const defaultWalletClient: (
       transport: http(),
     });
 
-const publicClient: (
+export const getPublicClient: (
   chain_id: number,
-) => ReturnType<typeof createPublicClient> = (chain_id: number) =>
+) => PublicClient<Transport, Chain, Account> = (chain_id: number) =>
     createPublicClient({
       chain: chains[chain_id],
       transport: http(),
@@ -77,7 +78,7 @@ export const getBalance = async (
   chain_id: number,
   address: Hex,
 ): Promise<bigint> => {
-  const balance = await publicClient(chain_id).getBalance({
+  const balance = await getPublicClient(chain_id).getBalance({
     address,
   });
   return balance;
@@ -88,7 +89,7 @@ export const getWPOKTBalance = async (
   address: Hex,
 ): Promise<bigint> => {
   const tokenAddress = networkConfig[chain_id].omni_token_address as Hex;
-  const balance = await publicClient(chain_id).readContract({
+  const balance = await getPublicClient(chain_id).readContract({
     address: tokenAddress,
     abi: OmniTokenAbi,
     functionName: "balanceOf",
@@ -107,7 +108,7 @@ export const sendETH = async (
     to: recipient,
     value: amount,
   });
-  const receipt = await publicClient(wallet.chain.id).waitForTransactionReceipt(
+  const receipt = await getPublicClient(wallet.chain.id).waitForTransactionReceipt(
     { hash },
   );
   return receipt;
@@ -126,7 +127,7 @@ export const sendWPOKT = async (
     functionName: "transfer",
     args: [recipient, amount],
   });
-  const receipt = await publicClient(chain_id).waitForTransactionReceipt({
+  const receipt = await getPublicClient(chain_id).waitForTransactionReceipt({
     hash,
   });
   return receipt;
@@ -154,7 +155,7 @@ export const getWallet: (
       });
 
       await sendETH(
-        defaultWalletClient(chain_id),
+        getDefaultWalletClient(chain_id),
         walletClient.account.address,
         parseUnits("99", 18)
       );
@@ -212,7 +213,7 @@ export const initiateOrder = async (
     args: [mintControllerAddress, amount],
   });
 
-  await publicClient(chain_id).waitForTransactionReceipt({
+  await getPublicClient(chain_id).waitForTransactionReceipt({
     hash: approveHash,
   });
 
@@ -223,7 +224,7 @@ export const initiateOrder = async (
     args: args,
   });
 
-  const receipt = await publicClient(chain_id).waitForTransactionReceipt({
+  const receipt = await getPublicClient(chain_id).waitForTransactionReceipt({
     hash,
   });
 
@@ -274,7 +275,7 @@ export const fulfillOrder = async (
     args: [metadata, message],
   });
 
-  const receipt = await publicClient(chain_id).waitForTransactionReceipt({
+  const receipt = await getPublicClient(chain_id).waitForTransactionReceipt({
     hash,
   });
   return receipt;

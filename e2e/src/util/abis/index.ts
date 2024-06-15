@@ -4,6 +4,7 @@ import MailboxAbi from "./Mailbox.json";
 import WarpISMAbi from "./WarpISM.json";
 import AccountFactoryAbi from "./AccountFactory.json";
 import AccountAbi from "./Account.json";
+import Multicall3Abi from "./Multicall3.json";
 
 export {
   OmniTokenAbi,
@@ -12,4 +13,5 @@ export {
   WarpISMAbi,
   AccountAbi,
   AccountFactoryAbi,
+  Multicall3Abi,
 };

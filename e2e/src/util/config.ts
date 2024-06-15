@@ -11,6 +11,7 @@ export const WarpISM = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
 export const Token = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
 export const MintController = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
 export const AccountFactory = "0x610178dA211FEF7D417bC0e6FeD39F05609AD788";
+export const Multicall3 = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e";
 
 export type Config = {
   mnemonic: string;

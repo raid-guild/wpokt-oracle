@@ -34,7 +34,7 @@ type MessageRelayerRunner struct {
 func (x *MessageRelayerRunner) Run() {
 	x.UpdateCurrentHeight()
 	x.CreateTxForRefunds()
-	x.CreateTxMessages()
+	x.CreateTxForMessages()
 	x.ConfirmTransactions()
 }
 
@@ -178,7 +178,7 @@ func (x *MessageRelayerRunner) CreateTxForRefunds() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) CreateTxMessages() bool {
+func (x *MessageRelayerRunner) CreateTxForMessages() bool {
 	x.logger.Infof("Relaying messages")
 	messages, err := db.GetBroadcastedMessages(x.chain)
 	if err != nil {

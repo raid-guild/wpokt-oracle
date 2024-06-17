@@ -12,7 +12,7 @@ import {
 import { sleep, debug } from "../util/helpers";
 import { addressHexToBytes32, decodeMessage } from "../util/message";
 
-const POKT_TX_FEE = BigInt(0);
+const POKT_TX_FEE = cosmos.TX_FEE;
 
 export const ethereumToCosmosFlow = async () => {
   const ethNetwork = config.ethereum_networks[0];

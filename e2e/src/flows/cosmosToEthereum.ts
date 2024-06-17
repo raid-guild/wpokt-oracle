@@ -13,7 +13,7 @@ import {
 import { encodeMessage } from "../util/message";
 import { fulfillSignedMessage } from "./helpers/fulfill";
 
-const POKT_TX_FEE = BigInt(0);
+const POKT_TX_FEE = cosmos.TX_FEE;
 
 export const cosmosToEthereumFlow = async () => {
   const ethNetwork = config.ethereum_networks[0];

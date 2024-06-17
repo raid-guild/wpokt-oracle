@@ -18,7 +18,7 @@ import {
   privateKeyToAccount,
 } from "viem/accounts";
 import { Chain } from "viem/chains";
-import { EthereumNetworkConfig, config } from "./config";
+import { MintController, EthereumNetworkConfig, config } from "./config";
 import { MailboxAbi, MintControllerAbi, OmniTokenAbi } from "./abis";
 import * as cosmos from "./cosmos";
 import { formatMessageBody, addressHexToBytes32 } from "./message";
@@ -48,7 +48,7 @@ const chains: Record<number, Chain> = config.ethereum_networks.reduce(
   {},
 );
 
-const networkConfig: Record<number, EthereumNetworkConfig> =
+export const networkConfig: Record<number, EthereumNetworkConfig> =
   config.ethereum_networks.reduce(
     (acc, network) => ({
       ...acc,
@@ -171,6 +171,16 @@ export const getAddress = async (chain_id: number): Promise<Hex> => {
   return wallet.account.address.toLowerCase() as Hex;
 };
 
+export const getMintControllerAddress = (destinationDomain: number): Hex => {
+  if (destinationDomain === cosmos.CHAIN_DOMAIN) {
+    return cosmos.bech32ToHex(
+      config.cosmos_network.multisig_address,
+    ) as Hex;
+  }
+
+  return MintController;
+}
+
 export const initiateOrder = async (
   chain_id: number,
   destinationDomain: number,
@@ -179,15 +189,7 @@ export const initiateOrder = async (
 ): Promise<TransactionReceipt> => {
   const wallet = await getWallet(chain_id);
 
-  let destMintControllerAddress: Hex = "0x";
-  if (destinationDomain === cosmos.CHAIN_DOMAIN) {
-    destMintControllerAddress = cosmos.bech32ToHex(
-      config.cosmos_network.multisig_address,
-    ) as Hex;
-  } else {
-    destMintControllerAddress = networkConfig[destinationDomain]
-      ?.mint_controller_address as Hex;
-  }
+  const destMintControllerAddress: Hex = getMintControllerAddress(destinationDomain);
 
   const senderAddress = wallet.account.address as Hex;
 
@@ -203,14 +205,12 @@ export const initiateOrder = async (
     messageBody,
   ];
 
-  const mintControllerAddress = networkConfig[chain_id]
-    .mint_controller_address as Hex;
 
   const approveHash = await wallet.writeContract({
     address: networkConfig[chain_id].omni_token_address as Hex,
     abi: OmniTokenAbi,
     functionName: "approve",
-    args: [mintControllerAddress, amount],
+    args: [MintController, amount],
   });
 
   await getPublicClient(chain_id).waitForTransactionReceipt({
@@ -218,7 +218,7 @@ export const initiateOrder = async (
   });
 
   const hash = await wallet.writeContract({
-    address: mintControllerAddress,
+    address: MintController,
     abi: MintControllerAbi,
     functionName: "initiateOrder",
     args: args,
@@ -268,8 +268,9 @@ export const fulfillOrder = async (
   message: Hex,
 ): Promise<TransactionReceipt> => {
   const wallet = await getWallet(chain_id);
+
   const hash = await wallet.writeContract({
-    address: networkConfig[chain_id].mint_controller_address as Hex,
+    address: MintController,
     abi: MintControllerAbi,
     functionName: "fulfillOrder",
     args: [metadata, message],

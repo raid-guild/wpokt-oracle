@@ -326,11 +326,20 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 			continue
 		}
 
+		lockID, err := db.LockWriteTransaction(&txDoc)
+		if err != nil {
+			logger.WithError(err).Errorf("Error locking transaction")
+			success = false
+			continue
+		}
+
 		if result.NeedsRefund {
 			success = x.CreateRefund(txResponse, &txDoc, result.SenderAddress, result.Amount) && success
 			continue
 		}
 		success = x.CreateMessage(txResponse, result.Tx, &txDoc, result.SenderAddress, result.Amount, result.Memo) && success
+
+		db.Unlock(lockID)
 	}
 
 	return success

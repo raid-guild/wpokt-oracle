@@ -166,3 +166,5 @@ export const getSigner = async (): Promise<DirectSecp256k1HdWallet> => {
 }
 
 export const CHAIN_DOMAIN = getChainDomain(config.cosmos_network.chain_id);
+
+export const TX_FEE = BigInt(0);

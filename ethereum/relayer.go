@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/db"
@@ -108,25 +107,11 @@ func (x *MessageRelayerRunner) HandleFulfillmentEvent(event *autogen.MintControl
 		return false
 	}
 
-	insertedID, err := db.InsertTransaction(txDoc)
+	_, err = db.InsertTransaction(txDoc)
 	if err != nil {
 		x.logger.WithError(err).
 			WithField("tx_hash", txHash).
 			Errorf("Error inserting transaction")
-		return false
-	}
-
-	update := bson.M{
-		"transaction":      insertedID,
-		"transaction_hash": txHash,
-	}
-
-	messageID := event.OrderId
-
-	_, err = db.UpdateMessageByMessageID(messageID, update)
-	if err != nil {
-		x.logger.WithError(err).
-			Errorf("Error updating message")
 		return false
 	}
 
@@ -178,6 +163,14 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 		return false
 	}
 
+	lockID, err := db.LockWriteTransaction(txDoc)
+	if err != nil {
+		x.logger.WithError(err).Error("Error locking transaction")
+		return false
+	}
+
+	defer db.Unlock(lockID)
+
 	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "ConfirmMessagesForTx")
 
 	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
@@ -206,7 +199,6 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 				continue
 			}
 			messageIDs = append(messageIDs, event.OrderId)
-			break
 		}
 	}
 
@@ -220,7 +212,7 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 		"transaction_hash": txDoc.Hash,
 	}
 
-	var docIDs []primitive.ObjectID
+	var docIDs = txDoc.Messages
 
 	success := true
 
@@ -240,7 +232,7 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 	}
 
 	update = bson.M{
-		"messages": docIDs,
+		"messages": common.RemoveDuplicates(docIDs),
 	}
 
 	err = db.UpdateTransaction(txDoc.ID, update)

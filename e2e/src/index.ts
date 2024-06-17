@@ -6,6 +6,8 @@ import { config } from "./util/config";
 import { cosmosToEthereumFlow } from "./flows/cosmosToEthereum";
 import { ethereumToCosmosFlow } from "./flows/ethereumToCosmos";
 import { ethereumToEthereumFlow } from "./flows/ethereumToEthereum";
+import { multipleBridgesFlow } from "./flows/multipleBridges";
+
 
 const init = async () => {
   const nodes = await findNodes();
@@ -64,4 +66,5 @@ describe("E2E tests", async () => {
   describe("Cosmos To Ethereum Flow", cosmosToEthereumFlow);
   describe("Ethereum To Cosmos Flow", ethereumToCosmosFlow);
   describe("Ethereum To Ethereum Flow", ethereumToEthereumFlow);
+  describe("Multiple Bridges Flow", multipleBridgesFlow);
 });

@@ -48,8 +48,7 @@ export const fulfillSignedMessage = async (
 
   if (!tx) return;
 
-  expect(tx.messages.length).to.equal(1);
-  expect(tx.messages[0].toString()).to.equal(message._id?.toString());
+  expect(message._id?.toString()).to.oneOf(tx.messages.map((m) => m.toString()));
 
   expect(message.status).to.be.equal(Status.SIGNED);
   debug("Message signed");
@@ -115,7 +114,7 @@ export const fulfillSignedMessage = async (
     ethNetwork.mint_controller_address.toLowerCase(),
   );
 
-  await sleep(3000);
+  await sleep(4000);
 
   tx = await findTransaction(fulfillmentTxHash, ethNetwork.chain_id);
 
@@ -124,8 +123,7 @@ export const fulfillSignedMessage = async (
   if (!tx) return;
 
   expect(tx.status).to.equal(Status.CONFIRMED);
-  expect(tx.messages.length).to.equal(1);
-  expect(tx.messages[0].toString()).to.equal(message._id?.toString());
+  expect(message._id?.toString()).to.oneOf(tx.messages.map((m) => m.toString()));
   debug("Fulfillment transaction confirmed");
 
   message = await findMessageByMessageID(message_id);

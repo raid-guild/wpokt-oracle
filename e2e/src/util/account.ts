@@ -10,11 +10,15 @@ import {
   Transport,
   zeroAddress,
   PublicClient,
+  TransactionReceipt,
+  formatUnits,
 } from 'viem';
 
-import { AccountFactoryAbi, Multicall3Abi } from './abis';
-import { AccountFactory } from './config';
-import { getPublicClient } from './ethereum';
+import { AccountFactoryAbi, MintControllerAbi, Multicall3Abi, OmniTokenAbi } from './abis';
+import { AccountFactory, MintController, Multicall3 } from './config';
+import * as ethereum from './ethereum';
+import { addressHexToBytes32, formatMessageBody } from './message';
+import { debug } from './helpers';
 
 type WriteParams = WriteContractParameters<
   Abi,
@@ -59,7 +63,7 @@ export const getAccount = async (
     return accounts[address];
   }
 
-  const publicClient = getPublicClient(walletClient.chain.id);
+  const publicClient = ethereum.getPublicClient(walletClient.chain.id);
 
   const account = await publicClient.readContract({
     address: AccountFactory,
@@ -80,13 +84,8 @@ export const getAccount = async (
 
 export const executeAsAccount = async (
   walletClient: WalletClient<Transport, Chain, Account>,
-  args: Array<WriteParams> | WriteParams,
-): Promise<Hex> => {
-  if (!Array.isArray(args)) {
-    args = [args] as Array<WriteParams>;
-  }
-
-  const account = await getAccount(walletClient);
+  args: Array<WriteParams>,
+): Promise<TransactionReceipt> => {
 
   const calls = args.map(arg => {
     const data = encodeFunctionData({
@@ -107,25 +106,110 @@ export const executeAsAccount = async (
     args: [calls],
   });
 
-  const to = walletClient.chain?.contracts?.multicall3
-    ?.address as Hex;
-
-  if (!to) {
-    throw new Error('Multicall contract address is not found');
-  }
-
   const value = BigInt(0); // no payable amount
 
   const operation = BigInt(1); // delegatecall
 
-  return walletClient.writeContract({
+  debug("Executing multicall...");
+
+  const hash = await walletClient.writeContract({
     chain: walletClient.chain as Chain,
     account: walletClient.account as Account,
-    address: account,
+    address: await getAccount(walletClient),
     abi: parseAbi([
       'function execute(address to, uint256 value, bytes calldata data, uint256 operation) external',
     ]),
     functionName: 'execute',
-    args: [to, value, data, operation],
+    args: [Multicall3, value, data, operation],
   });
+
+  debug("Multicall executed: ", hash);
+
+  return ethereum.getPublicClient(walletClient.chain.id).waitForTransactionReceipt({ hash });
 };
+
+export type InitiateParams = {
+  destinationDomain: number,
+  recipientAddress: Hex,
+  amount: bigint,
+}
+
+export const initiateMultiOrder = async (
+  wallet: WalletClient<Transport, Chain, Account>,
+  params: InitiateParams[],
+): Promise<TransactionReceipt> => {
+
+  const chain_id = wallet.chain.id;
+
+  const totalAmount = BigInt(params.reduce((t, p) => t + p.amount, BigInt(0)));
+
+  debug("Total amount: ", formatUnits(totalAmount, 6));
+
+  const approveParams: WriteParams = {
+    chain: wallet.chain,
+    account: wallet.account as Account,
+    address: ethereum.networkConfig[chain_id].omni_token_address as Hex,
+    abi: OmniTokenAbi,
+    functionName: "approve",
+    args: [MintController, totalAmount],
+  }
+
+  const writeParams = [approveParams]
+
+  const account = await getAccount(wallet);
+  params.forEach((param) => {
+
+    const { destinationDomain, recipientAddress, amount } = param;
+
+    const messageBody = formatMessageBody(
+      recipientAddress,
+      amount,
+      account,
+    );
+
+    const destMintControllerAddress = ethereum.getMintControllerAddress(destinationDomain);
+
+    const args = [
+      destinationDomain,
+      addressHexToBytes32(destMintControllerAddress),
+      messageBody,
+    ];
+
+    const initiateParams: WriteParams = {
+      chain: wallet.chain,
+      account: wallet.account as Account,
+      address: MintController,
+      abi: MintControllerAbi,
+      functionName: "initiateOrder",
+      args: args,
+    };
+
+    writeParams.push(initiateParams);
+  })
+
+  debug("Write params initialized");
+
+  return executeAsAccount(wallet, writeParams);
+};
+
+export type FulfillParams = {
+  metadata: Hex,
+  message: Hex,
+}
+
+export const fulfillMultiOrder = async (
+  wallet: WalletClient<Transport, Chain, Account>,
+  params: FulfillParams[],
+): Promise<TransactionReceipt> => {
+
+  const writeParams: WriteParams[] = params.map((param) => ({
+    chain: wallet.chain,
+    account: wallet.account as Account,
+    address: MintController,
+    abi: MintControllerAbi,
+    functionName: "fulfillOrder",
+    args: [param.metadata, param.message],
+  }));
+
+  return executeAsAccount(wallet, writeParams);
+}

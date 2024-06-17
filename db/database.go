@@ -186,7 +186,7 @@ func (d *MongoDatabase) SetupIndexes() error {
 	ctx, cancel = context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 	_, err = d.db.Collection(common.CollectionMessages).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "origin_transaction_hash", Value: 1}, {Key: "message_id", Value: 1}},
+		Keys:    bson.D{{Key: "message_id", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
 	if err != nil {

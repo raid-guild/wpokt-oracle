@@ -276,6 +276,13 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusInvalid})
 	}
 
+	lockID, err := db.LockWriteTransaction(txDoc)
+	if err != nil {
+		logger.WithError(err).Error("Error locking transaction")
+		return false
+	}
+	defer db.Unlock(lockID)
+
 	success := true
 
 	for _, event := range events {

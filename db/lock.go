@@ -9,16 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// XLock locks a resource for exclusive access
-// func XLock(resourceID string) (string, error) {
-// 	return mongoDB.XLock(resourceID)
-// }
-//
-// // SLock locks a resource for shared access
-// func SLock(resourceID string) (string, error) {
-// 	return mongoDB.SLock(resourceID)
-// }
-
 // Unlock unlocks a resource
 func Unlock(lockID string) error {
 	return mongoDB.Unlock(lockID)

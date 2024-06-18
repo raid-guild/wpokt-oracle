@@ -36,7 +36,7 @@ func NewEthereumTransaction(
 
 	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 	if err != nil {
-		return models.Transaction{}, err
+		return models.Transaction{}, fmt.Errorf("could not get sender from tx: %w", err)
 	}
 
 	txFrom := common.Ensure0xPrefix(from.String())

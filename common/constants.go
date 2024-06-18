@@ -9,7 +9,7 @@ const (
 )
 
 const (
-	HyperlaneVersion = 0 // TODO: update to latest when contracts are upgraded
+	HyperlaneVersion uint8 = 0 // TODO: update to latest when contracts are upgraded
 )
 
 const (

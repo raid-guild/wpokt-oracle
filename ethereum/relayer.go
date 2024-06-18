@@ -2,6 +2,7 @@ package ethereum
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -59,62 +60,84 @@ func (x *MessageRelayerRunner) UpdateCurrentBlockHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageRelayerRunner) HandleFulfillmentEvent(event *autogen.MintControllerFulfillment) bool {
+func (x *MessageRelayerRunner) CreateTxForFulfillmentEvent(event *autogen.MintControllerFulfillment) bool {
 	if event == nil {
-		x.logger.Error("HandleFulfillmentEvent: event is nil")
-		return false
-	}
-
-	var messageContent models.MessageContent
-
-	err := messageContent.DecodeFromBytes(event.Message)
-	if err != nil {
-		x.logger.WithError(err).Error("Error decoding message content")
 		return false
 	}
 
 	txHash := event.Raw.TxHash.String()
+	logger := x.logger.WithField("tx_hash", txHash).WithField("section", "CreateTxForFulfillmentEvent")
 
-	tx, isPending, err := x.client.GetTransactionByHash(txHash)
+	result, err := ValidateTransactionByHash(x.client, txHash)
 	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction by hash")
-		return false
-	}
-	if tx == nil {
-		x.logger.Errorf("Transaction not found: %s", txHash)
-		return false
-	}
-	if isPending {
-		x.logger.Infof("Transaction is pending")
-		return false
-	}
-	receipt, err := x.client.GetTransactionReceipt(txHash)
-	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction receipt")
+		logger.WithError(err).Errorf("Error validating transaction")
 		return false
 	}
 
-	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		x.logger.Infof("Transaction failed")
-		return false
-	}
-
-	txDoc, err := db.NewEthereumTransaction(tx, x.mintController.Address().Bytes(), receipt, x.chain, models.TransactionStatusPending)
+	txDoc, err := db.NewEthereumTransaction(result.tx, x.mintController.Address().Bytes(), result.receipt, x.chain, models.TransactionStatusPending)
 	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txHash).
-			Errorf("Error creating transaction")
+		logger.WithError(err).Errorf("Error creating transaction")
 		return false
 	}
 
 	_, err = db.InsertTransaction(txDoc)
 	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txHash).
-			Errorf("Error inserting transaction")
+		logger.WithError(err).Errorf("Error inserting transaction")
 		return false
 	}
 
+	return true
+}
+
+type ValidateTransactionAndParseFulfillmentEventsResult struct {
+	Events        []*autogen.MintControllerFulfillment
+	Confirmations uint64
+	TxStatus      models.TransactionStatus
+}
+
+func (x *MessageRelayerRunner) ValidateTransactionAndParseFulfillmentEvents(txHash string) (*ValidateTransactionAndParseFulfillmentEventsResult, error) {
+	receipt, err := x.client.GetTransactionReceipt(txHash)
+	if err != nil {
+		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
+	}
+	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
+		return &ValidateTransactionAndParseFulfillmentEventsResult{
+			TxStatus: models.TransactionStatusFailed,
+		}, nil
+	}
+	var events []*autogen.MintControllerFulfillment
+	for _, log := range receipt.Logs {
+		if log.Address == x.mintController.Address() {
+			event, err := x.mintController.ParseFulfillment(*log)
+			if err != nil {
+				continue
+			}
+			events = append(events, event)
+		}
+	}
+	result := &ValidateTransactionAndParseFulfillmentEventsResult{
+		Events:        events,
+		Confirmations: x.currentBlockHeight - receipt.BlockNumber.Uint64(),
+		TxStatus:      models.TransactionStatusPending,
+	}
+	if result.Confirmations >= x.confirmations {
+		result.TxStatus = models.TransactionStatusConfirmed
+	}
+	if len(events) == 0 {
+		result.TxStatus = models.TransactionStatusInvalid
+	}
+	return result, nil
+}
+
+func (x *MessageRelayerRunner) UpdateTransaction(
+	tx *models.Transaction,
+	update bson.M,
+) bool {
+	err := db.UpdateTransaction(tx.ID, update)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error updating transaction")
+		return false
+	}
 	return true
 }
 
@@ -124,37 +147,17 @@ func (x *MessageRelayerRunner) ConfirmTx(txDoc *models.Transaction) bool {
 		return false
 	}
 
-	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
+	result, err := x.ValidateTransactionAndParseFulfillmentEvents(txDoc.Hash)
 	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction receipt")
-		return false
-	}
-
-	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		x.logger.Infof("Transaction failed")
-		return false
-	}
-
-	confirmations := x.currentBlockHeight - txDoc.BlockHeight
-	if confirmations < x.confirmations {
-		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
+		x.logger.WithError(err).Error("Error validating transaction and parsing dispatch events")
 		return false
 	}
 
 	update := bson.M{
-		"confirmations": confirmations,
-		"status":        models.TransactionStatusConfirmed,
+		"confirmations": result.Confirmations,
+		"status":        result.TxStatus,
 	}
-
-	err = db.UpdateTransaction(txDoc.ID, update)
-	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txDoc.Hash).
-			Errorf("Error updating transaction")
-		return false
-	}
-
-	return true
+	return x.UpdateTransaction(txDoc, update)
 }
 
 func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) bool {
@@ -163,47 +166,24 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 		return false
 	}
 
-	lockID, err := db.LockWriteTransaction(txDoc)
-	if err != nil {
-		x.logger.WithError(err).Error("Error locking transaction")
-		return false
-	}
-
-	defer db.Unlock(lockID)
-
 	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "ConfirmMessagesForTx")
 
-	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
+	result, err := x.ValidateTransactionAndParseFulfillmentEvents(txDoc.Hash)
 	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction receipt")
+		logger.WithError(err).Error("Error validating transaction and parsing dispatch events")
 		return false
 	}
 
-	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		x.logger.Infof("Transaction failed")
-		return false
+	if result.TxStatus != models.TransactionStatusConfirmed {
+		logger.Errorf("Transaction not confirmed")
+		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
 	}
 
-	confirmations := x.currentBlockHeight - txDoc.BlockHeight
-	if confirmations < x.confirmations {
-		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
+	if lockID, err := db.LockWriteTransaction(txDoc); err != nil {
+		logger.WithError(err).Error("Error locking transaction")
 		return false
-	}
-
-	var messageIDs [][32]byte
-	for _, log := range receipt.Logs {
-		if log.Address == x.mintController.Address() {
-			event, err := x.mintController.ParseFulfillment(*log)
-			if err != nil {
-				logger.WithError(err).Errorf("Error parsing fulfillment event")
-				continue
-			}
-			messageIDs = append(messageIDs, event.OrderId)
-		}
-	}
-
-	if len(messageIDs) == 0 {
-		return false
+	} else {
+		defer db.Unlock(lockID)
 	}
 
 	update := bson.M{
@@ -212,37 +192,23 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 		"transaction_hash": txDoc.Hash,
 	}
 
-	var docIDs = txDoc.Messages
-
 	success := true
 
-	for _, messageID := range messageIDs {
-		docID, err := db.UpdateMessageByMessageID(messageID, update)
+	for _, event := range result.Events {
+		docID, err := db.UpdateMessageByMessageID(event.OrderId, update)
 		if err != nil {
-			logger.WithError(err).
-				Errorf("Error updating message")
+			logger.WithError(err).Errorf("Error updating message")
 			success = false
-		} else {
-			docIDs = append(docIDs, docID)
+			continue
 		}
+		txDoc.Messages = append(txDoc.Messages, docID)
 	}
 
 	if !success {
 		return false
 	}
 
-	update = bson.M{
-		"messages": common.RemoveDuplicates(docIDs),
-	}
-
-	err = db.UpdateTransaction(txDoc.ID, update)
-	if err != nil {
-		logger.WithError(err).
-			Errorf("Error updating transaction")
-		return false
-	}
-
-	return true
+	return x.UpdateTransaction(txDoc, bson.M{"messages": common.RemoveDuplicates(txDoc.Messages)})
 }
 
 func (x *MessageRelayerRunner) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
@@ -279,7 +245,7 @@ func (x *MessageRelayerRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 			continue
 		}
 
-		success = x.HandleFulfillmentEvent(event) && success
+		success = x.CreateTxForFulfillmentEvent(event) && success
 	}
 
 	if err := filter.Error(); err != nil {

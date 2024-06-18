@@ -253,13 +253,12 @@ func (x *MessageSignerRunner) SignMessage(
 		update["status"] = models.MessageStatusSigned
 	}
 
-	lockID, err := db.LockWriteSequence()
-	if err != nil {
+	if lockID, err := db.LockWriteSequence(); err != nil {
 		logger.WithError(err).Error("Error locking sequence")
 		return false
+	} else {
+		defer db.Unlock(lockID)
 	}
-
-	defer db.Unlock(lockID)
 
 	err = db.UpdateMessage(messageDoc.ID, update)
 	if err != nil {
@@ -270,89 +269,101 @@ func (x *MessageSignerRunner) SignMessage(
 	return true
 }
 
+type ValidateTransactionAndParseDispatchIdEventsResult struct {
+	Event         *autogen.MailboxDispatchId
+	Confirmations uint64
+	TxStatus      models.TransactionStatus
+}
+
+func (x *MessageSignerRunner) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
+	chainDomain := messageDoc.Content.OriginDomain
+	txHash := messageDoc.OriginTransactionHash
+	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting message ID bytes: %w", err)
+	}
+
+	ethClient, ok := x.ethClientMap[chainDomain]
+	if !ok {
+		return nil, fmt.Errorf("ethereum client not found")
+	}
+	mailbox, ok := x.mailboxMap[chainDomain]
+	if !ok {
+		return nil, fmt.Errorf("mailbox not found")
+	}
+
+	receipt, err := ethClient.GetTransactionReceipt(txHash)
+	if err != nil {
+		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
+	}
+	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
+		return &ValidateTransactionAndParseDispatchIdEventsResult{
+			TxStatus: models.TransactionStatusFailed,
+		}, nil
+	}
+	var dispatchEvent *autogen.MailboxDispatchId
+	for _, log := range receipt.Logs {
+		if log.Address == mailbox.Address() {
+			event, err := mailbox.ParseDispatchId(*log)
+			if err != nil {
+				continue
+			}
+			if bytes.Equal(event.MessageId[:], messageIDBytes) {
+				dispatchEvent = event
+				break
+			}
+		}
+	}
+
+	currentBlockHeight, err := ethClient.GetBlockHeight()
+	if err != nil {
+		return nil, fmt.Errorf("error getting current block height: %w", err)
+	}
+
+	result := &ValidateTransactionAndParseDispatchIdEventsResult{
+		Event:         dispatchEvent,
+		Confirmations: currentBlockHeight - receipt.BlockNumber.Uint64(),
+		TxStatus:      models.TransactionStatusPending,
+	}
+
+	if result.Confirmations >= ethClient.Confirmations() {
+		result.TxStatus = models.TransactionStatusConfirmed
+	}
+	if dispatchEvent == nil {
+		result.TxStatus = models.TransactionStatusInvalid
+	}
+	if messageIdFromContent, err := common.BytesFromHex(messageDoc.MessageID); err != nil || !bytes.Equal(messageIdFromContent, dispatchEvent.MessageId[:]) {
+		result.TxStatus = models.TransactionStatusInvalid
+	}
+	return result, nil
+}
+
 func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
-	originDomain := messageDoc.Content.OriginDomain
-
-	client, ok := x.ethClientMap[originDomain]
-	if !ok {
-		logger.Infof("Ethereum client not found")
-		return false
-	}
-
-	mailbox, ok := x.mailboxMap[originDomain]
-	if !ok {
-		logger.Infof("Mailbox not found")
-		return false
-	}
-
-	receipt, err := client.GetTransactionReceipt(messageDoc.OriginTransactionHash)
+	result, err := x.ValidateAndFindDispatchIdEvent(messageDoc)
 	if err != nil {
-		logger.WithError(err).Errorf("Error getting tx receipt")
+		x.logger.WithError(err).Error("Error validating transaction and parsing DispatchId events")
 		return false
 	}
 
-	if receipt == nil {
-		logger.Infof("Tx receipt not found")
+	if result.TxStatus == models.TransactionStatusPending {
+		logger.Debugf("Found pending tx")
 		return false
 	}
 
-	if receipt.Status != types.ReceiptStatusSuccessful {
-		logger.Infof("Tx receipt failed")
+	if result.TxStatus != models.TransactionStatusConfirmed {
+		logger.Debugf("Found tx with status %s", result.TxStatus)
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	messageBytes, err := messageDoc.Content.EncodeToBytes()
-	if err != nil {
-		logger.WithError(err).Errorf("Error encoding message to bytes")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
-	if !ok {
-		logger.Infof("Mint controller not found")
-		return false
-	}
-
-	var dispatchEvent *autogen.MailboxDispatch
-	for _, log := range receipt.Logs {
-		if log.Address == mailbox.Address() {
-			event, err := mailbox.ParseDispatch(*log)
-			if err != nil {
-				logger.WithError(err).Errorf("Error parsing dispatch event")
-				continue
-			}
-			if event.Destination != x.chain.ChainDomain {
-				logger.Infof("Event destination is not this chain")
-				continue
-			}
-			if !bytes.Equal(event.Recipient[12:32], mintController) {
-				logger.Infof("Event recipient is not mint controller")
-				continue
-			}
-			if !bytes.Equal(event.Message, messageBytes) {
-				logger.Infof("Message does not match")
-				continue
-			}
-			dispatchEvent = event
-			break
-		}
-	}
-	if dispatchEvent == nil {
-		logger.Infof("Dispatch event not found")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	lockID, err := db.LockWriteMessage(messageDoc)
-	// lock before signing so that no other validator adds a signature at the same time
-	if err != nil {
+	if lockID, err := db.LockWriteMessage(messageDoc); err != nil {
 		logger.WithError(err).Error("Error locking message")
 		return false
+	} else {
+		defer db.Unlock(lockID)
 	}
-
-	defer db.Unlock(lockID)
 
 	return x.SignMessage(messageDoc)
 }
@@ -1044,7 +1055,7 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 			continue
 		}
 
-		result, err := util.ValidateCosmosTx(txResponse, x.config, x.supportedChainIDsEthereum)
+		result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 
 		if err != nil {
 			logger.WithError(err).Errorf("Error validating tx")
@@ -1052,18 +1063,21 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 			continue
 		}
 
-		if !result.NeedsRefund || result.TxStatus != models.TransactionStatusPending {
+		if !result.NeedsRefund {
 			logger.Debugf("Tx does not need refund")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
 
-		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
-
-		if confirmations < x.config.Confirmations {
-			logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending}) && success
+		if result.TxStatus == models.TransactionStatusPending {
+			logger.Debugf("Found tx with not enough confirmations")
+			success = false
 			continue
+		}
+
+		if result.TxStatus != models.TransactionStatusConfirmed {
+			logger.Debugf("Tx is invalid")
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 		}
 
 		lockID, err := db.LockWriteRefund(&refundDoc)
@@ -1107,7 +1121,7 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 			continue
 		}
 
-		result, err := util.ValidateCosmosTx(txResponse, x.config, x.supportedChainIDsEthereum)
+		result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 
 		if err != nil {
 			logger.WithError(err).Errorf("Error validating tx")
@@ -1115,8 +1129,20 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 			continue
 		}
 
-		if !result.NeedsRefund || result.TxStatus != models.TransactionStatusPending {
+		if !result.NeedsRefund {
 			logger.Debugf("Tx does not need refund")
+			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
+			continue
+		}
+
+		if result.TxStatus == models.TransactionStatusPending {
+			logger.Debugf("Tx is pending")
+			success = false
+			continue
+		}
+
+		if result.TxStatus != models.TransactionStatusConfirmed {
+			logger.Debugf("Tx is invalid")
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 			continue
 		}
@@ -1124,14 +1150,6 @@ func (x *MessageSignerRunner) SignRefunds() bool {
 		if !x.ValidateRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) {
 			logger.Warnf("Invalid refund")
 			return x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
-		}
-
-		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
-
-		if confirmations < x.config.Confirmations {
-			logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
-			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusPending}) && success
-			continue
 		}
 
 		lockID, err := db.LockWriteRefund(&refundDoc)

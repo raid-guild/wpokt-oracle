@@ -135,9 +135,12 @@ func (x *MessageMonitorRunner) CreateMessage(
 		x.logger.WithError(err).Errorf("Error parsing recipient address")
 		return false
 	}
-	amount := amountCoin.Amount.Uint64()
 
-	messageBody, err := db.NewMessageBody(senderAddr, amount, recipientAddr)
+	messageBody, err := db.NewMessageBody(
+		senderAddr,
+		amountCoin.Amount.Uint64(),
+		recipientAddr,
+	)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating message body")
 		return false
@@ -148,8 +151,6 @@ func (x *MessageMonitorRunner) CreateMessage(
 		return false
 	}
 
-	nonce := uint32(tx.AuthInfo.SignerInfos[0].Sequence)
-
 	chainID, _ := strconv.Atoi(memo.ChainID)
 	destinationDomain := uint32(chainID)
 	destMintController, ok := x.mintControllerMap[destinationDomain]
@@ -159,7 +160,7 @@ func (x *MessageMonitorRunner) CreateMessage(
 	}
 
 	messageContent, err := db.NewMessageContent(
-		nonce,
+		uint32(tx.AuthInfo.SignerInfos[0].Sequence),
 		x.chain.ChainDomain,
 		senderAddr,
 		destinationDomain,
@@ -185,11 +186,7 @@ func (x *MessageMonitorRunner) CreateMessage(
 
 	txDoc.Messages = append(txDoc.Messages, messageID)
 
-	update := bson.M{
-		"messages": common.RemoveDuplicates(txDoc.Messages),
-	}
-
-	err = db.UpdateTransaction(txDoc.ID, update)
+	err = db.UpdateTransaction(txDoc.ID, bson.M{"messages": common.RemoveDuplicates(txDoc.Messages)})
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -215,8 +212,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 	for _, txResponse := range txResponses {
 		logger := x.logger.WithField("tx_hash", txResponse.TxHash).WithField("section", "sync")
 
-		result, err := util.ValidateCosmosTx(txResponse, x.config, x.supportedChainIDsEthereum)
-
+		result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 		if err != nil {
 			success = false
 			logger.WithError(err).Errorf("Error validating tx")
@@ -233,6 +229,27 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 	return success
 }
 
+func (x *MessageMonitorRunner) ValidateAndConfirmTx(txDoc *models.Transaction) bool {
+	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "confirm")
+	txResponse, err := x.client.GetTx(txDoc.Hash)
+	if err != nil {
+		logger.WithError(err).Errorf("Error getting tx")
+		return false
+	}
+
+	result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
+	if err != nil {
+		logger.WithError(err).Errorf("Error validating tx")
+		return false
+	}
+
+	update := bson.M{
+		"confirmations": result.Confirmations,
+		"status":        result.TxStatus,
+	}
+	return x.UpdateTransaction(txDoc, update)
+}
+
 func (x *MessageMonitorRunner) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
 	txs, err := db.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
@@ -243,43 +260,48 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 	x.logger.Infof("Found %d pending txs", len(txs))
 	success := true
 	for _, txDoc := range txs {
-		logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "confirm")
-		txResponse, err := x.client.GetTx(txDoc.Hash)
-		if err != nil {
-			logger.WithError(err).Errorf("Error getting tx")
-			success = false
-			continue
-		}
-
-		result, err := util.ValidateCosmosTx(txResponse, x.config, x.supportedChainIDsEthereum)
-
-		if err != nil {
-			logger.WithError(err).Errorf("Error validating tx")
-			success = false
-			continue
-		}
-
-		if result.TxStatus != models.TransactionStatusPending {
-			logger.Infof("Found tx with status %s", result.TxStatus)
-			success = x.UpdateTransaction(&txDoc, bson.M{"status": result.TxStatus}) && success
-			continue
-		}
-
-		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
-
-		update := bson.M{
-			"status":        models.TransactionStatusPending,
-			"confirmations": confirmations,
-		}
-
-		if confirmations >= x.config.Confirmations {
-			update["status"] = models.TransactionStatusConfirmed
-		}
-
-		success = x.UpdateTransaction(&txDoc, update) && success
+		success = x.ValidateAndConfirmTx(&txDoc) && success
 	}
 
 	return success
+}
+
+func (x *MessageMonitorRunner) ValidateTxAndCreate(txDoc *models.Transaction) bool {
+	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "create")
+	txResponse, err := x.client.GetTx(txDoc.Hash)
+	if err != nil {
+		logger.WithError(err).Errorf("Error getting tx")
+		return false
+	}
+
+	result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
+	if err != nil {
+		logger.WithError(err).Errorf("Error validating tx")
+		return false
+	}
+
+	if result.TxStatus == models.TransactionStatusPending {
+		logger.Debugf("Found tx with status pending")
+		return false
+	}
+
+	if result.TxStatus != models.TransactionStatusConfirmed {
+		logger.Warnf("Found tx with status %s", result.TxStatus)
+		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
+	}
+
+	if lockID, err := db.LockWriteTransaction(txDoc); err != nil {
+		logger.WithError(err).Errorf("Error locking transaction")
+		return false
+	} else {
+		defer db.Unlock(lockID)
+	}
+
+	if result.NeedsRefund {
+		return x.CreateRefund(txResponse, txDoc, result.SenderAddress, result.Amount)
+	}
+
+	return x.CreateMessage(txResponse, result.Tx, txDoc, result.SenderAddress, result.Amount, result.Memo)
 }
 
 func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
@@ -292,54 +314,7 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 	x.logger.Infof("Found %d confirmed txs", len(txDocs))
 	success := true
 	for _, txDoc := range txDocs {
-		logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "create")
-		txResponse, err := x.client.GetTx(txDoc.Hash)
-		if err != nil {
-			logger.WithError(err).Errorf("Error getting tx")
-			success = false
-			continue
-		}
-
-		result, err := util.ValidateCosmosTx(txResponse, x.config, x.supportedChainIDsEthereum)
-
-		if err != nil {
-			logger.WithError(err).Errorf("Error validating tx")
-			success = false
-			continue
-		}
-
-		if result.TxStatus != models.TransactionStatusPending {
-			logger.Infof("Found tx with status %s", result.TxStatus)
-			success = x.UpdateTransaction(&txDoc, bson.M{"status": result.TxStatus}) && success
-			continue
-		}
-
-		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
-
-		update := bson.M{
-			"status":        models.TransactionStatusPending,
-			"confirmations": confirmations,
-		}
-
-		if confirmations < x.config.Confirmations {
-			success = x.UpdateTransaction(&txDoc, update) && success
-			continue
-		}
-
-		lockID, err := db.LockWriteTransaction(&txDoc)
-		if err != nil {
-			logger.WithError(err).Errorf("Error locking transaction")
-			success = false
-			continue
-		}
-
-		if result.NeedsRefund {
-			success = x.CreateRefund(txResponse, &txDoc, result.SenderAddress, result.Amount) && success
-			continue
-		}
-		success = x.CreateMessage(txResponse, result.Tx, &txDoc, result.SenderAddress, result.Amount, result.Memo) && success
-
-		db.Unlock(lockID)
+		success = x.ValidateTxAndCreate(&txDoc) && success
 	}
 
 	return success

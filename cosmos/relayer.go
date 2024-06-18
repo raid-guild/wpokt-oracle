@@ -45,15 +45,11 @@ func (x *MessageRelayerRunner) Height() uint64 {
 func (x *MessageRelayerRunner) UpdateCurrentHeight() {
 	height, err := x.client.GetLatestBlockHeight()
 	if err != nil {
-		x.logger.
-			WithError(err).
-			Error("could not get current block height")
+		x.logger.WithError(err).Error("could not get current block height")
 		return
 	}
 	x.currentBlockHeight = uint64(height)
-	x.logger.
-		WithField("current_block_height", x.currentBlockHeight).
-		Info("updated current block height")
+	x.logger.WithField("current_block_height", x.currentBlockHeight).Info("updated current block height")
 }
 
 func (x *MessageRelayerRunner) UpdateRefund(
@@ -285,8 +281,6 @@ func (x *MessageRelayerRunner) ConfirmTransactions() bool {
 			}
 			continue
 		}
-		logger.
-			Debugf("Found pending tx")
 
 		confirmations := x.currentBlockHeight - uint64(txResponse.Height)
 

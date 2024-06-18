@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -36,8 +37,7 @@ type MessageSignerRunner struct {
 	mintController eth.MintControllerContract
 	warpISM        eth.WarpISMContract
 
-	client        eth.EthereumClient
-	confirmations uint64
+	client eth.EthereumClient
 
 	cosmosConfig models.CosmosNetworkConfig
 	cosmosClient cosmos.CosmosClient
@@ -115,156 +115,174 @@ func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-message")
 	logger.Debugf("Signing message")
 
-	lockID, err := db.LockWriteMessage(messageDoc)
-	if err != nil {
+	if lockID, err := db.LockWriteMessage(messageDoc); err != nil {
 		logger.WithError(err).Errorf("Error locking message")
 		return false
+	} else {
+		defer db.Unlock(lockID)
 	}
-	defer db.Unlock(lockID)
 
-	err = util.SignMessage(messageDoc, x.domain, x.privateKey)
-	if err != nil {
+	if err := util.SignMessage(messageDoc, x.domain, x.privateKey); err != nil {
 		logger.WithError(err).Errorf("Error signing message")
 		return false
 	}
 
-	status := models.MessageStatusPending
-
-	if len(messageDoc.Signatures) >= int(x.signerThreshold) {
-		status = models.MessageStatusSigned
-	}
-
 	update := bson.M{
-		"status":     status,
+		"status":     models.MessageStatusPending,
 		"signatures": messageDoc.Signatures,
 	}
+	if len(messageDoc.Signatures) >= int(x.signerThreshold) {
+		update["status"] = models.MessageStatusSigned
+	}
 
-	updated := x.UpdateMessage(messageDoc, update)
+	logger.Debugf("Message signed")
+	return x.UpdateMessage(messageDoc, update)
+}
 
-	return updated
+func (x *MessageSignerRunner) ValidateCosmosMessage(messageDoc *models.Message) (confirmed bool, err error) {
+	txResponse, err := x.cosmosClient.GetTx(messageDoc.OriginTransactionHash)
+	if err != nil {
+		return false, fmt.Errorf("error getting tx: %w", err)
+	}
+
+	supportedChainIDsEthereum := map[uint32]bool{uint32(x.chain.ChainDomain): true}
+
+	result, err := cosmosUtil.ValidateTxToCosmosMultisig(txResponse, x.cosmosConfig, supportedChainIDsEthereum, x.currentCosmosBlockHeight)
+	if err != nil {
+		return false, fmt.Errorf("error validating tx response: %w", err)
+	}
+
+	if result.NeedsRefund {
+		return false, fmt.Errorf("tx needs refund")
+	}
+
+	if messageDoc.Content.MessageBody.Amount != result.Amount.Amount.Uint64() {
+		return false, fmt.Errorf("amount mismatch")
+	}
+
+	if !strings.EqualFold(messageDoc.Content.MessageBody.SenderAddress, common.HexFromBytes(result.SenderAddress)) {
+		return false, fmt.Errorf("sender mismatch")
+	}
+
+	if !strings.EqualFold(messageDoc.Content.MessageBody.RecipientAddress, result.Memo.Address) {
+		return false, fmt.Errorf("recipient mismatch")
+	}
+
+	if result.TxStatus == models.TransactionStatusPending {
+		return false, nil
+	}
+
+	if result.TxStatus != models.TransactionStatusConfirmed {
+		return false, fmt.Errorf("tx is invalid")
+	}
+
+	return true, nil
 }
 
 func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-cosmos-message")
 	logger.Debugf("Signing cosmos message")
 
-	txResponse, err := x.cosmosClient.GetTx(messageDoc.OriginTransactionHash)
+	confirmed, err := x.ValidateCosmosMessage(messageDoc)
+
 	if err != nil {
-		logger.WithError(err).Errorf("Error getting tx")
+		logger.WithError(err).Errorf("Error validating cosmos message")
+		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+	}
+
+	if !confirmed {
+		logger.Debugf("Found pending tx")
 		return false
 	}
 
-	supportedChainIDsEthereum := map[uint32]bool{
-		uint32(x.chain.ChainDomain): true,
-	}
-
-	result, err := cosmosUtil.ValidateCosmosTx(txResponse, x.cosmosConfig, supportedChainIDsEthereum)
-
-	if err != nil {
-		logger.WithError(err).Errorf("Error validating tx response")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	if result.TxStatus != models.TransactionStatusPending {
-		logger.Debugf("Found tx with status %s", result.TxStatus)
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	if result.NeedsRefund {
-		logger.Debugf("Found tx with needs refund")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	if messageDoc.Content.MessageBody.Amount != result.Amount.Amount.Uint64() {
-		logger.Debugf("Found tx with amount mismatch")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	if !strings.EqualFold(messageDoc.Content.MessageBody.SenderAddress, common.HexFromBytes(result.SenderAddress)) {
-		logger.Debugf("Found tx with sender mismatch")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	if !strings.EqualFold(messageDoc.Content.MessageBody.RecipientAddress, result.Memo.Address) {
-		logger.Debugf("Found tx with recipient mismatch")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	confirmations := x.currentCosmosBlockHeight - uint64(txResponse.Height)
-
-	if confirmations < x.cosmosConfig.Confirmations {
-		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusPending})
-	}
-
-	log.Debugf("Found valid tx with message to be signed")
-
 	return x.SignMessage(messageDoc)
+}
+
+type ValidateTransactionAndParseDispatchIdEventsResult struct {
+	Event         *autogen.MailboxDispatchId
+	Confirmations uint64
+	TxStatus      models.TransactionStatus
+}
+
+func (x *MessageSignerRunner) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
+	chainDomain := messageDoc.Content.OriginDomain
+	txHash := messageDoc.OriginTransactionHash
+	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting message ID bytes: %w", err)
+	}
+
+	ethClient, ok := x.ethClientMap[chainDomain]
+	if !ok {
+		return nil, fmt.Errorf("ethereum client not found")
+	}
+	mailbox, ok := x.mailboxMap[chainDomain]
+	if !ok {
+		return nil, fmt.Errorf("mailbox not found")
+	}
+
+	receipt, err := ethClient.GetTransactionReceipt(txHash)
+	if err != nil {
+		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
+	}
+	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
+		return &ValidateTransactionAndParseDispatchIdEventsResult{
+			TxStatus: models.TransactionStatusFailed,
+		}, nil
+	}
+	var dispatchEvent *autogen.MailboxDispatchId
+	for _, log := range receipt.Logs {
+		if log.Address == mailbox.Address() {
+			event, err := mailbox.ParseDispatchId(*log)
+			if err != nil {
+				continue
+			}
+			if bytes.Equal(event.MessageId[:], messageIDBytes) {
+				dispatchEvent = event
+				break
+			}
+		}
+	}
+
+	currentBlockHeight, err := ethClient.GetBlockHeight()
+	if err != nil {
+		return nil, fmt.Errorf("error getting current block height: %w", err)
+	}
+
+	result := &ValidateTransactionAndParseDispatchIdEventsResult{
+		Event:         dispatchEvent,
+		Confirmations: currentBlockHeight - receipt.BlockNumber.Uint64(),
+		TxStatus:      models.TransactionStatusPending,
+	}
+	if result.Confirmations >= ethClient.Confirmations() {
+		result.TxStatus = models.TransactionStatusConfirmed
+	}
+	if dispatchEvent == nil {
+		result.TxStatus = models.TransactionStatusInvalid
+	}
+	if messageIdFromContent, err := common.BytesFromHex(messageDoc.MessageID); err != nil || !bytes.Equal(messageIdFromContent, dispatchEvent.MessageId[:]) {
+		result.TxStatus = models.TransactionStatusInvalid
+	}
+	return result, nil
 }
 
 func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
-	ethClient, ok := x.ethClientMap[messageDoc.Content.OriginDomain]
-
-	if !ok {
-		logger.Errorf("Ethereum client not found")
-		return false
-	}
-
-	receipt, err := ethClient.GetTransactionReceipt(messageDoc.OriginTransactionHash)
+	result, err := x.ValidateAndFindDispatchIdEvent(messageDoc)
 	if err != nil {
-		logger.WithError(err).Errorf("Error getting tx receipt")
+		x.logger.WithError(err).Error("Error validating transaction and parsing DispatchId events")
 		return false
 	}
 
-	if receipt == nil {
-		logger.Infof("Tx receipt not found")
+	if result.TxStatus == models.TransactionStatusPending {
+		logger.Debugf("Found pending tx")
 		return false
 	}
 
-	if receipt.Status != types.ReceiptStatusSuccessful {
-		logger.Infof("Tx receipt failed")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
-	if err != nil {
-		logger.WithError(err).Errorf("Error decoding message ID")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	confirmations := x.currentEthereumBlockHeight - receipt.BlockNumber.Uint64()
-	if confirmations < uint64(x.confirmations) {
-		logger.WithField("confirmations", confirmations).Debugf("Found tx with not enough confirmations")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusPending})
-	}
-
-	mailbox, ok := x.mailboxMap[messageDoc.Content.OriginDomain]
-	if !ok {
-		logger.Errorf("Mailbox not found")
-		return false
-	}
-
-	var dispatchEvent *autogen.MailboxDispatchId
-	for _, log := range receipt.Logs {
-		if log.Address == mailbox.Address() {
-			event, err := mailbox.ParseDispatchId(*log)
-			if err != nil {
-				logger.WithError(err).Errorf("Error parsing DispatchId event")
-				continue
-			}
-			if !bytes.Equal(event.MessageId[:], messageIDBytes) {
-				logger.Infof("Message does not match")
-				continue
-			}
-			dispatchEvent = event
-			break
-		}
-	}
-	if dispatchEvent == nil {
-		logger.Debugf("DispatchId event not found")
+	if result.TxStatus != models.TransactionStatusConfirmed {
+		logger.Debugf("Found tx with status %s", result.TxStatus)
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
@@ -445,8 +463,7 @@ func NewMessageSigner(
 
 		chain: util.ParseChain(config),
 
-		client:        client,
-		confirmations: uint64(config.Confirmations),
+		client: client,
 
 		cosmosClient: cosmosClient,
 		cosmosConfig: cosmosConfig,

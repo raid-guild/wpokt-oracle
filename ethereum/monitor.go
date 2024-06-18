@@ -3,7 +3,7 @@ package ethereum
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -77,107 +77,139 @@ func (x *MessageMonitorRunner) UpdateTransaction(
 	return true
 }
 
-func (x *MessageMonitorRunner) IsValidEvent(event *autogen.MailboxDispatch) bool {
+func (x *MessageMonitorRunner) IsValidEvent(event *autogen.MailboxDispatch) error {
 	if event == nil {
-		x.logger.Error("HandleDispatchEvent: event is nil")
+		return fmt.Errorf("event is nil")
+	}
+
+	{ // validate sender
+
+		mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
+		if !ok {
+			return fmt.Errorf("mint controller not found for chain domain: %d", x.chain.ChainDomain)
+		}
+
+		if !bytes.Equal(event.Sender.Bytes(), mintController) {
+			return fmt.Errorf("sender does not match mint controller for chain domain: %d", x.chain.ChainDomain)
+		}
+
+	}
+
+	{ // validate recipient
+
+		destMintController, ok := x.mintControllerMap[event.Destination]
+		if !ok {
+			return fmt.Errorf("mint controller not found for destination domain: %d", event.Destination)
+		}
+
+		if !bytes.Equal(destMintController, []byte(event.Recipient[12:32])) {
+			return fmt.Errorf("recipient does not match mint controller for destination domain: %d", event.Destination)
+		}
+
+	}
+
+	{ // validate message content
+
+		var messageContent models.MessageContent
+
+		err := messageContent.DecodeFromBytes(event.Message)
+		if err != nil {
+			return fmt.Errorf("error decoding message content: %w", err)
+		}
+
+		if messageContent.OriginDomain != x.chain.ChainDomain {
+			return fmt.Errorf("invalid origin domain: %d", x.chain.ChainDomain)
+		}
+
+		if messageContent.DestinationDomain != event.Destination {
+			return fmt.Errorf("invalid destination domain: %d", event.Destination)
+		}
+
+		if messageContent.Version != common.HyperlaneVersion {
+			return fmt.Errorf("invalid version: %d", messageContent.Version)
+		}
+
+		if !strings.EqualFold(messageContent.Recipient, common.HexFromBytes(event.Recipient[12:32])) {
+			return fmt.Errorf("invalid recipient: %s", messageContent.Recipient)
+		}
+
+		if !strings.EqualFold(messageContent.Sender, common.HexFromBytes(event.Sender[:])) {
+			return fmt.Errorf("invalid sender: %s", messageContent.Sender)
+		}
+
+	}
+
+	return nil
+}
+
+func (x *MessageMonitorRunner) CreateTxForDispatchEvent(event *autogen.MailboxDispatch) bool {
+	txHash := event.Raw.TxHash.String()
+	logger := x.logger.WithField("tx_hash", txHash).WithField("section", "CreateTxForDispatchEvent")
+
+	if err := x.IsValidEvent(event); err != nil {
+		logger.WithError(err).Errorf("Invalid event")
 		return false
 	}
 
-	destMintController, ok := x.mintControllerMap[event.Destination]
-	if !ok {
-		x.logger.Errorf("Mint controller not found for destination domain: %d", event.Destination)
-		return false
-	}
-
-	if !bytes.Equal(destMintController, []byte(event.Recipient[12:32])) {
-		x.logger.Errorf("Recipient does not match mint controller for destination domain: %d", event.Destination)
-		return false
-	}
-
-	mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
-	if !ok {
-		x.logger.Errorf("Mint controller not found for chain domain: %d", x.chain.ChainDomain)
-		return false
-	}
-
-	if !bytes.Equal(event.Sender.Bytes(), mintController) {
-		x.logger.Errorf("Sender does not match mint controller for chain domain: %d", x.chain.ChainDomain)
-		return false
-	}
-
-	var messageContent models.MessageContent
-
-	err := messageContent.DecodeFromBytes(event.Message)
+	result, err := ValidateTransactionByHash(x.client, txHash)
 	if err != nil {
-		x.logger.WithError(err).Error("Error decoding message content")
+		logger.WithError(err).Errorf("Error validating transaction")
 		return false
 	}
 
-	if messageContent.DestinationDomain != event.Destination {
-		x.logger.Errorf("Destination domain does not match message content destination domain: %d", event.Destination)
+	txDoc, err := db.NewEthereumTransaction(result.tx, x.mailbox.Address().Bytes(), result.receipt, x.chain, models.TransactionStatusPending)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error creating transaction")
 		return false
 	}
 
-	recipientHex := "0x" + hex.EncodeToString(event.Recipient[12:32])
-
-	if !strings.EqualFold(messageContent.Recipient, recipientHex) {
-		x.logger.Errorf("Recipient does not match message content recipient: %s", recipientHex)
+	_, err = db.InsertTransaction(txDoc)
+	if err != nil {
+		x.logger.WithError(err).Errorf("Error inserting transaction")
 		return false
 	}
 
 	return true
 }
 
-func (x *MessageMonitorRunner) CreateTxForDispatchEvent(event *autogen.MailboxDispatch) bool {
-	if !x.IsValidEvent(event) {
-		x.logger.Infof("Invalid dispatch event")
-		return false
-	}
+type ValidateTransactionAndParseDispatchEventsResult struct {
+	Events        []*autogen.MailboxDispatch
+	Confirmations uint64
+	TxStatus      models.TransactionStatus
+}
 
-	txHash := event.Raw.TxHash.String()
-
-	tx, isPending, err := x.client.GetTransactionByHash(txHash)
-	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction by hash")
-		return false
-	}
-	if tx == nil {
-		x.logger.Errorf("Transaction not found: %s", txHash)
-		return false
-	}
-	if isPending {
-		x.logger.Infof("Transaction is pending")
-		return false
-	}
-
+func (x *MessageMonitorRunner) ValidateTransactionAndParseDispatchEvents(txHash string) (*ValidateTransactionAndParseDispatchEventsResult, error) {
 	receipt, err := x.client.GetTransactionReceipt(txHash)
 	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction receipt")
-		return false
+		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
 	}
-
 	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		x.logger.Infof("Transaction failed")
-		return false
+		return &ValidateTransactionAndParseDispatchEventsResult{
+			TxStatus: models.TransactionStatusFailed,
+		}, nil
 	}
-
-	txDoc, err := db.NewEthereumTransaction(tx, x.mailbox.Address().Bytes(), receipt, x.chain, models.TransactionStatusPending)
-	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txHash).
-			Errorf("Error creating transaction")
-		return false
+	var events []*autogen.MailboxDispatch
+	for _, log := range receipt.Logs {
+		if log.Address == x.mailbox.Address() {
+			event, err := x.mailbox.ParseDispatch(*log)
+			if err != nil {
+				continue
+			}
+			events = append(events, event)
+		}
 	}
-
-	_, err = db.InsertTransaction(txDoc)
-	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txHash).
-			Errorf("Error inserting transaction")
-		return false
+	result := &ValidateTransactionAndParseDispatchEventsResult{
+		Events:        events,
+		Confirmations: x.currentBlockHeight - receipt.BlockNumber.Uint64(),
+		TxStatus:      models.TransactionStatusPending,
 	}
-
-	return true
+	if result.Confirmations >= x.confirmations {
+		result.TxStatus = models.TransactionStatusConfirmed
+	}
+	if len(events) == 0 {
+		result.TxStatus = models.TransactionStatusInvalid
+	}
+	return result, nil
 }
 
 func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
@@ -186,49 +218,16 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 		return false
 	}
 
-	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "ConfirmTx")
-
-	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
+	result, err := x.ValidateTransactionAndParseDispatchEvents(txDoc.Hash)
 	if err != nil {
-		x.logger.WithError(err).Error("Error getting transaction receipt")
+		x.logger.WithError(err).Error("Error validating transaction and parsing dispatch events")
 		return false
 	}
 
-	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		x.logger.Infof("Transaction failed")
-		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusFailed})
-	}
-
-	var events []*autogen.MailboxDispatch
-	for _, log := range receipt.Logs {
-		if log.Address == x.mailbox.Address() {
-			event, err := x.mailbox.ParseDispatch(*log)
-			if err != nil {
-				continue
-			}
-			if !x.IsValidEvent(event) {
-				continue
-			}
-			events = append(events, event)
-		}
-	}
-
-	if len(events) == 0 {
-		logger.WithField("tx_hash", txDoc.Hash).Warnf("No dispatch events found")
-		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusInvalid})
-	}
-
-	confirmations := x.currentBlockHeight - txDoc.BlockHeight
-	if confirmations < x.confirmations {
-		x.logger.Infof("Transaction has not enough confirmations: %d", confirmations)
-		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusPending})
-	}
-
 	update := bson.M{
-		"confirmations": confirmations,
-		"status":        models.TransactionStatusConfirmed,
+		"confirmations": result.Confirmations,
+		"status":        result.TxStatus,
 	}
-
 	return x.UpdateTransaction(txDoc, update)
 }
 
@@ -240,72 +239,47 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 
 	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "CreateMessagesForTx")
 
-	receipt, err := x.client.GetTransactionReceipt(txDoc.Hash)
+	result, err := x.ValidateTransactionAndParseDispatchEvents(txDoc.Hash)
+
 	if err != nil {
-		logger.WithError(err).Error("Error getting transaction receipt")
+		logger.WithError(err).Error("Error validating transaction and parsing dispatch events")
 		return false
 	}
 
-	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		logger.Infof("Transaction failed")
-		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusFailed})
+	if result.TxStatus != models.TransactionStatusConfirmed {
+		logger.Errorf("Transaction not confirmed")
+		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
 	}
 
-	confirmations := x.currentBlockHeight - txDoc.BlockHeight
-	if confirmations < x.confirmations {
-		logger.Infof("Transaction has not enough confirmations: %d", confirmations)
-		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusPending})
-	}
-
-	var events []*autogen.MailboxDispatch
-	for _, log := range receipt.Logs {
-		if log.Address == x.mailbox.Address() {
-			event, err := x.mailbox.ParseDispatch(*log)
-			if err != nil {
-				continue
-			}
-			if !x.IsValidEvent(event) {
-				continue
-			}
-			events = append(events, event)
-		}
-	}
-
-	if len(events) == 0 {
-		logger.WithField("tx_hash", txDoc.Hash).Warnf("No dispatch events found")
-		return x.UpdateTransaction(txDoc, bson.M{"status": models.TransactionStatusInvalid})
-	}
-
-	lockID, err := db.LockWriteTransaction(txDoc)
-	if err != nil {
+	if lockID, err := db.LockWriteTransaction(txDoc); err != nil {
 		logger.WithError(err).Error("Error locking transaction")
 		return false
+	} else {
+		defer db.Unlock(lockID)
 	}
-	defer db.Unlock(lockID)
 
 	success := true
 
-	for _, event := range events {
+	for _, event := range result.Events {
 		var messageContent models.MessageContent
 
-		messageContent.DecodeFromBytes(event.Message) // event was validated
+		messageContent.DecodeFromBytes(event.Message) // event was validated already
 
 		message, err := db.NewMessage(txDoc, messageContent, models.MessageStatusPending)
 		if err != nil {
-			x.logger.WithError(err).Errorf("Error creating message")
+			logger.WithError(err).Errorf("Error creating message")
 			success = false
+			continue
 		}
 
 		messageID, err := db.InsertMessage(message)
 		if err != nil {
-			x.logger.WithError(err).Errorf("Error inserting message")
+			logger.WithError(err).Errorf("Error inserting message")
 			success = false
+			continue
 		}
 
-		x.logger.
-			WithField("tx_hash", txDoc.Hash).
-			WithField("message_id", messageID.Hex()).
-			Info("Message created")
+		logger.WithField("message_id", messageID.Hex()).Info("Message created")
 
 		txDoc.Messages = append(txDoc.Messages, messageID)
 	}
@@ -314,19 +288,7 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 		return false
 	}
 
-	update := bson.M{
-		"messages": common.RemoveDuplicates(txDoc.Messages),
-	}
-
-	err = db.UpdateTransaction(txDoc.ID, update)
-	if err != nil {
-		x.logger.WithError(err).
-			WithField("tx_hash", txDoc.Hash).
-			Errorf("Error updating transaction")
-		return false
-	}
-
-	return true
+	return x.UpdateTransaction(txDoc, bson.M{"messages": common.RemoveDuplicates(txDoc.Messages)})
 }
 
 func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {

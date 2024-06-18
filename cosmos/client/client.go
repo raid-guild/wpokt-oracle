@@ -34,6 +34,7 @@ const (
 
 type CosmosClient interface {
 	Chain() models.Chain
+	Confirmations() uint64
 	GetLatestBlockHeight() (int64, error)
 	GetChainID() (string, error)
 	GetTxsSentFromAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
@@ -46,7 +47,8 @@ type CosmosClient interface {
 }
 
 type cosmosClient struct {
-	grpcEnabled bool
+	grpcEnabled   bool
+	confirmations uint64
 
 	timeout      time.Duration
 	chain        models.Chain
@@ -61,6 +63,10 @@ type cosmosClient struct {
 
 func (c *cosmosClient) Chain() models.Chain {
 	return c.chain
+}
+
+func (c *cosmosClient) Confirmations() uint64 {
+	return c.confirmations
 }
 
 func (c *cosmosClient) getLatestBlockGRPC() (*cmtservice.Block, error) {
@@ -469,6 +475,8 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 		chain:        util.ParseChain(config),
 		bech32Prefix: config.Bech32Prefix,
 		coinDenom:    config.CoinDenom,
+
+		confirmations: config.Confirmations,
 
 		grpcConn:  connection,
 		rpcClient: client,

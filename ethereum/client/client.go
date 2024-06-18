@@ -24,6 +24,7 @@ const (
 
 type EthereumClient interface {
 	Chain() models.Chain
+	Confirmations() uint64
 	ValidateNetwork() error
 	GetBlockHeight() (uint64, error)
 	GetChainID() (*big.Int, error)
@@ -33,7 +34,8 @@ type EthereumClient interface {
 }
 
 type ethereumClient struct {
-	chain models.Chain
+	chain         models.Chain
+	confirmations uint64
 
 	timeout   time.Duration
 	chainID   uint64
@@ -46,6 +48,10 @@ type ethereumClient struct {
 
 func (c *ethereumClient) Chain() models.Chain {
 	return c.chain
+}
+
+func (c *ethereumClient) Confirmations() uint64 {
+	return c.confirmations
 }
 
 func (c *ethereumClient) GetClient() *ethclient.Client {
@@ -122,9 +128,10 @@ func NewClient(config models.EthereumNetworkConfig) (EthereumClient, error) {
 	ethclient := &ethereumClient{
 		chain: util.ParseChain(config),
 
-		timeout:   time.Duration(config.TimeoutMS) * time.Millisecond,
-		chainID:   config.ChainID,
-		chainName: config.ChainName,
+		timeout:       time.Duration(config.TimeoutMS) * time.Millisecond,
+		chainID:       config.ChainID,
+		chainName:     config.ChainName,
+		confirmations: config.Confirmations,
 
 		client: client,
 

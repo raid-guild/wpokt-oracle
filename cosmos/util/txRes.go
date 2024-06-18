@@ -14,8 +14,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ValidateCosmosTxResult struct {
+type ValidateTxToCosmosMultisigResult struct {
 	Memo          models.MintMemo
+	Confirmations uint64
 	TxStatus      models.TransactionStatus
 	Tx            *tx.Tx
 	Amount        sdk.Coin
@@ -23,16 +24,17 @@ type ValidateCosmosTxResult struct {
 	NeedsRefund   bool
 }
 
-func ValidateCosmosTx(
+func ValidateTxToCosmosMultisig(
 	txResponse *sdk.TxResponse,
 	config models.CosmosNetworkConfig,
 	supportedChainIDsEthereum map[uint32]bool,
-) (*ValidateCosmosTxResult, error) {
+	currentCosmosBlockHeight uint64,
+) (*ValidateTxToCosmosMultisigResult, error) {
 	logger := log.
 		WithField("operation", "validateTxResponse").
 		WithField("txHash", txResponse.TxHash)
 
-	result := ValidateCosmosTxResult{
+	result := ValidateTxToCosmosMultisigResult{
 		Memo:          models.MintMemo{},
 		TxStatus:      models.TransactionStatusInvalid,
 		Tx:            nil,
@@ -103,9 +105,15 @@ func ValidateCosmosTx(
 		return &result, nil
 	}
 
+	result.TxStatus = models.TransactionStatusPending
+
+	result.Confirmations = currentCosmosBlockHeight - uint64(txResponse.Height)
+	if result.Confirmations >= config.Confirmations {
+		result.TxStatus = models.TransactionStatusConfirmed
+	}
+
 	result.Amount = coinsSpent
 
-	result.TxStatus = models.TransactionStatusPending
 	if !coinsSpent.Amount.Equal(coinsReceived.Amount) {
 		logger.Debugf("Found tx with invalid coins")
 		// refund
@@ -123,5 +131,6 @@ func ValidateCosmosTx(
 
 	logger.WithField("memo", memo).Debugf("Found valid memo")
 	result.Memo = memo
+
 	return &result, nil
 }

@@ -79,7 +79,8 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromRefunds_SomeError() {
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, pipeline, mock.Anything).Return(expectedError).Once()
 
 	maxSequence, err := FindMaxSequenceFromRefunds()
-	assert.Error(suite.T(), err, expectedError)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 	assert.Nil(suite.T(), maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -136,7 +137,8 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromMessages_SomeError() {
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, pipeline, mock.Anything).Return(expectedError).Once()
 
 	maxSequence, err := FindMaxSequenceFromMessages(chain)
-	assert.Error(suite.T(), err, expectedError)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 	assert.Nil(suite.T(), maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -159,6 +161,65 @@ func (suite *SequenceTestSuite) TestFindMaxSequence() {
 	maxSequence, err := FindMaxSequence(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), maxSequenceMessages, *maxSequence)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *SequenceTestSuite) TestFindMaxSequence_RefundsGreater() {
+	chain := models.Chain{ChainDomain: 1}
+	maxSequenceRefunds := uint64(456)
+	maxSequenceMessages := uint64(123)
+
+	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		result := args.Get(2).(*ResultMaxSequence)
+		result.MaxSequence = maxSequenceRefunds
+	}).Once()
+
+	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		result := args.Get(2).(*ResultMaxSequence)
+		result.MaxSequence = maxSequenceMessages
+	}).Once()
+
+	maxSequence, err := FindMaxSequence(chain)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), maxSequenceRefunds, *maxSequence)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *SequenceTestSuite) TestFindMaxSequence_ErrorMessages() {
+	chain := models.Chain{ChainDomain: 1}
+	maxSequenceRefunds := uint64(123)
+	maxSequenceMessages := uint64(456)
+	expectedError := errors.New("some error")
+
+	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		result := args.Get(2).(*ResultMaxSequence)
+		result.MaxSequence = maxSequenceRefunds
+	}).Once()
+
+	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(expectedError).Run(func(args mock.Arguments) {
+		result := args.Get(2).(*ResultMaxSequence)
+		result.MaxSequence = maxSequenceMessages
+	}).Once()
+
+	_, err := FindMaxSequence(chain)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *SequenceTestSuite) TestFindMaxSequence_ErrorRefunds() {
+	chain := models.Chain{ChainDomain: 1}
+	maxSequenceRefunds := uint64(123)
+	expectedError := errors.New("some error")
+
+	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(expectedError).Run(func(args mock.Arguments) {
+		result := args.Get(2).(*ResultMaxSequence)
+		result.MaxSequence = maxSequenceRefunds
+	}).Once()
+
+	_, err := FindMaxSequence(chain)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 	suite.mockDB.AssertExpectations(suite.T())
 }
 

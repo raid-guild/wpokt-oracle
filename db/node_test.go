@@ -49,7 +49,8 @@ func (suite *NodeTestSuite) TestFindNode_SomeError() {
 	suite.mockDB.On("FindOne", common.CollectionNodes, filter, &expectedNode).Return(expectedError).Once()
 
 	gotNode, err := FindNode(filter)
-	assert.Error(suite.T(), err, expectedError)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), &expectedNode, gotNode)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -77,7 +78,8 @@ func (suite *NodeTestSuite) TestUpsertNode_SomeError() {
 	suite.mockDB.On("UpsertOne", common.CollectionNodes, filter, update).Return(primitive.ObjectID{}, expectedError).Once()
 
 	err := UpsertNode(filter, onUpdate, onInsert)
-	assert.Error(suite.T(), err, expectedError)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 	suite.mockDB.AssertExpectations(suite.T())
 }
 

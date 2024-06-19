@@ -21,18 +21,18 @@ func NewRefund(
 	amountCoin sdk.Coin,
 ) (models.Refund, error) {
 
-	if txRes == nil || txDoc == nil || txDoc.Hash == "" || txDoc.ID == nil {
+	if txRes == nil || txDoc == nil || txDoc.Hash == "" || txDoc.ID == nil || txRes.TxHash == "" {
 		return models.Refund{}, fmt.Errorf("txRes or txDoc is nil")
 	}
 
 	txHash := common.Ensure0xPrefix(txRes.TxHash)
 	if txHash != txDoc.Hash {
-		return models.Refund{}, fmt.Errorf("tx hash mismatch: %s != %s", txHash, txDoc.Hash)
+		return models.Refund{}, fmt.Errorf("tx hash mismatch")
 	}
 
 	recipient, err := common.AddressHexFromBytes(recipientAddress)
 	if err != nil {
-		return models.Refund{}, fmt.Errorf("invalid recipient address: %s", recipient)
+		return models.Refund{}, fmt.Errorf("invalid recipient address: %w", err)
 	}
 
 	amount := amountCoin.Amount.String()

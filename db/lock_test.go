@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"testing"
 
 	mocks "github.com/dan13ram/wpokt-oracle/db/mocks"
@@ -50,6 +51,21 @@ func (suite *LockTestSuite) TestLockWriteTransaction() {
 	suite.mockDB.AssertExpectations(suite.T())
 }
 
+func (suite *LockTestSuite) TestLockWriteTransaction_SomeError() {
+	txDoc := &models.Transaction{ID: &primitive.ObjectID{}}
+	resourceID := "transactions/" + txDoc.ID.Hex()
+	lockID := "lock123"
+	expectedErr := errors.New("some error")
+
+	suite.mockDB.On("XLock", resourceID).Return(lockID, expectedErr).Once()
+
+	gotLockID, err := LockWriteTransaction(txDoc)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedErr, err)
+	assert.Equal(suite.T(), lockID, gotLockID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
 func (suite *LockTestSuite) TestLockWriteRefund() {
 	refundDoc := &models.Refund{ID: &primitive.ObjectID{}}
 	resourceID := "refunds/" + refundDoc.ID.Hex()
@@ -59,6 +75,21 @@ func (suite *LockTestSuite) TestLockWriteRefund() {
 
 	gotLockID, err := LockWriteRefund(refundDoc)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), lockID, gotLockID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *LockTestSuite) TestLockWriteRefund_SomeError() {
+	refundDoc := &models.Refund{ID: &primitive.ObjectID{}}
+	resourceID := "refunds/" + refundDoc.ID.Hex()
+	lockID := "lock123"
+	expectedErr := errors.New("some error")
+
+	suite.mockDB.On("XLock", resourceID).Return(lockID, expectedErr).Once()
+
+	gotLockID, err := LockWriteRefund(refundDoc)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedErr, err)
 	assert.Equal(suite.T(), lockID, gotLockID)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -76,6 +107,21 @@ func (suite *LockTestSuite) TestLockWriteMessage() {
 	suite.mockDB.AssertExpectations(suite.T())
 }
 
+func (suite *LockTestSuite) TestLockWriteMessage_SomeError() {
+	messageDoc := &models.Message{ID: &primitive.ObjectID{}}
+	resourceID := "messages/" + messageDoc.ID.Hex()
+	lockID := "lock123"
+	expectedErr := errors.New("some error")
+
+	suite.mockDB.On("XLock", resourceID).Return(lockID, expectedErr).Once()
+
+	gotLockID, err := LockWriteMessage(messageDoc)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedErr, err)
+	assert.Equal(suite.T(), lockID, gotLockID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
 func (suite *LockTestSuite) TestLockReadSequences() {
 	lockID := "lock123"
 	sequenceResourceID := "comsos_sequence"
@@ -88,6 +134,20 @@ func (suite *LockTestSuite) TestLockReadSequences() {
 	suite.mockDB.AssertExpectations(suite.T())
 }
 
+func (suite *LockTestSuite) TestLockReadSequences_SomeError() {
+	lockID := "lock123"
+	sequenceResourceID := "comsos_sequence"
+	expectedErr := errors.New("some error")
+
+	suite.mockDB.On("SLock", sequenceResourceID).Return(lockID, expectedErr).Once()
+
+	gotLockID, err := LockReadSequences()
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedErr, err)
+	assert.Equal(suite.T(), lockID, gotLockID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
 func (suite *LockTestSuite) TestLockWriteSequence() {
 	lockID := "lock123"
 	sequenceResourceID := "comsos_sequence"
@@ -96,6 +156,20 @@ func (suite *LockTestSuite) TestLockWriteSequence() {
 
 	gotLockID, err := LockWriteSequence()
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), lockID, gotLockID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *LockTestSuite) TestLockWriteSequence_SomeError() {
+	lockID := "lock123"
+	sequenceResourceID := "comsos_sequence"
+	expectedErr := errors.New("some error")
+
+	suite.mockDB.On("SLock", sequenceResourceID).Return(lockID, expectedErr).Once()
+
+	gotLockID, err := LockWriteSequence()
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedErr, err)
 	assert.Equal(suite.T(), lockID, gotLockID)
 	suite.mockDB.AssertExpectations(suite.T())
 }

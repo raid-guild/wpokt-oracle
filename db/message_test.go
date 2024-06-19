@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -42,8 +43,30 @@ func (suite *MessageTestSuite) TestNewMessageBody() {
 	messageBody, err := NewMessageBody(senderAddress[:], amount, recipientAddress[:])
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), strings.ToLower(senderAddress.Hex()), messageBody.SenderAddress)
-	assert.Equal(suite.T(), amount, messageBody.Amount)
+	assert.Equal(suite.T(), amount.String(), messageBody.Amount)
 	assert.Equal(suite.T(), strings.ToLower(recipientAddress.Hex()), messageBody.RecipientAddress)
+}
+
+func (suite *MessageTestSuite) TestNewMessageBody_InvalidSender() {
+	senderAddress := []byte{1, 2, 3}
+	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
+	amount := big.NewInt(100)
+	expectedError := fmt.Errorf("invalid sender address: %w", common.ErrInvalidAddressLength)
+
+	_, err := NewMessageBody(senderAddress[:], amount, recipientAddress[:])
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+}
+
+func (suite *MessageTestSuite) TestNewMessageBody_InvalidRecipient() {
+	senderAddress := ethcommon.BytesToAddress([]byte{1, 2, 3})
+	recipientAddress := []byte{4, 5, 6}
+	amount := big.NewInt(100)
+	expectedError := fmt.Errorf("invalid recipient address: %w", common.ErrInvalidAddressLength)
+
+	_, err := NewMessageBody(senderAddress[:], amount, recipientAddress[:])
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 }
 
 func (suite *MessageTestSuite) TestNewMessageContent() {
@@ -69,6 +92,42 @@ func (suite *MessageTestSuite) TestNewMessageContent() {
 	assert.Equal(suite.T(), messageBody, messageContent.MessageBody)
 }
 
+func (suite *MessageTestSuite) TestNewMessageContent_InvalidSender() {
+	nonce := uint32(1)
+	originDomain := uint32(1)
+	senderAddress := []byte{1, 2, 3}
+	destinationDomain := uint32(2)
+	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
+	messageBody := models.MessageBody{
+		SenderAddress:    "0x010203",
+		Amount:           big.NewInt(100).String(),
+		RecipientAddress: "0x040506",
+	}
+	expectedError := fmt.Errorf("invalid sender address: %w", common.ErrInvalidAddressLength)
+
+	_, err := NewMessageContent(nonce, originDomain, senderAddress, destinationDomain, recipientAddress[:], messageBody)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+}
+
+func (suite *MessageTestSuite) TestNewMessageContent_InvalidRecipient() {
+	nonce := uint32(1)
+	originDomain := uint32(1)
+	senderAddress := ethcommon.BytesToAddress([]byte{1, 2, 3})
+	destinationDomain := uint32(2)
+	recipientAddress := []byte{4, 5, 6}
+	messageBody := models.MessageBody{
+		SenderAddress:    "0x010203",
+		Amount:           big.NewInt(100).String(),
+		RecipientAddress: "0x040506",
+	}
+	expectedError := fmt.Errorf("invalid recipient address: %w", common.ErrInvalidAddressLength)
+
+	_, err := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress, messageBody)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+}
+
 func (suite *MessageTestSuite) TestNewMessage() {
 	txDoc := &models.Transaction{
 		ID:   &primitive.ObjectID{},
@@ -81,7 +140,7 @@ func (suite *MessageTestSuite) TestNewMessage() {
 	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
 	messageBody := models.MessageBody{
 		SenderAddress:    strings.ToLower(senderAddress.Hex()),
-		Amount:           100,
+		Amount:           big.NewInt(100).String(),
 		RecipientAddress: strings.ToLower(recipientAddress.Hex()),
 	}
 
@@ -93,6 +152,51 @@ func (suite *MessageTestSuite) TestNewMessage() {
 	assert.Equal(suite.T(), *txDoc.ID, message.OriginTransaction)
 	assert.Equal(suite.T(), txDoc.Hash, message.OriginTransactionHash)
 	assert.Equal(suite.T(), status, message.Status)
+}
+
+func (suite *MessageTestSuite) TestNewMessage_InvalidTxDoc() {
+	nonce := uint32(1)
+	originDomain := uint32(1)
+	senderAddress := ethcommon.BytesToAddress([]byte{1, 2, 3})
+	destinationDomain := uint32(2)
+	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
+	messageBody := models.MessageBody{
+		SenderAddress:    strings.ToLower(senderAddress.Hex()),
+		Amount:           big.NewInt(100).String(),
+		RecipientAddress: strings.ToLower(recipientAddress.Hex()),
+	}
+
+	content, _ := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
+	status := models.MessageStatusPending
+
+	expectedError := fmt.Errorf("invalid txDoc")
+
+	_, err := NewMessage(nil, content, status)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+}
+
+func (suite *MessageTestSuite) TestNewMessage_InvalidMessageID() {
+	nonce := uint32(1)
+	originDomain := uint32(1)
+	senderAddress := ethcommon.BytesToAddress([]byte{1, 2, 3})
+	destinationDomain := uint32(2)
+	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
+	messageBody := models.MessageBody{
+		SenderAddress:    "0x12334",
+		Amount:           big.NewInt(100).String(),
+		RecipientAddress: strings.ToLower(recipientAddress.Hex()),
+	}
+
+	content, _ := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
+	status := models.MessageStatusPending
+
+	txDoc := &models.Transaction{
+		ID:   &primitive.ObjectID{},
+		Hash: "0x123",
+	}
+	_, err := NewMessage(txDoc, content, status)
+	assert.Error(suite.T(), err)
 }
 
 func (suite *MessageTestSuite) TestFindMessage() {
@@ -116,6 +220,14 @@ func (suite *MessageTestSuite) TestUpdateMessage() {
 	err := UpdateMessage(&messageID, update)
 	assert.NoError(suite.T(), err)
 	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *MessageTestSuite) TestUpdateMessage_NilMessageID() {
+	update := bson.M{"status": models.MessageStatusSigned}
+
+	err := UpdateMessage(nil, update)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), fmt.Errorf("messageID is nil"), err)
 }
 
 func (suite *MessageTestSuite) TestUpdateMessageByMessageID() {
@@ -162,6 +274,40 @@ func (suite *MessageTestSuite) TestInsertMessage_DuplicateKeyError() {
 
 	gotID, err := InsertMessage(message)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), insertedID, gotID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *MessageTestSuite) TestInsertMessage_DuplicateKeyError_FindError() {
+	message := models.Message{
+		OriginTransactionHash: "0x123",
+	}
+	duplicateError := mongo.WriteError{Code: 11000}
+	insertedID := primitive.NewObjectID()
+	expectedError := fmt.Errorf("find error")
+
+	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, duplicateError).Once()
+	suite.mockDB.On("FindOne", common.CollectionMessages, bson.M{"origin_transaction_hash": message.OriginTransactionHash}, &models.Message{}).Return(expectedError).Once()
+
+	gotID, err := InsertMessage(message)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+	assert.Equal(suite.T(), insertedID, gotID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *MessageTestSuite) TestInsertMessage_InsertError() {
+	message := models.Message{
+		OriginTransactionHash: "0x123",
+	}
+	insertedID := primitive.NewObjectID()
+	expectedError := fmt.Errorf("insert error")
+
+	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, expectedError).Once()
+
+	gotID, err := InsertMessage(message)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), insertedID, gotID)
 	suite.mockDB.AssertExpectations(suite.T())
 }

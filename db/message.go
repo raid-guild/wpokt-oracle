@@ -21,12 +21,12 @@ func NewMessageBody(
 
 	sender, err := common.AddressHexFromBytes(senderAddress)
 	if err != nil {
-		return models.MessageBody{}, err
+		return models.MessageBody{}, fmt.Errorf("invalid sender address: %w", err)
 	}
 
 	recipient, err := common.AddressHexFromBytes(recipientAddress)
 	if err != nil {
-		return models.MessageBody{}, err
+		return models.MessageBody{}, fmt.Errorf("invalid recipient address: %w", err)
 	}
 
 	return models.MessageBody{
@@ -47,12 +47,12 @@ func NewMessageContent(
 
 	sender, err := common.AddressHexFromBytes(senderAddress)
 	if err != nil {
-		return models.MessageContent{}, err
+		return models.MessageContent{}, fmt.Errorf("invalid sender address: %w", err)
 	}
 
 	recipient, err := common.AddressHexFromBytes(recipientAddress)
 	if err != nil {
-		return models.MessageContent{}, err
+		return models.MessageContent{}, fmt.Errorf("invalid recipient address: %w", err)
 	}
 
 	return models.MessageContent{
@@ -67,12 +67,12 @@ func NewMessageContent(
 }
 
 func NewMessage(
-	originTxDoc *models.Transaction,
+	txDoc *models.Transaction,
 	content models.MessageContent,
 	status models.MessageStatus,
 ) (models.Message, error) {
-	if (originTxDoc == nil) || (originTxDoc.ID == nil) || (originTxDoc.Hash == "") {
-		return models.Message{}, fmt.Errorf("originTxDoc is nil")
+	if (txDoc == nil) || (txDoc.ID == nil) || (txDoc.Hash == "") {
+		return models.Message{}, fmt.Errorf("invalid txDoc")
 	}
 
 	messageIDBytes, err := content.MessageID()
@@ -82,8 +82,8 @@ func NewMessage(
 	messageID := common.HexFromBytes(messageIDBytes)
 
 	return models.Message{
-		OriginTransaction:     *originTxDoc.ID,
-		OriginTransactionHash: originTxDoc.Hash,
+		OriginTransaction:     *txDoc.ID,
+		OriginTransactionHash: txDoc.Hash,
 		MessageID:             messageID,
 		Content:               content,
 		Signatures:            []models.Signature{},

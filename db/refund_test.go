@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"testing"
 
 	"cosmossdk.io/math"
@@ -48,8 +49,76 @@ func (suite *RefundTestSuite) TestNewRefund() {
 	assert.Equal(suite.T(), txDoc.ID, &refund.OriginTransaction)
 	assert.Equal(suite.T(), txDoc.Hash, refund.OriginTransactionHash)
 	assert.Equal(suite.T(), recipientAddress.Hex(), refund.Recipient)
-	assert.Equal(suite.T(), uint64(100), refund.Amount)
+	assert.Equal(suite.T(), amountCoin.Amount.String(), refund.Amount)
 	assert.Equal(suite.T(), models.RefundStatusPending, refund.Status)
+}
+
+func (suite *RefundTestSuite) TestNewRefund_NilDoc() {
+	txRes := &sdk.TxResponse{TxHash: "0x010203"}
+	txDoc := &models.Transaction{
+		ID:   &primitive.ObjectID{},
+		Hash: "0x010203",
+	}
+	recipientAddress := ethcommon.HexToAddress("0x010203")
+	amountCoin := sdk.Coin{Amount: math.NewInt(100)}
+	expectedError := fmt.Errorf("txRes or txDoc is nil")
+
+	_, err := NewRefund(nil, txDoc, recipientAddress[:], amountCoin)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+
+	_, err = NewRefund(txRes, nil, recipientAddress[:], amountCoin)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+
+	txRes.TxHash = ""
+	_, err = NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+
+	txRes.TxHash = "0x010203"
+	txDoc.ID = nil
+	_, err = NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+
+	txDoc.ID = &primitive.ObjectID{}
+	txDoc.Hash = ""
+	_, err = NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+}
+
+func (suite *RefundTestSuite) TestNewRefund_TxHashMismatch() {
+	txRes := &sdk.TxResponse{TxHash: "0x010203"}
+	txDoc := &models.Transaction{
+		ID:   &primitive.ObjectID{},
+		Hash: "0x0102",
+	}
+	recipientAddress := ethcommon.HexToAddress("0x010203")
+	amountCoin := sdk.Coin{Amount: math.NewInt(100)}
+
+	expectedError := fmt.Errorf("tx hash mismatch")
+
+	_, err := NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+}
+
+func (suite *RefundTestSuite) TestNewRefund_InvalidRecipient() {
+	txRes := &sdk.TxResponse{TxHash: "0x010203"}
+	txDoc := &models.Transaction{
+		ID:   &primitive.ObjectID{},
+		Hash: "0x010203",
+	}
+	recipientAddress := []byte{0x01}
+	amountCoin := sdk.Coin{Amount: math.NewInt(100)}
+
+	expectedError := fmt.Errorf("invalid recipient address: %w", common.ErrInvalidAddressLength)
+
+	_, err := NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
 }
 
 func (suite *RefundTestSuite) TestInsertRefund() {
@@ -88,6 +157,40 @@ func (suite *RefundTestSuite) TestInsertRefund_DuplicateKeyError() {
 	suite.mockDB.AssertExpectations(suite.T())
 }
 
+func (suite *RefundTestSuite) TestInsertRefund_DuplicateKeyError_FindError() {
+	refund := models.Refund{
+		OriginTransactionHash: "0x123",
+	}
+	duplicateError := mongo.WriteError{Code: 11000}
+	insertedID := primitive.NewObjectID()
+	expectedError := fmt.Errorf("find error")
+
+	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, duplicateError).Once()
+	suite.mockDB.On("FindOne", common.CollectionRefunds, bson.M{"origin_transaction_hash": refund.OriginTransactionHash}, &models.Refund{}).Return(expectedError).Once()
+
+	gotID, err := InsertRefund(refund)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+	assert.Equal(suite.T(), insertedID, gotID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *RefundTestSuite) TestInsertRefund_InsertError() {
+	refund := models.Refund{
+		OriginTransactionHash: "0x123",
+	}
+	insertedID := primitive.NewObjectID()
+	expectedError := fmt.Errorf("insert error")
+
+	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, expectedError).Once()
+
+	gotID, err := InsertRefund(refund)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), expectedError, err)
+	assert.Equal(suite.T(), insertedID, gotID)
+	suite.mockDB.AssertExpectations(suite.T())
+}
+
 func (suite *RefundTestSuite) TestUpdateRefund() {
 	refundID := primitive.NewObjectID()
 	update := bson.M{"status": models.RefundStatusSigned}
@@ -97,6 +200,13 @@ func (suite *RefundTestSuite) TestUpdateRefund() {
 	err := UpdateRefund(&refundID, update)
 	assert.NoError(suite.T(), err)
 	suite.mockDB.AssertExpectations(suite.T())
+}
+
+func (suite *RefundTestSuite) TestUpdateRefund_NilRefundID() {
+	update := bson.M{"status": models.RefundStatusSigned}
+	err := UpdateRefund(nil, update)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), fmt.Errorf("refundID is nil"), err)
 }
 
 func (suite *RefundTestSuite) TestGetPendingRefunds() {

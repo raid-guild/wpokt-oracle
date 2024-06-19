@@ -3,10 +3,11 @@ package common
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 )
+
+var ErrInvalidAddressLength = errors.New("invalid address length")
 
 func Bytes32FromAddressHex(addr string) ([]byte, error) {
 	addr = strings.TrimPrefix(addr, "0x")
@@ -16,7 +17,7 @@ func Bytes32FromAddressHex(addr string) ([]byte, error) {
 	}
 
 	if len(address) != AddressLength {
-		return []byte{}, fmt.Errorf("invalid address length")
+		return []byte{}, ErrInvalidAddressLength
 	}
 
 	addressBig := new(big.Int).SetBytes(address)
@@ -51,7 +52,7 @@ func BytesFromAddressHex(addr string) ([]byte, error) {
 		return nil, err
 	}
 	if len(bytes) != AddressLength {
-		return nil, fmt.Errorf("invalid address length")
+		return nil, ErrInvalidAddressLength
 	}
 	return bytes, nil
 }
@@ -71,7 +72,7 @@ func Ensure0xPrefix(str string) string {
 
 func AddressHexFromBytes(address []byte) (string, error) {
 	if len(address) != AddressLength {
-		return "", fmt.Errorf("invalid address length")
+		return "", ErrInvalidAddressLength
 	}
 	return Ensure0xPrefix(hex.EncodeToString(address)), nil
 }

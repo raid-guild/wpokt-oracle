@@ -25,13 +25,10 @@ func NewEthereumTransaction(
 ) (models.Transaction, error) {
 
 	txHash := common.Ensure0xPrefix(receipt.TxHash.String())
-	if len(txHash) != 66 {
-		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", txHash)
-	}
 
 	txTo, err := common.AddressHexFromBytes(toAddress)
 	if err != nil {
-		return models.Transaction{}, fmt.Errorf("invalid to address: %s", toAddress)
+		return models.Transaction{}, fmt.Errorf("invalid to address: %w", err)
 	}
 
 	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
@@ -64,17 +61,17 @@ func NewCosmosTransaction(
 
 	txHash := common.Ensure0xPrefix(txRes.TxHash)
 	if len(txHash) != 66 {
-		return models.Transaction{}, fmt.Errorf("invalid tx hash: %s", txRes.TxHash)
+		return models.Transaction{}, fmt.Errorf("invalid tx hash")
 	}
 
 	txFrom, err := common.AddressHexFromBytes(fromAddress)
 	if err != nil {
-		return models.Transaction{}, fmt.Errorf("invalid from address: %s", txFrom)
+		return models.Transaction{}, fmt.Errorf("invalid from address: %w", err)
 	}
 
 	txTo, err := common.AddressHexFromBytes(toAddress)
 	if err != nil {
-		return models.Transaction{}, fmt.Errorf("invalid to address: %s", txTo)
+		return models.Transaction{}, fmt.Errorf("invalid to address: %w", err)
 	}
 
 	return models.Transaction{
@@ -123,7 +120,7 @@ func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Tr
 
 	txTo, err := common.AddressHexFromBytes(toAddress)
 	if err != nil {
-		return txs, fmt.Errorf("invalid to address: %s", txTo)
+		return txs, fmt.Errorf("invalid to address: %w", err)
 	}
 
 	filter := bson.M{
@@ -142,7 +139,7 @@ func GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.
 
 	txTo, err := common.AddressHexFromBytes(toAddress)
 	if err != nil {
-		return txs, fmt.Errorf("invalid to address: %s", txTo)
+		return txs, fmt.Errorf("invalid to address: %w", err)
 	}
 
 	filter := bson.M{
@@ -184,7 +181,7 @@ func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]model
 
 	txFrom, err := common.AddressHexFromBytes(fromAddress)
 	if err != nil {
-		return txs, fmt.Errorf("invalid from address: %s", txFrom)
+		return txs, fmt.Errorf("invalid from address: %w", err)
 	}
 
 	filter := bson.M{

@@ -127,7 +127,7 @@ func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 	if envConfig.CosmosNetwork.ChainName != "" {
 		mergedConfig.CosmosNetwork.ChainName = envConfig.CosmosNetwork.ChainName
 	}
-	if envConfig.CosmosNetwork.TxFee != 0 {
+	if envConfig.CosmosNetwork.TxFee != "" {
 		mergedConfig.CosmosNetwork.TxFee = envConfig.CosmosNetwork.TxFee
 	}
 	if envConfig.CosmosNetwork.Bech32Prefix != "" {

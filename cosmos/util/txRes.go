@@ -88,7 +88,12 @@ func ValidateTxToCosmosMultisig(
 		return &result, nil
 	}
 
-	feeAmount := sdk.NewCoin(config.CoinDenom, math.NewInt(int64(config.TxFee)))
+	feeCoinAmount, ok := math.NewIntFromString(config.TxFee)
+	if !ok {
+		logger.Errorf("Error parsing fee amount")
+		return &result, nil
+	}
+	feeAmount := sdk.NewCoin(config.CoinDenom, feeCoinAmount)
 
 	if coinsReceived.IsLTE(feeAmount) {
 		logger.Debugf("Found tx with amount too low")

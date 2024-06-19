@@ -138,7 +138,7 @@ func (x *MessageMonitorRunner) CreateMessage(
 
 	messageBody, err := db.NewMessageBody(
 		senderAddr,
-		amountCoin.Amount.Uint64(),
+		amountCoin.Amount.BigInt(),
 		recipientAddr,
 	)
 	if err != nil {

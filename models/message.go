@@ -153,7 +153,7 @@ type Message struct {
 
 type MessageBody struct {
 	SenderAddress    string `json:"sender_address" bson:"sender_address"`
-	Amount           uint64 `json:"amount" bson:"amount"`
+	Amount           string `json:"amount" bson:"amount"`
 	RecipientAddress string `json:"recipient_address" bson:"recipient_address"`
 }
 
@@ -167,7 +167,10 @@ func (body *MessageBody) EncodeToBytes() ([]byte, error) {
 	if _, err = buf.Write(recipientBytes[:]); err != nil { // 32 bytes
 		return nil, err
 	}
-	amount := new(big.Int).SetUint64(body.Amount)
+	amount, ok := new(big.Int).SetString(body.Amount, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid amount")
+	}
 	amountBytes := amount.FillBytes(make([]byte, 32))
 	if _, err = buf.Write(amountBytes); err != nil { // 32 bytes
 		return nil, err
@@ -218,7 +221,7 @@ func (body *MessageBody) DecodeFromBytes(data []byte) error {
 
 	*body = MessageBody{
 		RecipientAddress: recipient,
-		Amount:           amount.Uint64(),
+		Amount:           amount.String(),
 		SenderAddress:    sender,
 	}
 

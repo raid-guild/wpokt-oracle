@@ -59,7 +59,7 @@ export function formatMessageBody(
 const encodeMessageBody = (messageBody: MessageBody): Hex => {
   return formatMessageBody(
     messageBody.recipient_address,
-    BigInt(messageBody.amount.toString()),
+    BigInt(messageBody.amount),
     messageBody.sender_address,
   );
 };
@@ -76,7 +76,7 @@ const decodeMessageBody = (messageBody: Hex): MessageBody => {
 
   return {
     recipient_address: decoded[0].toLowerCase() as Hex,
-    amount: new Long(decoded[1].toString()),
+    amount: decoded[1].toString(),
     sender_address: decoded[2].toLowerCase() as Hex,
   };
 };

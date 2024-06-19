@@ -35,7 +35,7 @@ func NewRefund(
 		return models.Refund{}, fmt.Errorf("invalid recipient address: %s", recipient)
 	}
 
-	amount := amountCoin.Amount.Uint64()
+	amount := amountCoin.Amount.String()
 
 	return models.Refund{
 		OriginTransaction:     *txDoc.ID,

@@ -41,7 +41,7 @@ export type Message = {
 // Define the MessageBody type
 export type MessageBody = {
   readonly sender_address: Hex;
-  readonly amount: Long;
+  readonly amount: string;
   readonly recipient_address: Hex;
 };
 

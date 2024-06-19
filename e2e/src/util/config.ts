@@ -65,7 +65,7 @@ export type CosmosNetworkConfig = {
   timeout_ms: number;
   chain_id: string;
   chain_name: string;
-  tx_fee: number;
+  tx_fee: string;
   bech32_prefix: string;
   coin_denom: string;
   multisig_address: string;

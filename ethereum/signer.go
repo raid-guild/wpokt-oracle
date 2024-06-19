@@ -156,7 +156,9 @@ func (x *MessageSignerRunner) ValidateCosmosMessage(messageDoc *models.Message) 
 		return false, fmt.Errorf("tx needs refund")
 	}
 
-	if messageDoc.Content.MessageBody.Amount != result.Amount.Amount.Uint64() {
+	amount, ok := new(big.Int).SetString(messageDoc.Content.MessageBody.Amount, 10)
+
+	if ok && amount.Cmp(result.Amount.Amount.BigInt()) != 0 {
 		return false, fmt.Errorf("amount mismatch")
 	}
 

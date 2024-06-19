@@ -21,7 +21,7 @@ type Refund struct {
 	OriginTransaction     primitive.ObjectID  `json:"origin_transaction" bson:"origin_transaction"`
 	OriginTransactionHash string              `json:"origin_transaction_hash" bson:"origin_transaction_hash"`
 	Recipient             string              `json:"recipient" bson:"recipient"`
-	Amount                uint64              `json:"amount" bson:"amount"`
+	Amount                string              `json:"amount" bson:"amount"`
 	TransactionBody       string              `json:"transaction_body" bson:"transaction_body"`
 	Signatures            []Signature         `json:"signatures" bson:"signatures"`
 	Sequence              *uint64             `json:"sequence" bson:"sequence"` // account sequence for submitting the transaction

@@ -93,7 +93,7 @@ func loadConfigFromEnv(envFile string) models.Config {
 		TimeoutMS:          getUint64Env("COSMOS_NETWORK_TIMEOUT_MS"),
 		ChainID:            getStringEnv("COSMOS_NETWORK_CHAIN_ID"),
 		ChainName:          getStringEnv("COSMOS_NETWORK_CHAIN_NAME"),
-		TxFee:              getUint64Env("COSMOS_NETWORK_TX_FEE"),
+		TxFee:              getStringEnv("COSMOS_NETWORK_TX_FEE"),
 		Bech32Prefix:       getStringEnv("COSMOS_NETWORK_BECH32_PREFIX"),
 		CoinDenom:          getStringEnv("COSMOS_NETWORK_COIN_DENOM"),
 		MultisigAddress:    getStringEnv("COSMOS_NETWORK_MULTISIG_ADDRESS"),

@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -158,8 +159,11 @@ func validateConfig(config models.Config) error {
 	if config.CosmosNetwork.ChainName == "" {
 		return fmt.Errorf("CosmosNetwork.ChainName is required")
 	}
-	if config.CosmosNetwork.TxFee == 0 {
-		logger.Warnf("CosmosNetwork.TxFee is 0")
+	if config.CosmosNetwork.TxFee == "" {
+		return fmt.Errorf("CosmosNetwork.TxFee is empty")
+	}
+	if _, ok := big.NewInt(0).SetString(config.CosmosNetwork.TxFee, 10); !ok {
+		return fmt.Errorf("CosmosNetwork.TxFee is invalid")
 	}
 	if config.CosmosNetwork.Bech32Prefix == "" {
 		return fmt.Errorf("CosmosNetwork.Bech32Prefix is required")
@@ -177,6 +181,7 @@ func validateConfig(config models.Config) error {
 	seen := make(map[string]bool)
 	var pKeys []crypto.PubKey
 	for j, publicKey := range config.CosmosNetwork.MultisigPublicKeys {
+		publicKey = strings.ToLower(publicKey)
 		if !common.IsValidCosmosPublicKey(publicKey) {
 			return fmt.Errorf("CosmosNetwork.MultisigPublicKeys[%d] is invalid", j)
 		}

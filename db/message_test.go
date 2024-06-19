@@ -1,6 +1,7 @@
 package db
 
 import (
+	"math/big"
 	"strings"
 	"testing"
 
@@ -36,7 +37,7 @@ func (suite *MessageTestSuite) TearDownTest() {
 func (suite *MessageTestSuite) TestNewMessageBody() {
 	senderAddress := ethcommon.BytesToAddress([]byte{1, 2, 3})
 	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
-	amount := uint64(100)
+	amount := big.NewInt(100)
 
 	messageBody, err := NewMessageBody(senderAddress[:], amount, recipientAddress[:])
 	assert.NoError(suite.T(), err)
@@ -53,7 +54,7 @@ func (suite *MessageTestSuite) TestNewMessageContent() {
 	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
 	messageBody := models.MessageBody{
 		SenderAddress:    "0x010203",
-		Amount:           100,
+		Amount:           big.NewInt(100).String(),
 		RecipientAddress: "0x040506",
 	}
 

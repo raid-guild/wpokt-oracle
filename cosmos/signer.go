@@ -52,7 +52,8 @@ type MessageSignerRunner struct {
 	chain  models.Chain
 	client cosmos.CosmosClient
 
-	logger *log.Entry
+	logger    *log.Entry
+	feeAmount sdk.Coin
 
 	currentBlockHeight uint64
 }
@@ -128,26 +129,32 @@ func (x *MessageSignerRunner) SignMessage(
 		}
 	}
 
-	toAddr, err := common.BytesFromAddressHex(messageDoc.Content.MessageBody.RecipientAddress)
-	if err != nil {
-		logger.WithError(err).Errorf("Error parsing to address")
-		return false
-	}
-	amount := sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(messageDoc.Content.MessageBody.Amount)))
-
 	if messageDoc.TransactionBody == "" {
+		toAddr, err := common.BytesFromAddressHex(messageDoc.Content.MessageBody.RecipientAddress)
+		if err != nil {
+			logger.WithError(err).Errorf("Error parsing to address")
+			return false
+		}
+
+		coinAmount, ok := math.NewIntFromString(messageDoc.Content.MessageBody.Amount)
+		if !ok {
+			logger.Errorf("Error parsing amount")
+			return false
+		}
+
 		txBody, err := util.NewSendTx(
 			x.config.Bech32Prefix,
 			x.multisigPk.Address().Bytes(),
 			toAddr,
-			amount,
+			sdk.NewCoin(x.config.CoinDenom, coinAmount),
 			"Message from "+messageDoc.OriginTransactionHash+" on "+x.chain.ChainID,
-			sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(x.config.TxFee))),
+			x.feeAmount,
 		)
 		if err != nil {
 			logger.WithError(err).Errorf("Error creating tx body")
 			return false
 		}
+
 		messageDoc.TransactionBody = txBody
 	}
 
@@ -422,7 +429,13 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	refundAmount := sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(refundDoc.Amount)))
+	coinAmount, ok := math.NewIntFromString(refundDoc.Amount)
+	if !ok {
+		logger.Errorf("Error parsing amount")
+		return false
+	}
+
+	refundAmount := sdk.NewCoin(x.config.CoinDenom, coinAmount)
 	if !amount.IsEqual(refundAmount) {
 		logger.Errorf("Amount does not match refund amount")
 		return false
@@ -447,9 +460,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	feeAmount := sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(x.config.TxFee)))
-
-	refundFinalAmount := refundAmount.Sub(feeAmount)
+	refundFinalAmount := refundAmount.Sub(x.feeAmount)
 
 	if !msg.Amount[0].IsEqual(refundFinalAmount) {
 		logger.Errorf("Amount does not match refund final amount")
@@ -560,7 +571,7 @@ func (x *MessageSignerRunner) SignRefund(
 			spender,
 			amount,
 			"Refund for "+refundDoc.OriginTransactionHash,
-			sdk.NewCoin(x.config.CoinDenom, math.NewInt(int64(x.config.TxFee))),
+			x.feeAmount,
 		)
 		if err != nil {
 			logger.WithError(err).Errorf("Error creating tx body")
@@ -1243,6 +1254,13 @@ func NewMessageSigner(
 		supportedChainIDsEthereum[chainDomain] = true
 	}
 
+	feeCoinAmount, ok := math.NewIntFromString(config.TxFee)
+	if !ok {
+		logger.Fatalf("Error parsing txFee")
+	}
+
+	feeAmount := sdk.NewCoin(config.CoinDenom, feeCoinAmount)
+
 	x := &MessageSignerRunner{
 		multisigPk: multisigPk,
 
@@ -1257,6 +1275,8 @@ func NewMessageSigner(
 		ethClientMap:              ethClientMap,
 		mailboxMap:                mailboxMap,
 		supportedChainIDsEthereum: supportedChainIDsEthereum,
+
+		feeAmount: feeAmount,
 
 		config: config,
 

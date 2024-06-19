@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,7 +15,7 @@ import (
 
 func NewMessageBody(
 	senderAddress []byte,
-	amount uint64,
+	amount *big.Int,
 	recipientAddress []byte,
 ) (models.MessageBody, error) {
 
@@ -30,7 +31,7 @@ func NewMessageBody(
 
 	return models.MessageBody{
 		SenderAddress:    sender,
-		Amount:           amount,
+		Amount:           amount.String(),
 		RecipientAddress: recipient,
 	}, nil
 }

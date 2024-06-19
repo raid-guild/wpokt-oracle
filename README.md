@@ -6,7 +6,7 @@ The wPOKT Oracle is a validator node that facilitates the bridging of POKT token
 
 ## How It Works
 
-The wPOKT Oracle comprises seven parallel services that enable the bridging of POKT tokens from the POKT network to wPOKT on the Ethereum Mainnet. Each service operates on an interval specified in the configuration. Here's an overview of their roles:
+The wPOKT Oracle comprises 3 parallel services for each network that enable the bridging of POKT tokens. Each service operates on an interval specified in the configuration. Here's an overview of their roles:
 
 1. **Mint Monitor:**
    Monitors the Pocket network for transactions to the vault address. It validates transaction memos, inserting both valid `mint` and `invalid mint` transactions into the database.

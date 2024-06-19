@@ -19,7 +19,7 @@ export type Refund = {
   readonly origin_transaction: ObjectId;
   readonly origin_transaction_hash: Hex;
   readonly recipient: string;
-  readonly amount: Long;
+  readonly amount: string;
   readonly transaction_body: string;
   readonly signatures: Signature[];
   readonly transaction?: ObjectId | null;

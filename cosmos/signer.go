@@ -52,8 +52,7 @@ type MessageSignerRunner struct {
 	chain  models.Chain
 	client cosmos.CosmosClient
 
-	logger    *log.Entry
-	feeAmount sdk.Coin
+	logger *log.Entry
 
 	currentBlockHeight uint64
 }
@@ -148,7 +147,7 @@ func (x *MessageSignerRunner) SignMessage(
 			toAddr,
 			sdk.NewCoin(x.config.CoinDenom, coinAmount),
 			"Message from "+messageDoc.OriginTransactionHash+" on "+x.chain.ChainID,
-			x.feeAmount,
+			sdk.NewCoin(x.config.CoinDenom, math.NewIntFromUint64(x.config.TxFee)),
 		)
 		if err != nil {
 			logger.WithError(err).Errorf("Error creating tx body")
@@ -460,7 +459,7 @@ func (x *MessageSignerRunner) ValidateRefund(
 		return false
 	}
 
-	refundFinalAmount := refundAmount.Sub(x.feeAmount)
+	refundFinalAmount := refundAmount.Sub(sdk.NewCoin(x.config.CoinDenom, math.NewIntFromUint64(x.config.TxFee)))
 
 	if !msg.Amount[0].IsEqual(refundFinalAmount) {
 		logger.Errorf("Amount does not match refund final amount")
@@ -571,7 +570,7 @@ func (x *MessageSignerRunner) SignRefund(
 			spender,
 			amount,
 			"Refund for "+refundDoc.OriginTransactionHash,
-			x.feeAmount,
+			sdk.NewCoin(x.config.CoinDenom, math.NewIntFromUint64(x.config.TxFee)),
 		)
 		if err != nil {
 			logger.WithError(err).Errorf("Error creating tx body")
@@ -1254,13 +1253,6 @@ func NewMessageSigner(
 		supportedChainIDsEthereum[chainDomain] = true
 	}
 
-	feeCoinAmount, ok := math.NewIntFromString(config.TxFee)
-	if !ok {
-		logger.Fatalf("Error parsing txFee")
-	}
-
-	feeAmount := sdk.NewCoin(config.CoinDenom, feeCoinAmount)
-
 	x := &MessageSignerRunner{
 		multisigPk: multisigPk,
 
@@ -1275,8 +1267,6 @@ func NewMessageSigner(
 		ethClientMap:              ethClientMap,
 		mailboxMap:                mailboxMap,
 		supportedChainIDsEthereum: supportedChainIDsEthereum,
-
-		feeAmount: feeAmount,
 
 		config: config,
 

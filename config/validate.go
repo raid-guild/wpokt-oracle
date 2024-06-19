@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -43,8 +42,7 @@ func validateConfig(config models.Config) error {
 
 	cosmosPubKey, err := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
 	if err != nil {
-		logger.WithError(err).Error("Failed to generate Cosmos public key from mnemonic")
-		return fmt.Errorf("failed to generate Cosmos public key from mnemonic")
+		return fmt.Errorf("failed to generate Cosmos public key from mnemonic: %w", err)
 	}
 	cosmosPubKeyHex := hex.EncodeToString(cosmosPubKey.Bytes())
 	if !common.IsValidCosmosPublicKey(cosmosPubKeyHex) {
@@ -53,8 +51,7 @@ func validateConfig(config models.Config) error {
 
 	ethAddress, err := common.EthereumAddressFromMnemonic(config.Mnemonic)
 	if err != nil {
-		logger.WithError(err).Error("Failed to generate Ethereum address from mnemonic")
-		return fmt.Errorf("failed to generate Ethereum address from mnemonic")
+		return fmt.Errorf("failed to generate Ethereum address from mnemonic: %w", err)
 	}
 	if !common.IsValidEthereumAddress(ethAddress) {
 		return fmt.Errorf("ethereum address is invalid")
@@ -133,10 +130,10 @@ func validateConfig(config models.Config) error {
 
 	// cosmos
 	if config.CosmosNetwork.StartBlockHeight == 0 {
-		logger.Warnf("CosmosNetwork.StartBlockHeight is 0")
+		logger.Warn("CosmosNetwork.StartBlockHeight is 0")
 	}
 	if config.CosmosNetwork.Confirmations == 0 {
-		logger.Warnf("CosmosNetwork.Confirmations is 0")
+		logger.Warn("CosmosNetwork.Confirmations is 0")
 	}
 	if config.CosmosNetwork.GRPCEnabled {
 		if config.CosmosNetwork.GRPCHost == "" {
@@ -159,11 +156,8 @@ func validateConfig(config models.Config) error {
 	if config.CosmosNetwork.ChainName == "" {
 		return fmt.Errorf("CosmosNetwork.ChainName is required")
 	}
-	if config.CosmosNetwork.TxFee == "" {
-		return fmt.Errorf("CosmosNetwork.TxFee is empty")
-	}
-	if _, ok := big.NewInt(0).SetString(config.CosmosNetwork.TxFee, 10); !ok {
-		return fmt.Errorf("CosmosNetwork.TxFee is invalid")
+	if config.CosmosNetwork.TxFee == 0 {
+		logger.Warn("CosmosNetwork.TxFee is 0")
 	}
 	if config.CosmosNetwork.Bech32Prefix == "" {
 		return fmt.Errorf("CosmosNetwork.Bech32Prefix is required")

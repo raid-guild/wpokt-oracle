@@ -27,9 +27,6 @@ go.work
 # google cloud
 credentials.json
 
-# mockery
-.mockery.yaml
-
 # build
 ./wpokt-oracle
 

@@ -25,48 +25,48 @@ type MintControllerFulfillmentIterator interface {
 	Error() error
 }
 
-type MintControllerFulfillmentIteratorImpl struct {
+type mintControllerFulfillmentIterator struct {
 	iterator *autogen.MintControllerFulfillmentIterator
 }
 
-func (x *MintControllerFulfillmentIteratorImpl) Next() bool {
+func (x *mintControllerFulfillmentIterator) Next() bool {
 	return x.iterator.Next()
 }
 
-func (x *MintControllerFulfillmentIteratorImpl) Event() *autogen.MintControllerFulfillment {
+func (x *mintControllerFulfillmentIterator) Event() *autogen.MintControllerFulfillment {
 	return x.iterator.Event
 }
 
-func (x *MintControllerFulfillmentIteratorImpl) Close() error {
+func (x *mintControllerFulfillmentIterator) Close() error {
 	return x.iterator.Close()
 }
 
-func (x *MintControllerFulfillmentIteratorImpl) Error() error {
+func (x *mintControllerFulfillmentIterator) Error() error {
 	return x.iterator.Error()
 }
 
-type MintControllerContractImpl struct {
+type mintControllerContract struct {
 	contract *autogen.MintController
 	address  common.Address
 }
 
-func (x *MintControllerContractImpl) Address() common.Address {
+func (x *mintControllerContract) Address() common.Address {
 	return x.address
 }
 
-func (x *MintControllerContractImpl) ParseFulfillment(log types.Log) (*autogen.MintControllerFulfillment, error) {
+func (x *mintControllerContract) ParseFulfillment(log types.Log) (*autogen.MintControllerFulfillment, error) {
 	return x.contract.ParseFulfillment(log)
 }
 
-func (x *MintControllerContractImpl) FilterFulfillment(opts *bind.FilterOpts, orderID [][32]byte) (MintControllerFulfillmentIterator, error) {
+func (x *mintControllerContract) FilterFulfillment(opts *bind.FilterOpts, orderID [][32]byte) (MintControllerFulfillmentIterator, error) {
 	iterator, err := x.contract.FilterFulfillment(opts, orderID)
 	if err != nil {
 		return nil, err
 	}
-	return &MintControllerFulfillmentIteratorImpl{iterator: iterator}, nil
+	return &mintControllerFulfillmentIterator{iterator: iterator}, nil
 }
 
-func (x *MintControllerContractImpl) MaxMintLimit(opts *bind.CallOpts) (*big.Int, error) {
+func (x *mintControllerContract) MaxMintLimit(opts *bind.CallOpts) (*big.Int, error) {
 	return x.contract.MaxMintLimit(opts)
 }
 
@@ -76,5 +76,5 @@ func NewMintControllerContract(address common.Address, client *ethclient.Client)
 		return nil, err
 	}
 
-	return &MintControllerContractImpl{contract: contract, address: address}, nil
+	return &mintControllerContract{contract: contract, address: address}, nil
 }

@@ -12,13 +12,6 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
-func TestNewTxConfig(t *testing.T) {
-	bech32Prefix := "pokt"
-	txConfig := NewTxConfig(bech32Prefix)
-
-	assert.NotNil(t, txConfig)
-}
-
 func TestNewSendTx(t *testing.T) {
 	bech32Prefix := "pokt"
 	fromAddr := ethcommon.BytesToAddress([]byte{1, 2, 3})

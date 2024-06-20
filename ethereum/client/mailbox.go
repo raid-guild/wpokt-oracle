@@ -23,49 +23,49 @@ type MailboxDispatchIterator interface {
 	Error() error
 }
 
-type MailboxDispatchIteratorImpl struct {
+type mailboxDispatchIterator struct {
 	iterator *autogen.MailboxDispatchIterator
 }
 
-func (x *MailboxDispatchIteratorImpl) Next() bool {
+func (x *mailboxDispatchIterator) Next() bool {
 	return x.iterator.Next()
 }
 
-func (x *MailboxDispatchIteratorImpl) Event() *autogen.MailboxDispatch {
+func (x *mailboxDispatchIterator) Event() *autogen.MailboxDispatch {
 	return x.iterator.Event
 }
 
-func (x *MailboxDispatchIteratorImpl) Close() error {
+func (x *mailboxDispatchIterator) Close() error {
 	return x.iterator.Close()
 }
 
-func (x *MailboxDispatchIteratorImpl) Error() error {
+func (x *mailboxDispatchIterator) Error() error {
 	return x.iterator.Error()
 }
 
-type MailboxContractImpl struct {
+type mailboxContract struct {
 	contract *autogen.Mailbox
 	address  common.Address
 }
 
-func (x *MailboxContractImpl) ParseDispatch(log types.Log) (*autogen.MailboxDispatch, error) {
+func (x *mailboxContract) ParseDispatch(log types.Log) (*autogen.MailboxDispatch, error) {
 	return x.contract.ParseDispatch(log)
 }
 
-func (x *MailboxContractImpl) ParseDispatchId(log types.Log) (*autogen.MailboxDispatchId, error) {
+func (x *mailboxContract) ParseDispatchId(log types.Log) (*autogen.MailboxDispatchId, error) {
 	return x.contract.ParseDispatchId(log)
 }
 
-func (x *MailboxContractImpl) Address() common.Address {
+func (x *mailboxContract) Address() common.Address {
 	return x.address
 }
 
-func (x *MailboxContractImpl) FilterDispatch(opts *bind.FilterOpts, sender []common.Address, destination []uint32, recipient [][32]byte) (MailboxDispatchIterator, error) {
+func (x *mailboxContract) FilterDispatch(opts *bind.FilterOpts, sender []common.Address, destination []uint32, recipient [][32]byte) (MailboxDispatchIterator, error) {
 	iterator, err := x.contract.FilterDispatch(opts, sender, destination, recipient)
 	if err != nil {
 		return nil, err
 	}
-	return &MailboxDispatchIteratorImpl{iterator: iterator}, nil
+	return &mailboxDispatchIterator{iterator: iterator}, nil
 }
 
 func NewMailboxContract(address common.Address, client *ethclient.Client) (MailboxContract, error) {
@@ -74,5 +74,5 @@ func NewMailboxContract(address common.Address, client *ethclient.Client) (Mailb
 		return nil, err
 	}
 
-	return &MailboxContractImpl{contract: contract, address: address}, nil
+	return &mailboxContract{contract: contract, address: address}, nil
 }

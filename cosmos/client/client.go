@@ -315,7 +315,7 @@ func (c *cosmosClient) getAccountRPC(address string) (*auth.BaseAccount, error) 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	reqBz, err := NewProtoCodec(c.bech32Prefix).Marshal(&auth.QueryAccountRequest{Address: address})
+	reqBz, err := util.NewProtoCodec(c.bech32Prefix).Marshal(&auth.QueryAccountRequest{Address: address})
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal account request: %s", err)
 	}

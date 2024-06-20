@@ -1,0 +1,21 @@
+quiet: False
+with-expecter: True
+dir: "{{.InterfaceDir}}/mocks"
+filename: "{{ .InterfaceName | snakecase }}.go"
+outpkg: "mocks"
+
+packages:
+  github.com/dan13ram/wpokt-oracle/db:
+    interfaces:
+      Database:
+  github.com/dan13ram/wpokt-oracle/cosmos/client:
+    interfaces:
+      CosmosClient:
+  github.com/dan13ram/wpokt-oracle/ethereum/client:
+    interfaces:
+      EthereumClient:
+      MailboxContract:
+      MailboxDispatchIterator:
+      MintControllerContract:
+      MintControllerFulfillmentIterator:
+      WarpISMContract:

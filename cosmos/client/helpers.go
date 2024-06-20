@@ -4,46 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	rpctypes "github.com/cometbft/cometbft/rpc/core/types"
+	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 
-	testutil "github.com/cosmos/cosmos-sdk/codec/testutil"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 
-	std "github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
 	"context"
-
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
-
-func NewProtoCodec(bech32Prefix string) *codec.ProtoCodec {
-	codecOptions := testutil.CodecOptions{
-		AccAddressPrefix: bech32Prefix,
-	}
-
-	reg := codecOptions.NewInterfaceRegistry()
-
-	std.RegisterInterfaces(reg)
-	authtypes.RegisterInterfaces(reg)
-	banktypes.RegisterInterfaces(reg)
-	// TODO: add more modules' interfaces
-
-	codec := codec.NewProtoCodec(reg)
-
-	return codec
-}
-
-func NewTxDecoder(bech32Prefix string) sdk.TxDecoder {
-	codec := NewProtoCodec(bech32Prefix)
-
-	return authtx.DefaultTxDecoder(codec)
-}
 
 func getBlocksForTxResults(node *rpchttp.HTTP, resTxs []*rpctypes.ResultTx) (map[int64]*rpctypes.ResultBlock, error) {
 	resBlocks := make(map[int64]*rpctypes.ResultBlock)
@@ -78,7 +48,7 @@ func formatTxResults(bech32Prefix string, resTxs []*rpctypes.ResultTx, resBlocks
 }
 
 func mkTxResult(bech32Prefix string, resTx *rpctypes.ResultTx, resBlock *rpctypes.ResultBlock) (*sdk.TxResponse, error) {
-	txDecoder := NewTxDecoder(bech32Prefix)
+	txDecoder := util.NewTxDecoder(bech32Prefix)
 	txb, err := txDecoder(resTx.Tx)
 	if err != nil {
 		return nil, fmt.Errorf("decoding tx: %w", err)

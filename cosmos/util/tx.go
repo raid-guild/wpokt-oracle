@@ -54,11 +54,11 @@ func NewSendTx(
 
 	fromAddress, err := common.Bech32FromBytes(bech32Prefix, fromAddr)
 	if err != nil {
-		return "", fmt.Errorf("error converting from address: %s", err)
+		return "", fmt.Errorf("error converting from address: %w", err)
 	}
 	toAddress, err := common.Bech32FromBytes(bech32Prefix, toAddr)
 	if err != nil {
-		return "", fmt.Errorf("error converting to address: %s", err)
+		return "", fmt.Errorf("error converting to address: %w", err)
 	}
 
 	msg := &banktypes.MsgSend{FromAddress: fromAddress, ToAddress: toAddress, Amount: sdk.NewCoins(finalAmount)}
@@ -69,7 +69,7 @@ func NewSendTx(
 
 	err = refundTx.SetMsgs(msg)
 	if err != nil {
-		return "", fmt.Errorf("error setting msg: %s", err)
+		return "", fmt.Errorf("error setting msg: %w", err)
 	}
 
 	refundTx.SetMemo(memo)
@@ -84,7 +84,7 @@ func NewSendTx(
 
 	txBody, err := txEncoder(refundTx.GetTx())
 	if err != nil {
-		return "", fmt.Errorf("error encoding tx: %s", err)
+		return "", fmt.Errorf("error encoding tx: %w", err)
 	}
 	return string(txBody), nil
 }
@@ -102,8 +102,21 @@ func ParseTxBody(
 
 	tx, err := txDecoder([]byte(txBody))
 	if err != nil {
-		return nil, fmt.Errorf("error decoding tx: %s", err)
+		return nil, fmt.Errorf("error decoding tx: %w", err)
 	}
 
 	return tx, nil
+}
+
+func WrapTxBuilder(
+	bech32Prefix string,
+	txBody string,
+) (client.TxBuilder, client.TxConfig, error) {
+	tx, err := ParseTxBody(bech32Prefix, txBody)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing tx body: %w", err)
+	}
+	txConfig := NewTxConfig(bech32Prefix)
+	txBuilder, err := txConfig.WrapTxBuilder(tx)
+	return txBuilder, txConfig, err
 }

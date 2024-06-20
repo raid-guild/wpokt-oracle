@@ -57,11 +57,15 @@ func HexToAddress(hex string) ethcommon.Address {
 }
 
 func EthereumPrivateKeyToAddressHex(privateKey *ecdsa.PrivateKey) (string, error) {
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if privateKey == nil || privateKey.Public() == nil {
+		return "", fmt.Errorf("private key is nil or public key is nil")
+	}
+	publicKeyECDSA, ok := privateKey.Public().(*ecdsa.PublicKey)
 	if !ok {
 		return "", fmt.Errorf("error casting public key to ECDSA")
 	}
+	fmt.Println(*publicKeyECDSA)
+	// publicKeyECDSA
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 	return address.Hex(), nil

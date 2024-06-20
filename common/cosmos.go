@@ -2,7 +2,7 @@ package common
 
 import (
 	"encoding/hex"
-	"fmt"
+	"errors"
 
 	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	defaultAlgo = hd.Secp256k1
+	defaultAlgo               = hd.Secp256k1
+	ErrInvalidPublicKeyLength = errors.New("invalid public key length")
 )
 
 func CosmosPrivateKeyFromMnemonic(mnemonic string) (crypto.PrivKey, error) {
@@ -59,7 +60,7 @@ func CosmosPublicKeyFromHex(pubKeyHex string) (crypto.PubKey, error) {
 	}
 
 	if len(pubKeyBytes) != CosmosPublicKeyLength {
-		return nil, fmt.Errorf("invalid public key length")
+		return nil, ErrInvalidPublicKeyLength
 	}
 
 	pubKey := &secp256k1.PubKey{}
@@ -80,7 +81,7 @@ func BytesFromBech32(bech32Prefix string, address string) (addr []byte, err erro
 
 func Bech32FromBytes(bech32Prefix string, bs []byte) (string, error) {
 	if len(bs) != AddressLength {
-		return "", fmt.Errorf("invalid address length")
+		return "", ErrInvalidAddressLength
 	}
 	return bech32.ConvertAndEncode(bech32Prefix, bs)
 }
@@ -91,7 +92,7 @@ func AddressBytesFromBech32(bech32Prefix string, address string) ([]byte, error)
 		return nil, err
 	}
 	if len(bytes) != AddressLength {
-		return nil, fmt.Errorf("invalid address length")
+		return nil, ErrInvalidAddressLength
 	}
 	return bytes, nil
 }

@@ -31,8 +31,8 @@ func ValidateTxToCosmosMultisig(
 	currentCosmosBlockHeight uint64,
 ) (*ValidateTxToCosmosMultisigResult, error) {
 	logger := log.
-		WithField("operation", "validateTxResponse").
-		WithField("txHash", txResponse.TxHash)
+		WithField("operation", "validateTxToCosmosMultisig").
+		WithField("tx_hash", txResponse.TxHash)
 
 	result := ValidateTxToCosmosMultisigResult{
 		Memo:          models.MintMemo{},
@@ -63,23 +63,15 @@ func ValidateTxToCosmosMultisig(
 		return &result, nil
 	}
 
-	tx := &tx.Tx{}
-	err = tx.Unmarshal(txResponse.Tx.Value)
-	if err != nil {
-		logger.WithError(err).Errorf("Error unmarshalling tx")
-		return &result, nil
-	}
-	result.Tx = tx
-
 	coinsReceived, err := ParseCoinsReceivedEvents(config.CoinDenom, config.MultisigAddress, txResponse.Events)
 	if err != nil {
-		logger.WithError(err).Errorf("Error parsing coins received events")
+		logger.WithError(err).Debugf("Error parsing coins received events")
 		return &result, nil
 	}
 
 	coinsSpentSender, coinsSpent, err := ParseCoinsSpentEvents(config.CoinDenom, txResponse.Events)
 	if err != nil {
-		logger.WithError(err).Errorf("Error parsing coins spent events")
+		logger.WithError(err).Debugf("Error parsing coins spent events")
 		return &result, nil
 	}
 
@@ -102,6 +94,14 @@ func ValidateTxToCosmosMultisig(
 		logger.Errorf("Sender address does not match spender address")
 		return &result, nil
 	}
+
+	tx := &tx.Tx{}
+	err = tx.Unmarshal(txResponse.Tx.Value)
+	if err != nil {
+		logger.WithError(err).Errorf("Error unmarshalling tx")
+		return &result, nil
+	}
+	result.Tx = tx
 
 	result.TxStatus = models.TransactionStatusPending
 

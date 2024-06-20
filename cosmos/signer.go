@@ -157,12 +157,7 @@ func (x *MessageSignerRunner) SignMessage(
 		messageDoc.TransactionBody = txBody
 	}
 
-	// can ignore error here because we already validated
-	tx, _ := util.ParseTxBody(x.config.Bech32Prefix, messageDoc.TransactionBody)
-
-	txConfig := util.NewTxConfig(x.config.Bech32Prefix)
-
-	txBuilder, err := txConfig.WrapTxBuilder(tx)
+	txBuilder, txConfig, err := util.WrapTxBuilder(x.config.Bech32Prefix, messageDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Error("Error wrapping tx builder")
 		return false
@@ -197,7 +192,7 @@ func (x *MessageSignerRunner) SignMessage(
 		Address:       sdk.AccAddress(pubKey.Address()).String(),
 	}
 
-	sigV2, err := util.SignWithPrivKey(
+	sigV2, _, err := util.SignWithPrivKey(
 		context.Background(),
 		signerData,
 		txBuilder,
@@ -579,12 +574,7 @@ func (x *MessageSignerRunner) SignRefund(
 		refundDoc.TransactionBody = txBody
 	}
 
-	// can ignore error here because we already validated
-	tx, _ := util.ParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
-
-	txConfig := util.NewTxConfig(x.config.Bech32Prefix)
-
-	txBuilder, err := txConfig.WrapTxBuilder(tx)
+	txBuilder, txConfig, err := util.WrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Error("Error wrapping tx builder")
 		return false
@@ -619,7 +609,7 @@ func (x *MessageSignerRunner) SignRefund(
 		Address:       sdk.AccAddress(pubKey.Address()).String(),
 	}
 
-	sigV2, err := util.SignWithPrivKey(
+	sigV2, _, err := util.SignWithPrivKey(
 		context.Background(),
 		signerData,
 		txBuilder,
@@ -704,15 +694,7 @@ func (x *MessageSignerRunner) BroadcastMessage(messageDoc *models.Message) bool 
 		WithField("tx_hash", messageDoc.OriginTransactionHash).
 		WithField("section", "broadcast-message")
 
-	tx, err := util.ParseTxBody(x.config.Bech32Prefix, messageDoc.TransactionBody)
-	if err != nil {
-		logger.WithError(err).Errorf("Error parsing tx body")
-		return false
-	}
-
-	txCfg := util.NewTxConfig(x.config.Bech32Prefix)
-
-	txBuilder, err := txCfg.WrapTxBuilder(tx)
+	txBuilder, txCfg, err := util.WrapTxBuilder(x.config.Bech32Prefix, messageDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Errorf("Error wrapping tx builder")
 		return false
@@ -985,17 +967,9 @@ func (x *MessageSignerRunner) BroadcastRefund(
 		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
 	}
 
-	tx, err := util.ParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
+	txBuilder, txCfg, err := util.WrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
-		logger.WithError(err).Errorf("Error parsing tx body")
-		return false
-	}
-
-	txCfg := util.NewTxConfig(x.config.Bech32Prefix)
-
-	txBuilder, err := txCfg.WrapTxBuilder(tx)
-	if err != nil {
-		logger.WithError(err).Errorf("Error wrapping tx builder")
+		logger.WithError(err).Error("Error wrapping tx builder")
 		return false
 	}
 

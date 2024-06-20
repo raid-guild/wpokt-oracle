@@ -11,6 +11,8 @@ import (
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
 
+var signMode = signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
+
 func SignWithPrivKey(
 	ctx context.Context,
 	signerData authsigning.SignerData,
@@ -18,22 +20,18 @@ func SignWithPrivKey(
 	priv crypto.PrivKey,
 	txConfig client.TxConfig,
 	accSeq uint64,
-) (signingtypes.SignatureV2, error) {
-	signMode := signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
-
-	var sigV2 signingtypes.SignatureV2
+) (sigV2 signingtypes.SignatureV2, msg []byte, err error) {
 
 	// Generate the bytes to be signed.
-	signBytes, err := authsigning.GetSignBytesAdapter(
-		ctx, txConfig.SignModeHandler(), signMode, signerData, txBuilder.GetTx())
+	msg, err = authsigning.GetSignBytesAdapter(ctx, txConfig.SignModeHandler(), signMode, signerData, txBuilder.GetTx())
 	if err != nil {
-		return sigV2, err
+		return sigV2, msg, err
 	}
 
 	// Sign those bytes
-	signature, err := priv.Sign(signBytes)
+	signature, err := priv.Sign(msg)
 	if err != nil {
-		return sigV2, err
+		return sigV2, msg, err
 	}
 
 	// Construct the SignatureV2 struct
@@ -48,5 +46,5 @@ func SignWithPrivKey(
 		Sequence: accSeq,
 	}
 
-	return sigV2, nil
+	return sigV2, msg, nil
 }

@@ -98,7 +98,7 @@ func NewMessage(
 
 func FindMessage(filter bson.M) (models.Message, error) {
 	var message models.Message
-	err := mongoDB.FindOne(common.CollectionMessages, filter, &message)
+	err := MongoDB.FindOne(common.CollectionMessages, filter, &message)
 	return message, err
 }
 
@@ -106,7 +106,7 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	if messageID == nil {
 		return fmt.Errorf("messageID is nil")
 	}
-	_, err := mongoDB.UpdateOne(
+	_, err := MongoDB.UpdateOne(
 		common.CollectionMessages,
 		bson.M{"_id": messageID},
 		bson.M{"$set": update},
@@ -117,7 +117,7 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 func UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error) {
 	messageIDHex := common.Ensure0xPrefix(common.HexFromBytes(messageID[:]))
 
-	return mongoDB.UpdateOne(
+	return MongoDB.UpdateOne(
 		common.CollectionMessages,
 		bson.M{"message_id": messageIDHex},
 		bson.M{"$set": update},
@@ -125,11 +125,11 @@ func UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.Obje
 }
 
 func InsertMessage(tx models.Message) (primitive.ObjectID, error) {
-	insertedID, err := mongoDB.InsertOne(common.CollectionMessages, tx)
+	insertedID, err := MongoDB.InsertOne(common.CollectionMessages, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			var messageDoc models.Message
-			if err = mongoDB.FindOne(common.CollectionMessages, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, &messageDoc); err != nil {
+			if err = MongoDB.FindOne(common.CollectionMessages, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, &messageDoc); err != nil {
 				return insertedID, err
 			}
 			return *messageDoc.ID, nil
@@ -158,7 +158,7 @@ func GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Me
 	}
 	sort := bson.M{"content.nonce": 1}
 
-	err := mongoDB.FindManySorted(common.CollectionMessages, filter, sort, &messages)
+	err := MongoDB.FindManySorted(common.CollectionMessages, filter, sort, &messages)
 
 	return messages, err
 }
@@ -171,7 +171,7 @@ func GetSignedMessages(chain models.Chain) ([]models.Message, error) {
 		"status":                     models.MessageStatusSigned,
 	}
 
-	err := mongoDB.FindManySorted(common.CollectionMessages, filter, sort, &messages)
+	err := MongoDB.FindManySorted(common.CollectionMessages, filter, sort, &messages)
 
 	return messages, err
 }
@@ -184,7 +184,7 @@ func GetBroadcastedMessages(chain models.Chain) ([]models.Message, error) {
 		"transaction":                nil,
 	}
 
-	err := mongoDB.FindMany(common.CollectionMessages, filter, &messages)
+	err := MongoDB.FindMany(common.CollectionMessages, filter, &messages)
 
 	return messages, err
 }

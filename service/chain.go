@@ -9,30 +9,30 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-type ChainService struct {
+type chainService struct {
 	wg *sync.WaitGroup
 
 	chain models.Chain
 
-	monitorService RunnerServiceInterface
-	signerService  RunnerServiceInterface
-	relayerService RunnerServiceInterface
+	monitorService RunnerService
+	signerService  RunnerService
+	relayerService RunnerService
 
 	stop   chan bool
 	logger *log.Entry
 }
 
-type ChainServiceInterface interface {
+type ChainService interface {
 	Start()
 	Stop()
 	Health() models.ChainServiceHealth
 }
 
-func (x *ChainService) Name() string {
+func (x *chainService) Name() string {
 	return strings.ToUpper(x.chain.ChainName)
 }
 
-func (x *ChainService) Start() {
+func (x *chainService) Start() {
 	if !x.monitorService.Enabled() && !x.signerService.Enabled() && !x.relayerService.Enabled() {
 		x.logger.Debugf("ChainService not enabled")
 		x.wg.Done()
@@ -75,7 +75,7 @@ func (x *ChainService) Start() {
 	x.wg.Done()
 }
 
-func (x *ChainService) Health() models.ChainServiceHealth {
+func (x *chainService) Health() models.ChainServiceHealth {
 
 	return models.ChainServiceHealth{
 		Chain:          x.chain,
@@ -86,18 +86,18 @@ func (x *ChainService) Health() models.ChainServiceHealth {
 
 }
 
-func (x *ChainService) Stop() {
+func (x *chainService) Stop() {
 	x.logger.Debugf("ChainService stopping")
 	close(x.stop)
 }
 
 func NewChainService(
 	chain models.Chain,
-	monitorService RunnerServiceInterface,
-	signerService RunnerServiceInterface,
-	relayerService RunnerServiceInterface,
+	monitorService RunnerService,
+	signerService RunnerService,
+	relayerService RunnerService,
 	wg *sync.WaitGroup,
-) ChainServiceInterface {
+) ChainService {
 	logger := log.
 		WithField("module", "service").
 		WithField("service", "chain").
@@ -108,7 +108,7 @@ func NewChainService(
 		return nil
 	}
 
-	return &ChainService{
+	return &chainService{
 		chain:          chain,
 		monitorService: monitorService,
 		signerService:  signerService,

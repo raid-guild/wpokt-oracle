@@ -66,7 +66,7 @@ func main() {
 
 	logger.Debug("Starting server")
 
-	services := []service.ChainServiceInterface{}
+	services := []service.ChainService{}
 	var wg sync.WaitGroup
 
 	healthService := health.NewHealthService(config, &wg)

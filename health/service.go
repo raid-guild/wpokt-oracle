@@ -10,31 +10,31 @@ import (
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
-type HealthService struct {
+type healthService struct {
 	interval time.Duration
-	runner   *HealthCheckRunner
+	runnable HealthCheckRunnable
 	stop     chan bool
 	wg       *sync.WaitGroup
 
 	logger *log.Entry
 }
 
-type HealthServiceInterface interface {
-	Start(services []service.ChainServiceInterface)
+type HealthService interface {
+	Start(services []service.ChainService)
 	GetLastHealth() (*models.Node, error)
 	Stop()
 }
 
-func (x *HealthService) Start(
-	services []service.ChainServiceInterface,
+func (x *healthService) Start(
+	services []service.ChainService,
 ) {
-	x.runner.AddServices(services)
+	x.runnable.AddServices(services)
 	x.logger.Infof("HealthService started")
 	stop := false
 	for !stop {
 		x.logger.Infof("Run started")
 
-		x.runner.Run()
+		x.runnable.Run()
 
 		x.logger.Infof("Run complete, next run in %s", x.interval)
 
@@ -48,11 +48,11 @@ func (x *HealthService) Start(
 	}
 }
 
-func (x *HealthService) GetLastHealth() (*models.Node, error) {
-	return x.runner.GetLastHealth()
+func (x *healthService) GetLastHealth() (*models.Node, error) {
+	return x.runnable.GetLastHealth()
 }
 
-func (x *HealthService) Stop() {
+func (x *healthService) Stop() {
 	x.logger.Debugf("HealthService stopping")
 	close(x.stop)
 }
@@ -60,11 +60,10 @@ func (x *HealthService) Stop() {
 func NewHealthService(
 	config models.Config,
 	wg *sync.WaitGroup,
-) HealthServiceInterface {
+) HealthService {
 	interval := time.Duration(config.HealthCheck.IntervalMS) * time.Millisecond
-	runner := newHealthCheck(config)
-	return &HealthService{
-		runner:   runner,
+	return &healthService{
+		runnable: newHealthCheck(config),
 		interval: interval,
 		stop:     make(chan bool, 1),
 		wg:       wg,

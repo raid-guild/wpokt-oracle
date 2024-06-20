@@ -22,7 +22,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
-type MessageMonitorRunner struct {
+type EthMessageMonitorRunnable struct {
 	startBlockHeight   uint64
 	currentBlockHeight uint64
 
@@ -40,18 +40,18 @@ type MessageMonitorRunner struct {
 	logger *log.Entry
 }
 
-func (x *MessageMonitorRunner) Run() {
+func (x *EthMessageMonitorRunnable) Run() {
 	x.UpdateCurrentBlockHeight()
 	x.SyncNewBlocks()
 	x.ConfirmDispatchTxs()
 	x.CreateMessagesForTxs()
 }
 
-func (x *MessageMonitorRunner) Height() uint64 {
+func (x *EthMessageMonitorRunnable) Height() uint64 {
 	return uint64(x.currentBlockHeight)
 }
 
-func (x *MessageMonitorRunner) UpdateCurrentBlockHeight() {
+func (x *EthMessageMonitorRunnable) UpdateCurrentBlockHeight() {
 	res, err := x.client.GetBlockHeight()
 	if err != nil {
 		x.logger.
@@ -65,7 +65,7 @@ func (x *MessageMonitorRunner) UpdateCurrentBlockHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageMonitorRunner) UpdateTransaction(
+func (x *EthMessageMonitorRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
@@ -77,7 +77,7 @@ func (x *MessageMonitorRunner) UpdateTransaction(
 	return true
 }
 
-func (x *MessageMonitorRunner) IsValidEvent(event *autogen.MailboxDispatch) error {
+func (x *EthMessageMonitorRunnable) IsValidEvent(event *autogen.MailboxDispatch) error {
 	if event == nil {
 		return fmt.Errorf("event is nil")
 	}
@@ -142,7 +142,7 @@ func (x *MessageMonitorRunner) IsValidEvent(event *autogen.MailboxDispatch) erro
 	return nil
 }
 
-func (x *MessageMonitorRunner) CreateTxForDispatchEvent(event *autogen.MailboxDispatch) bool {
+func (x *EthMessageMonitorRunnable) CreateTxForDispatchEvent(event *autogen.MailboxDispatch) bool {
 	txHash := event.Raw.TxHash.String()
 	logger := x.logger.WithField("tx_hash", txHash).WithField("section", "CreateTxForDispatchEvent")
 
@@ -178,7 +178,7 @@ type ValidateTransactionAndParseDispatchEventsResult struct {
 	TxStatus      models.TransactionStatus
 }
 
-func (x *MessageMonitorRunner) ValidateTransactionAndParseDispatchEvents(txHash string) (*ValidateTransactionAndParseDispatchEventsResult, error) {
+func (x *EthMessageMonitorRunnable) ValidateTransactionAndParseDispatchEvents(txHash string) (*ValidateTransactionAndParseDispatchEventsResult, error) {
 	receipt, err := x.client.GetTransactionReceipt(txHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
@@ -212,7 +212,7 @@ func (x *MessageMonitorRunner) ValidateTransactionAndParseDispatchEvents(txHash 
 	return result, nil
 }
 
-func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
+func (x *EthMessageMonitorRunnable) ConfirmTx(txDoc *models.Transaction) bool {
 	if txDoc == nil {
 		x.logger.Error("ConfirmTx: txDoc is nil")
 		return false
@@ -231,7 +231,7 @@ func (x *MessageMonitorRunner) ConfirmTx(txDoc *models.Transaction) bool {
 	return x.UpdateTransaction(txDoc, update)
 }
 
-func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bool {
+func (x *EthMessageMonitorRunnable) CreateMessagesForTx(txDoc *models.Transaction) bool {
 	if txDoc == nil {
 		x.logger.Error("CreateMessagesForTx: txDoc is nil")
 		return false
@@ -291,7 +291,7 @@ func (x *MessageMonitorRunner) CreateMessagesForTx(txDoc *models.Transaction) bo
 	return x.UpdateTransaction(txDoc, bson.M{"messages": common.RemoveDuplicates(txDoc.Messages)})
 }
 
-func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
+func (x *EthMessageMonitorRunnable) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
 	mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
 	if !ok {
 		x.logger.Errorf("Mint controller not found for chain domain: %d", x.chain.ChainDomain)
@@ -344,7 +344,7 @@ func (x *MessageMonitorRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 	return success
 }
 
-func (x *MessageMonitorRunner) SyncNewBlocks() bool {
+func (x *EthMessageMonitorRunnable) SyncNewBlocks() bool {
 	if x.currentBlockHeight <= x.startBlockHeight {
 		x.logger.Infof("No new blocks to sync")
 		return true
@@ -373,7 +373,7 @@ func (x *MessageMonitorRunner) SyncNewBlocks() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) ConfirmDispatchTxs() bool {
+func (x *EthMessageMonitorRunnable) ConfirmDispatchTxs() bool {
 	logger := x.logger.WithField("section", "ConfirmDispatchTxs")
 
 	txs, err := db.GetPendingTransactionsTo(x.chain, x.mailbox.Address().Bytes())
@@ -390,7 +390,7 @@ func (x *MessageMonitorRunner) ConfirmDispatchTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) CreateMessagesForTxs() bool {
+func (x *EthMessageMonitorRunnable) CreateMessagesForTxs() bool {
 	logger := x.logger.WithField("section", "CreateMessagesForTxs")
 
 	txs, err := db.GetConfirmedTransactionsTo(x.chain, x.mailbox.Address().Bytes())
@@ -407,7 +407,7 @@ func (x *MessageMonitorRunner) CreateMessagesForTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
+func (x *EthMessageMonitorRunnable) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
 	if lastHealth == nil || lastHealth.BlockHeight == 0 {
 		x.logger.Infof("Invalid last health")
 	} else {
@@ -425,7 +425,7 @@ func NewMessageMonitor(
 	config models.EthereumNetworkConfig,
 	mintControllerMap map[uint32][]byte,
 	lastHealth *models.RunnerServiceStatus,
-) service.Runner {
+) service.Runnable {
 	logger := log.
 		WithField("module", "ethereum").
 		WithField("service", "monitor").
@@ -450,7 +450,7 @@ func NewMessageMonitor(
 	}
 	logger.Debug("Connected to mailbox contract")
 
-	x := &MessageMonitorRunner{
+	x := &EthMessageMonitorRunnable{
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 

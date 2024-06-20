@@ -19,7 +19,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
-type MessageRelayerRunner struct {
+type EthMessageRelayerRunnable struct {
 	startBlockHeight   uint64
 	currentBlockHeight uint64
 
@@ -35,18 +35,18 @@ type MessageRelayerRunner struct {
 	logger *log.Entry
 }
 
-func (x *MessageRelayerRunner) Run() {
+func (x *EthMessageRelayerRunnable) Run() {
 	x.UpdateCurrentBlockHeight()
 	x.SyncNewBlocks()
 	x.ConfirmFulfillmentTxs()
 	x.ConfirmMessages()
 }
 
-func (x *MessageRelayerRunner) Height() uint64 {
+func (x *EthMessageRelayerRunnable) Height() uint64 {
 	return uint64(x.currentBlockHeight)
 }
 
-func (x *MessageRelayerRunner) UpdateCurrentBlockHeight() {
+func (x *EthMessageRelayerRunnable) UpdateCurrentBlockHeight() {
 	res, err := x.client.GetBlockHeight()
 	if err != nil {
 		x.logger.
@@ -60,7 +60,7 @@ func (x *MessageRelayerRunner) UpdateCurrentBlockHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageRelayerRunner) CreateTxForFulfillmentEvent(event *autogen.MintControllerFulfillment) bool {
+func (x *EthMessageRelayerRunnable) CreateTxForFulfillmentEvent(event *autogen.MintControllerFulfillment) bool {
 	if event == nil {
 		return false
 	}
@@ -95,7 +95,7 @@ type ValidateTransactionAndParseFulfillmentEventsResult struct {
 	TxStatus      models.TransactionStatus
 }
 
-func (x *MessageRelayerRunner) ValidateTransactionAndParseFulfillmentEvents(txHash string) (*ValidateTransactionAndParseFulfillmentEventsResult, error) {
+func (x *EthMessageRelayerRunnable) ValidateTransactionAndParseFulfillmentEvents(txHash string) (*ValidateTransactionAndParseFulfillmentEventsResult, error) {
 	receipt, err := x.client.GetTransactionReceipt(txHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
@@ -129,7 +129,7 @@ func (x *MessageRelayerRunner) ValidateTransactionAndParseFulfillmentEvents(txHa
 	return result, nil
 }
 
-func (x *MessageRelayerRunner) UpdateTransaction(
+func (x *EthMessageRelayerRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
@@ -141,7 +141,7 @@ func (x *MessageRelayerRunner) UpdateTransaction(
 	return true
 }
 
-func (x *MessageRelayerRunner) ConfirmTx(txDoc *models.Transaction) bool {
+func (x *EthMessageRelayerRunnable) ConfirmTx(txDoc *models.Transaction) bool {
 	if txDoc == nil {
 		x.logger.Error("ConfirmTx: txDoc is nil")
 		return false
@@ -160,7 +160,7 @@ func (x *MessageRelayerRunner) ConfirmTx(txDoc *models.Transaction) bool {
 	return x.UpdateTransaction(txDoc, update)
 }
 
-func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) bool {
+func (x *EthMessageRelayerRunnable) ConfirmMessagesForTx(txDoc *models.Transaction) bool {
 	if txDoc == nil {
 		x.logger.Error("ConfirmMessagesForTx: txDoc is nil")
 		return false
@@ -211,7 +211,7 @@ func (x *MessageRelayerRunner) ConfirmMessagesForTx(txDoc *models.Transaction) b
 	return x.UpdateTransaction(txDoc, bson.M{"messages": common.RemoveDuplicates(txDoc.Messages)})
 }
 
-func (x *MessageRelayerRunner) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
+func (x *EthMessageRelayerRunnable) SyncBlocks(startBlockHeight uint64, endBlockHeight uint64) bool {
 	filter, err := x.mintController.FilterFulfillment(&bind.FilterOpts{
 		Start:   startBlockHeight,
 		End:     &endBlockHeight,
@@ -256,7 +256,7 @@ func (x *MessageRelayerRunner) SyncBlocks(startBlockHeight uint64, endBlockHeigh
 	return success
 }
 
-func (x *MessageRelayerRunner) SyncNewBlocks() bool {
+func (x *EthMessageRelayerRunnable) SyncNewBlocks() bool {
 	if x.currentBlockHeight <= x.startBlockHeight {
 		x.logger.Infof("No new blocks to sync")
 		return true
@@ -285,7 +285,7 @@ func (x *MessageRelayerRunner) SyncNewBlocks() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) ConfirmFulfillmentTxs() bool {
+func (x *EthMessageRelayerRunnable) ConfirmFulfillmentTxs() bool {
 	logger := x.logger.WithField("section", "ConfirmFulfillmentTxs")
 
 	txs, err := db.GetPendingTransactionsTo(x.chain, x.mintController.Address().Bytes())
@@ -302,7 +302,7 @@ func (x *MessageRelayerRunner) ConfirmFulfillmentTxs() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) ConfirmMessages() bool {
+func (x *EthMessageRelayerRunnable) ConfirmMessages() bool {
 	logger := x.logger.WithField("section", "ConfirmMessages")
 
 	txs, err := db.GetConfirmedTransactionsTo(x.chain, x.mintController.Address().Bytes())
@@ -319,7 +319,7 @@ func (x *MessageRelayerRunner) ConfirmMessages() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
+func (x *EthMessageRelayerRunnable) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
 	if lastHealth == nil || lastHealth.BlockHeight == 0 {
 		x.logger.Infof("Invalid last health")
 	} else {
@@ -337,7 +337,7 @@ func NewMessageRelayer(
 	config models.EthereumNetworkConfig,
 	mintControllerMap map[uint32][]byte,
 	lastHealth *models.RunnerServiceStatus,
-) service.Runner {
+) service.Runnable {
 	logger := log.
 		WithField("module", "ethereum").
 		WithField("service", "relayer").
@@ -362,7 +362,7 @@ func NewMessageRelayer(
 	}
 	logger.Debug("Connected to mintController contract")
 
-	x := &MessageRelayerRunner{
+	x := &EthMessageRelayerRunnable{
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,
 

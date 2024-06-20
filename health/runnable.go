@@ -16,25 +16,31 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type HealthCheckRunner struct {
+type HealthCheckRunnable interface {
+	Run()
+	AddServices(services []service.ChainService)
+	GetLastHealth() (*models.Node, error)
+}
+
+type healthCheckRunnable struct {
 	cosmosAddress string
 	ethAddress    string
 	hostname      string
 	oracleID      string
-	services      []service.ChainServiceInterface
+	services      []service.ChainService
 
 	logger *log.Entry
 }
 
-func (x *HealthCheckRunner) Run() {
+func (x *healthCheckRunnable) Run() {
 	x.PostHealth()
 }
 
-func (x *HealthCheckRunner) AddServices(services []service.ChainServiceInterface) {
+func (x *healthCheckRunnable) AddServices(services []service.ChainService) {
 	x.services = services
 }
 
-func (x *HealthCheckRunner) GetLastHealth() (*models.Node, error) {
+func (x *healthCheckRunnable) GetLastHealth() (*models.Node, error) {
 	filter := bson.M{
 		"cosmos_address": x.cosmosAddress,
 		"eth_address":    x.ethAddress,
@@ -45,7 +51,7 @@ func (x *HealthCheckRunner) GetLastHealth() (*models.Node, error) {
 	return health, err
 }
 
-func (x *HealthCheckRunner) ServiceHealths() []models.ChainServiceHealth {
+func (x *healthCheckRunnable) ServiceHealths() []models.ChainServiceHealth {
 	var serviceHealths []models.ChainServiceHealth
 	for _, service := range x.services {
 		serviceHealth := service.Health()
@@ -54,7 +60,7 @@ func (x *HealthCheckRunner) ServiceHealths() []models.ChainServiceHealth {
 	return serviceHealths
 }
 
-func (x *HealthCheckRunner) PostHealth() bool {
+func (x *healthCheckRunnable) PostHealth() bool {
 	x.logger.Debug("Posting health")
 
 	filter := bson.M{
@@ -89,7 +95,7 @@ func (x *HealthCheckRunner) PostHealth() bool {
 	return true
 }
 
-func newHealthCheck(config models.Config) *HealthCheckRunner {
+func newHealthCheck(config models.Config) *healthCheckRunnable {
 	logger := log.WithFields(log.Fields{
 		"module": "health",
 		"runner": "health",
@@ -132,7 +138,7 @@ func newHealthCheck(config models.Config) *HealthCheckRunner {
 		logger.Fatal("Error getting hostname: ", err)
 	}
 
-	x := &HealthCheckRunner{
+	x := &healthCheckRunnable{
 		cosmosAddress: common.Ensure0xPrefix(cosmosAddressHex),
 		ethAddress:    common.Ensure0xPrefix(ethAddressHex),
 		hostname:      hostname,

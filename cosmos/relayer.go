@@ -18,7 +18,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
-type MessageRelayerRunner struct {
+type CosmosMessageRelayerRunnable struct {
 	multisigPk *multisig.LegacyAminoPubKey
 
 	config models.CosmosNetworkConfig
@@ -31,18 +31,18 @@ type MessageRelayerRunner struct {
 	currentBlockHeight uint64
 }
 
-func (x *MessageRelayerRunner) Run() {
+func (x *CosmosMessageRelayerRunnable) Run() {
 	x.UpdateCurrentHeight()
 	x.CreateTxForRefunds()
 	x.CreateTxForMessages()
 	x.ConfirmTransactions()
 }
 
-func (x *MessageRelayerRunner) Height() uint64 {
+func (x *CosmosMessageRelayerRunnable) Height() uint64 {
 	return uint64(x.currentBlockHeight)
 }
 
-func (x *MessageRelayerRunner) UpdateCurrentHeight() {
+func (x *CosmosMessageRelayerRunnable) UpdateCurrentHeight() {
 	height, err := x.client.GetLatestBlockHeight()
 	if err != nil {
 		x.logger.WithError(err).Error("could not get current block height")
@@ -52,7 +52,7 @@ func (x *MessageRelayerRunner) UpdateCurrentHeight() {
 	x.logger.WithField("current_block_height", x.currentBlockHeight).Info("updated current block height")
 }
 
-func (x *MessageRelayerRunner) UpdateRefund(
+func (x *CosmosMessageRelayerRunnable) UpdateRefund(
 	refundID *primitive.ObjectID,
 	update bson.M,
 ) bool {
@@ -64,7 +64,7 @@ func (x *MessageRelayerRunner) UpdateRefund(
 	return true
 }
 
-func (x *MessageRelayerRunner) UpdateMessage(
+func (x *CosmosMessageRelayerRunnable) UpdateMessage(
 	messageID *primitive.ObjectID,
 	update bson.M,
 ) bool {
@@ -76,7 +76,7 @@ func (x *MessageRelayerRunner) UpdateMessage(
 	return true
 }
 
-func (x *MessageRelayerRunner) CreateMessageTransaction(
+func (x *CosmosMessageRelayerRunnable) CreateMessageTransaction(
 	messageDoc *models.Message,
 ) bool {
 	logger := x.logger.
@@ -118,7 +118,7 @@ func (x *MessageRelayerRunner) CreateMessageTransaction(
 	return x.UpdateMessage(messageDoc.ID, bson.M{"transaction": insertedID})
 }
 
-func (x *MessageRelayerRunner) CreateRefundTransaction(
+func (x *CosmosMessageRelayerRunnable) CreateRefundTransaction(
 	refundDoc *models.Refund,
 ) bool {
 
@@ -158,7 +158,7 @@ func (x *MessageRelayerRunner) CreateRefundTransaction(
 	return x.UpdateRefund(refundDoc.ID, bson.M{"transaction": insertedID})
 }
 
-func (x *MessageRelayerRunner) CreateTxForRefunds() bool {
+func (x *CosmosMessageRelayerRunnable) CreateTxForRefunds() bool {
 	x.logger.Infof("Relaying refunds")
 	refunds, err := db.GetBroadcastedRefunds()
 	if err != nil {
@@ -174,7 +174,7 @@ func (x *MessageRelayerRunner) CreateTxForRefunds() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) CreateTxForMessages() bool {
+func (x *CosmosMessageRelayerRunnable) CreateTxForMessages() bool {
 	x.logger.Infof("Relaying messages")
 	messages, err := db.GetBroadcastedMessages(x.chain)
 	if err != nil {
@@ -190,7 +190,7 @@ func (x *MessageRelayerRunner) CreateTxForMessages() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) UpdateTransaction(
+func (x *CosmosMessageRelayerRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
@@ -202,7 +202,7 @@ func (x *MessageRelayerRunner) UpdateTransaction(
 	return true
 }
 
-func (x *MessageRelayerRunner) ResetRefund(
+func (x *CosmosMessageRelayerRunnable) ResetRefund(
 	refundID *primitive.ObjectID,
 ) bool {
 	if refundID == nil {
@@ -220,7 +220,7 @@ func (x *MessageRelayerRunner) ResetRefund(
 	return x.UpdateRefund(refundID, update)
 }
 
-func (x *MessageRelayerRunner) ResetMessage(
+func (x *CosmosMessageRelayerRunnable) ResetMessage(
 	messageID *primitive.ObjectID,
 ) bool {
 	if messageID == nil {
@@ -239,7 +239,7 @@ func (x *MessageRelayerRunner) ResetMessage(
 	return x.UpdateMessage(messageID, update)
 }
 
-func (x *MessageRelayerRunner) ConfirmTransactions() bool {
+func (x *CosmosMessageRelayerRunnable) ConfirmTransactions() bool {
 	x.logger.Infof("Relaying transactions")
 	txs, err := db.GetPendingTransactionsFrom(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
@@ -321,7 +321,7 @@ func (x *MessageRelayerRunner) ConfirmTransactions() bool {
 	return success
 }
 
-func (x *MessageRelayerRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
+func (x *CosmosMessageRelayerRunnable) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
 	if lastHealth == nil || lastHealth.BlockHeight == 0 {
 		x.logger.Debugf("Invalid last health")
 	} else {
@@ -338,7 +338,7 @@ func (x *MessageRelayerRunner) InitStartBlockHeight(lastHealth *models.RunnerSer
 	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
-func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runner {
+func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.RunnerServiceStatus) service.Runnable {
 	logger := log.
 		WithField("module", "cosmos").
 		WithField("service", "relayer").
@@ -375,7 +375,7 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 		logger.WithError(err).Errorf("Error creating cosmos client")
 	}
 
-	x := &MessageRelayerRunner{
+	x := &CosmosMessageRelayerRunnable{
 		multisigPk: multisigPk,
 
 		startBlockHeight:   config.StartBlockHeight,

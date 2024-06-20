@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	mongoDB Database
+	MongoDB Database
 )
 
 type Database interface {
@@ -419,11 +419,11 @@ func InitDB(config models.MongoConfig) {
 	}
 	d.logger.Info("Database initialized")
 
-	mongoDB = d
+	MongoDB = d
 }
 
 func DisconnectDB() {
-	if mongoDB != nil {
-		mongoDB.Disconnect()
+	if MongoDB != nil {
+		MongoDB.Disconnect()
 	}
 }

@@ -11,12 +11,12 @@ import (
 
 // Unlock unlocks a resource
 func Unlock(lockID string) error {
-	return mongoDB.Unlock(lockID)
+	return MongoDB.Unlock(lockID)
 }
 
 func LockWriteTransaction(txDoc *models.Transaction) (lockID string, err error) {
 	resourceID := fmt.Sprintf("%s/%s", common.CollectionTransactions, txDoc.ID.Hex())
-	lockID, err = mongoDB.XLock(resourceID)
+	lockID, err = MongoDB.XLock(resourceID)
 	if err != nil {
 		log.WithError(err).Error("Error locking transaction")
 		return
@@ -27,7 +27,7 @@ func LockWriteTransaction(txDoc *models.Transaction) (lockID string, err error) 
 
 func LockWriteRefund(refundDoc *models.Refund) (lockID string, err error) {
 	resourceID := fmt.Sprintf("%s/%s", common.CollectionRefunds, refundDoc.ID.Hex())
-	lockID, err = mongoDB.XLock(resourceID)
+	lockID, err = MongoDB.XLock(resourceID)
 	if err != nil {
 		log.WithError(err).Error("Error locking refund")
 		return
@@ -38,7 +38,7 @@ func LockWriteRefund(refundDoc *models.Refund) (lockID string, err error) {
 
 func LockWriteMessage(messageDoc *models.Message) (lockID string, err error) {
 	resourceID := fmt.Sprintf("%s/%s", common.CollectionMessages, messageDoc.ID.Hex())
-	lockID, err = mongoDB.XLock(resourceID)
+	lockID, err = MongoDB.XLock(resourceID)
 	if err != nil {
 		log.WithError(err).Error("Error locking message")
 		return
@@ -50,7 +50,7 @@ func LockWriteMessage(messageDoc *models.Message) (lockID string, err error) {
 const sequenceResourseID = "comsos_sequence"
 
 func LockReadSequences() (lockID string, err error) {
-	lockID, err = mongoDB.SLock(sequenceResourseID)
+	lockID, err = MongoDB.SLock(sequenceResourseID)
 	if err != nil {
 		log.WithError(err).Error("Error locking max sequence")
 		return
@@ -60,7 +60,7 @@ func LockReadSequences() (lockID string, err error) {
 }
 
 func LockWriteSequence() (lockID string, err error) {
-	lockID, err = mongoDB.SLock(sequenceResourseID)
+	lockID, err = MongoDB.SLock(sequenceResourseID)
 	if err != nil {
 		log.WithError(err).Error("Error locking max sequence")
 		return

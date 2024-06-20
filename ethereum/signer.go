@@ -25,7 +25,7 @@ import (
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
-type MessageSignerRunner struct {
+type EthMessageSignerRunnable struct {
 	timeout time.Duration
 
 	currentEthereumBlockHeight uint64
@@ -56,17 +56,17 @@ type MessageSignerRunner struct {
 	logger *log.Entry
 }
 
-func (x *MessageSignerRunner) Run() {
+func (x *EthMessageSignerRunnable) Run() {
 	x.UpdateCurrentBlockHeight()
 	x.UpdateMaxMintLimit()
 	x.SignMessages()
 }
 
-func (x *MessageSignerRunner) Height() uint64 {
+func (x *EthMessageSignerRunnable) Height() uint64 {
 	return uint64(x.currentEthereumBlockHeight)
 }
 
-func (x *MessageSignerRunner) UpdateCurrentCosmosBlockHeight() {
+func (x *EthMessageSignerRunnable) UpdateCurrentCosmosBlockHeight() {
 	height, err := x.cosmosClient.GetLatestBlockHeight()
 	if err != nil {
 		x.logger.
@@ -80,7 +80,7 @@ func (x *MessageSignerRunner) UpdateCurrentCosmosBlockHeight() {
 		Info("updated current cosmos block height")
 }
 
-func (x *MessageSignerRunner) UpdateCurrentEthereumBlockHeight() {
+func (x *EthMessageSignerRunnable) UpdateCurrentEthereumBlockHeight() {
 	res, err := x.client.GetBlockHeight()
 	if err != nil {
 		x.logger.
@@ -94,12 +94,12 @@ func (x *MessageSignerRunner) UpdateCurrentEthereumBlockHeight() {
 		Info("updated current ethereum block height")
 }
 
-func (x *MessageSignerRunner) UpdateCurrentBlockHeight() {
+func (x *EthMessageSignerRunnable) UpdateCurrentBlockHeight() {
 	x.UpdateCurrentEthereumBlockHeight()
 	x.UpdateCurrentCosmosBlockHeight()
 }
 
-func (x *MessageSignerRunner) UpdateMessage(
+func (x *EthMessageSignerRunnable) UpdateMessage(
 	message *models.Message,
 	update bson.M,
 ) bool {
@@ -111,7 +111,7 @@ func (x *MessageSignerRunner) UpdateMessage(
 	return true
 }
 
-func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
+func (x *EthMessageSignerRunnable) SignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-message")
 	logger.Debugf("Signing message")
 
@@ -139,7 +139,7 @@ func (x *MessageSignerRunner) SignMessage(messageDoc *models.Message) bool {
 	return x.UpdateMessage(messageDoc, update)
 }
 
-func (x *MessageSignerRunner) ValidateCosmosMessage(messageDoc *models.Message) (confirmed bool, err error) {
+func (x *EthMessageSignerRunnable) ValidateCosmosMessage(messageDoc *models.Message) (confirmed bool, err error) {
 	txResponse, err := x.cosmosClient.GetTx(messageDoc.OriginTransactionHash)
 	if err != nil {
 		return false, fmt.Errorf("error getting tx: %w", err)
@@ -181,7 +181,7 @@ func (x *MessageSignerRunner) ValidateCosmosMessage(messageDoc *models.Message) 
 	return true, nil
 }
 
-func (x *MessageSignerRunner) ValidateCosmosTxAndSignMessage(messageDoc *models.Message) bool {
+func (x *EthMessageSignerRunnable) ValidateCosmosTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-cosmos-message")
 	logger.Debugf("Signing cosmos message")
 
@@ -206,7 +206,7 @@ type ValidateTransactionAndParseDispatchIdEventsResult struct {
 	TxStatus      models.TransactionStatus
 }
 
-func (x *MessageSignerRunner) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
+func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
 	chainDomain := messageDoc.Content.OriginDomain
 	txHash := messageDoc.OriginTransactionHash
 	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
@@ -268,7 +268,7 @@ func (x *MessageSignerRunner) ValidateAndFindDispatchIdEvent(messageDoc *models.
 	return result, nil
 }
 
-func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *models.Message) bool {
+func (x *EthMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
@@ -291,7 +291,7 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 	return x.SignMessage(messageDoc)
 }
 
-func (x *MessageSignerRunner) SignMessages() bool {
+func (x *EthMessageSignerRunnable) SignMessages() bool {
 	x.logger.Infof("Signing messages")
 	addressHex, err := common.EthereumPrivateKeyToAddressHex(x.privateKey)
 	if err != nil {
@@ -318,7 +318,7 @@ func (x *MessageSignerRunner) SignMessages() bool {
 	return success
 }
 
-func (x *MessageSignerRunner) UpdateValidatorCountAndSignerThreshold() {
+func (x *EthMessageSignerRunnable) UpdateValidatorCountAndSignerThreshold() {
 	x.logger.Debug("Fetching validator count")
 	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
 	defer cancel()
@@ -345,7 +345,7 @@ func (x *MessageSignerRunner) UpdateValidatorCountAndSignerThreshold() {
 	x.signerThreshold = threshold.Int64()
 }
 
-func (x *MessageSignerRunner) UpdateDomainData() {
+func (x *EthMessageSignerRunnable) UpdateDomainData() {
 	x.logger.Debug("Fetching domain data")
 	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
 	defer cancel()
@@ -360,7 +360,7 @@ func (x *MessageSignerRunner) UpdateDomainData() {
 	x.domain = domain
 }
 
-func (x *MessageSignerRunner) UpdateMaxMintLimit() {
+func (x *EthMessageSignerRunnable) UpdateMaxMintLimit() {
 	x.logger.Debug("Fetching max mint limit")
 	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
 	defer cancel()
@@ -380,7 +380,7 @@ func NewMessageSigner(
 	config models.EthereumNetworkConfig,
 	cosmosConfig models.CosmosNetworkConfig,
 	ethNetworks []models.EthereumNetworkConfig,
-) service.Runner {
+) service.Runnable {
 	logger := log.
 		WithField("module", "ethereum").
 		WithField("service", "signer").
@@ -450,7 +450,7 @@ func NewMessageSigner(
 		mailboxMap[chainDomain] = mailbox
 	}
 
-	x := &MessageSignerRunner{
+	x := &EthMessageSignerRunnable{
 		timeout: time.Duration(config.TimeoutMS) * time.Millisecond,
 
 		currentEthereumBlockHeight: 0,

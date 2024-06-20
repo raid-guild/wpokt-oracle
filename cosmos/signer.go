@@ -39,7 +39,7 @@ import (
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
 
-type MessageSignerRunner struct {
+type CosmosMessageSignerRunnable struct {
 	multisigPk *multisig.LegacyAminoPubKey
 	signerKey  crypto.PrivKey
 
@@ -57,7 +57,7 @@ type MessageSignerRunner struct {
 	currentBlockHeight uint64
 }
 
-func (x *MessageSignerRunner) Run() {
+func (x *CosmosMessageSignerRunnable) Run() {
 	x.UpdateCurrentHeight()
 	x.SignRefunds()
 	x.BroadcastRefunds()
@@ -65,11 +65,11 @@ func (x *MessageSignerRunner) Run() {
 	x.BroadcastMessages()
 }
 
-func (x *MessageSignerRunner) Height() uint64 {
+func (x *CosmosMessageSignerRunnable) Height() uint64 {
 	return uint64(x.currentBlockHeight)
 }
 
-func (x *MessageSignerRunner) UpdateCurrentHeight() {
+func (x *CosmosMessageSignerRunnable) UpdateCurrentHeight() {
 	height, err := x.client.GetLatestBlockHeight()
 	if err != nil {
 		x.logger.
@@ -83,7 +83,7 @@ func (x *MessageSignerRunner) UpdateCurrentHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageSignerRunner) UpdateMessage(
+func (x *CosmosMessageSignerRunnable) UpdateMessage(
 	message *models.Message,
 	update bson.M,
 ) bool {
@@ -95,7 +95,7 @@ func (x *MessageSignerRunner) UpdateMessage(
 	return true
 }
 
-func (x *MessageSignerRunner) SignMessage(
+func (x *CosmosMessageSignerRunnable) SignMessage(
 	messageDoc *models.Message,
 ) bool {
 
@@ -276,7 +276,7 @@ type ValidateTransactionAndParseDispatchIdEventsResult struct {
 	TxStatus      models.TransactionStatus
 }
 
-func (x *MessageSignerRunner) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
+func (x *CosmosMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
 	chainDomain := messageDoc.Content.OriginDomain
 	txHash := messageDoc.OriginTransactionHash
 	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
@@ -339,7 +339,7 @@ func (x *MessageSignerRunner) ValidateAndFindDispatchIdEvent(messageDoc *models.
 	return result, nil
 }
 
-func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *models.Message) bool {
+func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
@@ -369,7 +369,7 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndSignMessage(messageDoc *model
 	return x.SignMessage(messageDoc)
 }
 
-func (x *MessageSignerRunner) SignMessages() bool {
+func (x *CosmosMessageSignerRunnable) SignMessages() bool {
 	x.logger.Infof("Signing messages")
 	addressHex, err := common.AddressHexFromBytes(x.signerKey.PubKey().Address().Bytes())
 	if err != nil {
@@ -390,7 +390,7 @@ func (x *MessageSignerRunner) SignMessages() bool {
 	return success
 }
 
-func (x *MessageSignerRunner) UpdateRefund(
+func (x *CosmosMessageSignerRunnable) UpdateRefund(
 	refund *models.Refund,
 	update bson.M,
 ) bool {
@@ -402,7 +402,7 @@ func (x *MessageSignerRunner) UpdateRefund(
 	return true
 }
 
-func (x *MessageSignerRunner) ValidateRefund(
+func (x *CosmosMessageSignerRunnable) ValidateRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
 	spenderAddress []byte,
@@ -496,7 +496,7 @@ func isTxSigner(user []byte, signers [][]byte) bool {
 	return false
 }
 
-func (x *MessageSignerRunner) FindMaxSequence() (uint64, error) {
+func (x *CosmosMessageSignerRunnable) FindMaxSequence() (uint64, error) {
 	lockID, err := db.LockReadSequences()
 	if err != nil {
 		return 0, fmt.Errorf("could not lock sequences: %w", err)
@@ -522,7 +522,7 @@ func (x *MessageSignerRunner) FindMaxSequence() (uint64, error) {
 	return account.Sequence, nil
 }
 
-func (x *MessageSignerRunner) SignRefund(
+func (x *CosmosMessageSignerRunnable) SignRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
 	spender []byte,
@@ -688,7 +688,7 @@ func (x *MessageSignerRunner) SignRefund(
 	return true
 }
 
-func (x *MessageSignerRunner) BroadcastMessage(messageDoc *models.Message) bool {
+func (x *CosmosMessageSignerRunnable) BroadcastMessage(messageDoc *models.Message) bool {
 
 	logger := x.logger.
 		WithField("tx_hash", messageDoc.OriginTransactionHash).
@@ -756,7 +756,7 @@ func (x *MessageSignerRunner) BroadcastMessage(messageDoc *models.Message) bool 
 	return true
 }
 
-func (x *MessageSignerRunner) ValidateEthereumTxAndBroadcastMessage(messageDoc *models.Message) bool {
+func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndBroadcastMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "broadcast-ethereum-message")
 	logger.Debugf("Broadcasting ethereum message")
 
@@ -844,7 +844,7 @@ func (x *MessageSignerRunner) ValidateEthereumTxAndBroadcastMessage(messageDoc *
 
 }
 
-func (x *MessageSignerRunner) BroadcastMessages() bool {
+func (x *CosmosMessageSignerRunnable) BroadcastMessages() bool {
 	x.logger.Infof("Broadcasting messages")
 	messages, err := db.GetSignedMessages(x.chain)
 	if err != nil {
@@ -860,7 +860,7 @@ func (x *MessageSignerRunner) BroadcastMessages() bool {
 	return success
 }
 
-func (x *MessageSignerRunner) ValidateSignatures(
+func (x *CosmosMessageSignerRunnable) ValidateSignatures(
 	originTxHash string,
 	sequence uint64,
 	txCfg client.TxConfig,
@@ -950,7 +950,7 @@ func (x *MessageSignerRunner) ValidateSignatures(
 	return true
 }
 
-func (x *MessageSignerRunner) BroadcastRefund(
+func (x *CosmosMessageSignerRunnable) BroadcastRefund(
 	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
 	spender []byte,
@@ -1021,7 +1021,7 @@ func (x *MessageSignerRunner) BroadcastRefund(
 	return x.UpdateRefund(refundDoc, update)
 }
 
-func (x *MessageSignerRunner) BroadcastRefunds() bool {
+func (x *CosmosMessageSignerRunnable) BroadcastRefunds() bool {
 	x.logger.Infof("Broadcasting refunds")
 	refunds, err := db.GetSignedRefunds()
 	if err != nil {
@@ -1083,7 +1083,7 @@ func (x *MessageSignerRunner) BroadcastRefunds() bool {
 	return success
 }
 
-func (x *MessageSignerRunner) SignRefunds() bool {
+func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 	x.logger.Infof("Signing refunds")
 	addressHex, err := common.AddressHexFromBytes(x.signerKey.PubKey().Address().Bytes())
 	if err != nil {
@@ -1160,7 +1160,7 @@ func NewMessageSigner(
 	config models.CosmosNetworkConfig,
 	mintControllerMap map[uint32][]byte,
 	ethNetworks []models.EthereumNetworkConfig,
-) service.Runner {
+) service.Runnable {
 	logger := log.
 		WithField("module", "cosmos").
 		WithField("service", "signer").
@@ -1227,7 +1227,7 @@ func NewMessageSigner(
 		supportedChainIDsEthereum[chainDomain] = true
 	}
 
-	x := &MessageSignerRunner{
+	x := &CosmosMessageSignerRunnable{
 		multisigPk: multisigPk,
 
 		currentBlockHeight: 0,

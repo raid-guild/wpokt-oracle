@@ -88,11 +88,11 @@ func NewCosmosTransaction(
 }
 
 func InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
-	insertedID, err := mongoDB.InsertOne(common.CollectionTransactions, tx)
+	insertedID, err := MongoDB.InsertOne(common.CollectionTransactions, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			var txDoc models.Transaction
-			if err = mongoDB.FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, &txDoc); err != nil {
+			if err = MongoDB.FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, &txDoc); err != nil {
 				return insertedID, err
 			}
 			return *txDoc.ID, nil
@@ -107,7 +107,7 @@ func UpdateTransaction(txID *primitive.ObjectID, update bson.M) error {
 	if txID == nil {
 		return fmt.Errorf("txID is nil")
 	}
-	_, err := mongoDB.UpdateOne(
+	_, err := MongoDB.UpdateOne(
 		common.CollectionTransactions,
 		bson.M{"_id": *txID},
 		bson.M{"$set": update},
@@ -129,7 +129,7 @@ func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Tr
 		"to_address": txTo,
 	}
 
-	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)
+	err = MongoDB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }
@@ -171,7 +171,7 @@ func GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.
 		},
 	}
 
-	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)
+	err = MongoDB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }
@@ -190,7 +190,7 @@ func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]model
 		"from_address": txFrom,
 	}
 
-	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)
+	err = MongoDB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
 }

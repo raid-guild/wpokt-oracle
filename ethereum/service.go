@@ -18,7 +18,7 @@ func NewEthereumChainService(
 	mnemonic string,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
-) service.ChainServiceInterface {
+) service.ChainService {
 
 	var chainHealth models.ChainServiceHealth
 	if nodeHealth != nil {
@@ -32,38 +32,38 @@ func NewEthereumChainService(
 
 	chain := util.ParseChain(config)
 
-	var monitorRunner service.Runner = &service.EmptyRunner{}
+	var monitorRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageMonitor.Enabled {
-		monitorRunner = NewMessageMonitor(config, mintControllerMap, chainHealth.MessageMonitor)
+		monitorRunnable = NewMessageMonitor(config, mintControllerMap, chainHealth.MessageMonitor)
 	}
 	monitorRunnerService := service.NewRunnerService(
 		"monitor",
-		monitorRunner,
+		monitorRunnable,
 		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
 		chain,
 	)
 
-	var signerRunner service.Runner = &service.EmptyRunner{}
+	var signerRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageSigner.Enabled {
-		signerRunner = NewMessageSigner(mnemonic, config, cosmosConfig, ethNetworks)
+		signerRunnable = NewMessageSigner(mnemonic, config, cosmosConfig, ethNetworks)
 	}
 	signerRunnerService := service.NewRunnerService(
 		"signer",
-		signerRunner,
+		signerRunnable,
 		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
 		chain,
 	)
 
-	var relayerRunner service.Runner = &service.EmptyRunner{}
+	var relayerRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageRelayer.Enabled {
-		relayerRunner = NewMessageRelayer(config, mintControllerMap, chainHealth.MessageRelayer)
+		relayerRunnable = NewMessageRelayer(config, mintControllerMap, chainHealth.MessageRelayer)
 	}
 
 	relayerRunnerService := service.NewRunnerService(
 		"relayer",
-		relayerRunner,
+		relayerRunnable,
 		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
 		chain,

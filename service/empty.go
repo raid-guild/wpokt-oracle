@@ -1,10 +1,10 @@
 package service
 
-type EmptyRunner struct{}
+type EmptyRunnable struct{}
 
-func (e *EmptyRunner) Run() {
+func (e *EmptyRunnable) Run() {
 }
 
-func (e *EmptyRunner) Height() uint64 {
+func (e *EmptyRunnable) Height() uint64 {
 	return 0
 }

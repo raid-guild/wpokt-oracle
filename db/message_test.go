@@ -27,12 +27,12 @@ type MessageTestSuite struct {
 
 func (suite *MessageTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
-	suite.oldMongoDB = mongoDB
-	mongoDB = suite.mockDB
+	suite.oldMongoDB = MongoDB
+	MongoDB = suite.mockDB
 }
 
 func (suite *MessageTestSuite) TearDownTest() {
-	mongoDB = suite.oldMongoDB
+	MongoDB = suite.oldMongoDB
 }
 
 func (suite *MessageTestSuite) TestNewMessageBody() {

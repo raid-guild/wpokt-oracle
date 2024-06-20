@@ -21,7 +21,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-type MessageMonitorRunner struct {
+type CosmosMessageMonitorRunnable struct {
 	multisigPk *multisig.LegacyAminoPubKey
 
 	mintControllerMap         map[uint32][]byte
@@ -37,18 +37,18 @@ type MessageMonitorRunner struct {
 	currentBlockHeight uint64
 }
 
-func (x *MessageMonitorRunner) Run() {
+func (x *CosmosMessageMonitorRunnable) Run() {
 	x.UpdateCurrentHeight()
 	x.SyncNewTxs()
 	x.ConfirmTxs()
 	x.CreateRefundsOrMessagesForConfirmedTxs()
 }
 
-func (x *MessageMonitorRunner) Height() uint64 {
+func (x *CosmosMessageMonitorRunnable) Height() uint64 {
 	return uint64(x.currentBlockHeight)
 }
 
-func (x *MessageMonitorRunner) UpdateCurrentHeight() {
+func (x *CosmosMessageMonitorRunnable) UpdateCurrentHeight() {
 	height, err := x.client.GetLatestBlockHeight()
 	if err != nil {
 		x.logger.
@@ -62,7 +62,7 @@ func (x *MessageMonitorRunner) UpdateCurrentHeight() {
 		Info("updated current block height")
 }
 
-func (x *MessageMonitorRunner) CreateTransaction(
+func (x *CosmosMessageMonitorRunnable) CreateTransaction(
 	senderAddress []byte,
 	txResponse *sdk.TxResponse,
 	txStatus models.TransactionStatus,
@@ -82,7 +82,7 @@ func (x *MessageMonitorRunner) CreateTransaction(
 	return true
 }
 
-func (x *MessageMonitorRunner) UpdateTransaction(
+func (x *CosmosMessageMonitorRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
@@ -94,7 +94,7 @@ func (x *MessageMonitorRunner) UpdateTransaction(
 	return true
 }
 
-func (x *MessageMonitorRunner) CreateRefund(
+func (x *CosmosMessageMonitorRunnable) CreateRefund(
 	txRes *sdk.TxResponse,
 	txDoc *models.Transaction,
 	toAddr []byte,
@@ -122,7 +122,7 @@ func (x *MessageMonitorRunner) CreateRefund(
 	return true
 }
 
-func (x *MessageMonitorRunner) CreateMessage(
+func (x *CosmosMessageMonitorRunnable) CreateMessage(
 	txRes *sdk.TxResponse,
 	tx *tx.Tx,
 	txDoc *models.Transaction,
@@ -195,7 +195,7 @@ func (x *MessageMonitorRunner) CreateMessage(
 	return true
 }
 
-func (x *MessageMonitorRunner) SyncNewTxs() bool {
+func (x *CosmosMessageMonitorRunnable) SyncNewTxs() bool {
 	x.logger.Infof("Syncing new txs")
 	if x.currentBlockHeight <= x.startBlockHeight {
 		x.logger.Infof("No new blocks to sync")
@@ -229,7 +229,7 @@ func (x *MessageMonitorRunner) SyncNewTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) ValidateAndConfirmTx(txDoc *models.Transaction) bool {
+func (x *CosmosMessageMonitorRunnable) ValidateAndConfirmTx(txDoc *models.Transaction) bool {
 	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "confirm")
 	txResponse, err := x.client.GetTx(txDoc.Hash)
 	if err != nil {
@@ -250,7 +250,7 @@ func (x *MessageMonitorRunner) ValidateAndConfirmTx(txDoc *models.Transaction) b
 	return x.UpdateTransaction(txDoc, update)
 }
 
-func (x *MessageMonitorRunner) ConfirmTxs() bool {
+func (x *CosmosMessageMonitorRunnable) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
 	txs, err := db.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
@@ -266,7 +266,7 @@ func (x *MessageMonitorRunner) ConfirmTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) ValidateTxAndCreate(txDoc *models.Transaction) bool {
+func (x *CosmosMessageMonitorRunnable) ValidateTxAndCreate(txDoc *models.Transaction) bool {
 	logger := x.logger.WithField("tx_hash", txDoc.Hash).WithField("section", "create")
 	txResponse, err := x.client.GetTx(txDoc.Hash)
 	if err != nil {
@@ -304,7 +304,7 @@ func (x *MessageMonitorRunner) ValidateTxAndCreate(txDoc *models.Transaction) bo
 	return x.CreateMessage(txResponse, result.Tx, txDoc, result.SenderAddress, result.Amount, result.Memo)
 }
 
-func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
+func (x *CosmosMessageMonitorRunnable) CreateRefundsOrMessagesForConfirmedTxs() bool {
 	x.logger.Infof("Creating refunds or messages for confirmed txs")
 	txDocs, err := db.GetConfirmedTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
@@ -320,7 +320,7 @@ func (x *MessageMonitorRunner) CreateRefundsOrMessagesForConfirmedTxs() bool {
 	return success
 }
 
-func (x *MessageMonitorRunner) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
+func (x *CosmosMessageMonitorRunnable) InitStartBlockHeight(lastHealth *models.RunnerServiceStatus) {
 	if lastHealth == nil || lastHealth.BlockHeight == 0 {
 		x.logger.Debugf("Invalid last health")
 	} else {
@@ -342,7 +342,7 @@ func NewMessageMonitor(
 	mintControllerMap map[uint32][]byte,
 	ethNetworks []models.EthereumNetworkConfig,
 	lastHealth *models.RunnerServiceStatus,
-) service.Runner {
+) service.Runnable {
 	logger := log.
 		WithField("module", "cosmos").
 		WithField("service", "monitor").
@@ -386,7 +386,7 @@ func NewMessageMonitor(
 
 	// TODO: check max amount for corresponding chain and disallow if too high
 
-	x := &MessageMonitorRunner{
+	x := &CosmosMessageMonitorRunnable{
 		multisigPk: multisigPk,
 
 		startBlockHeight:   config.StartBlockHeight,

@@ -9,23 +9,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Runner interface {
+type Runnable interface {
 	Run()
 	Height() uint64
 }
 
-type RunnerServiceInterface interface {
+type RunnerService interface {
 	Start(wg *sync.WaitGroup)
 	Enabled() bool
 	Status() *models.RunnerServiceStatus
 	Stop()
 }
 
-type RunnerService struct {
+type runnerService struct {
 	name string
 
 	enabled  bool
-	runner   Runner
+	runnable Runnable
 	interval time.Duration
 
 	stop chan bool
@@ -36,17 +36,17 @@ type RunnerService struct {
 	logger *log.Entry
 }
 
-func (x *RunnerService) Enabled() bool {
+func (x *runnerService) Enabled() bool {
 	return x.enabled
 }
 
-func (x *RunnerService) Start(wg *sync.WaitGroup) {
+func (x *runnerService) Start(wg *sync.WaitGroup) {
 	if !x.enabled {
 		x.logger.Debugf("RunnerService is disabled")
 		wg.Done()
 		return
 	}
-	if x.runner == nil {
+	if x.runnable == nil {
 		x.logger.Debugf("RunnerService not started, runner is nil")
 		wg.Done()
 		return
@@ -57,9 +57,9 @@ func (x *RunnerService) Start(wg *sync.WaitGroup) {
 	for !stop {
 		x.logger.Infof("Run started")
 
-		x.runner.Run()
+		x.runnable.Run()
 
-		x.updateStatus(x.runner.Height())
+		x.updateStatus(x.runnable.Height())
 
 		x.logger.Infof("Run complete, next run in %s", x.interval)
 
@@ -73,7 +73,7 @@ func (x *RunnerService) Start(wg *sync.WaitGroup) {
 	}
 }
 
-func (x *RunnerService) Status() *models.RunnerServiceStatus {
+func (x *runnerService) Status() *models.RunnerServiceStatus {
 	x.statusMu.RLock()
 	defer x.statusMu.RUnlock()
 
@@ -86,7 +86,7 @@ func (x *RunnerService) Status() *models.RunnerServiceStatus {
 	return &statusCopy
 }
 
-func (x *RunnerService) updateStatus(blockHeight uint64) {
+func (x *runnerService) updateStatus(blockHeight uint64) {
 	x.statusMu.Lock()
 	defer x.statusMu.Unlock()
 
@@ -101,18 +101,18 @@ func (x *RunnerService) updateStatus(blockHeight uint64) {
 	}
 }
 
-func (x *RunnerService) Stop() {
+func (x *runnerService) Stop() {
 	x.logger.Debugf("RunnerService stopping")
 	close(x.stop)
 }
 
 func NewRunnerService(
 	name string,
-	runner Runner,
+	runnable Runnable,
 	enabled bool,
 	interval time.Duration,
 	chain models.Chain,
-) RunnerServiceInterface {
+) RunnerService {
 	logger := log.
 		WithField("module", "service").
 		WithField("service", "runner").
@@ -120,15 +120,15 @@ func NewRunnerService(
 		WithField("chain_name", strings.ToLower(chain.ChainName)).
 		WithField("chain_id", strings.ToLower(chain.ChainID))
 
-	if (runner == nil) || (interval == 0) {
+	if (runnable == nil) || (interval == 0) {
 		logger.
 			Debug("Invalid parameters")
 		return nil
 	}
 
-	return &RunnerService{
+	return &runnerService{
 		name:     strings.ToUpper(name),
-		runner:   runner,
+		runnable: runnable,
 		enabled:  enabled,
 		interval: interval,
 		stop:     make(chan bool, 1),

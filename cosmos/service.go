@@ -16,7 +16,7 @@ func NewCosmosChainService(
 	ethNetworks []models.EthereumNetworkConfig,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
-) service.ChainServiceInterface {
+) service.ChainService {
 
 	var chainHealth models.ChainServiceHealth
 	if nodeHealth != nil {
@@ -30,39 +30,39 @@ func NewCosmosChainService(
 
 	chain := util.ParseChain(config)
 
-	var monitorRunner service.Runner = &service.EmptyRunner{}
+	var monitorRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageMonitor.Enabled {
-		monitorRunner = NewMessageMonitor(config, mintControllerMap, ethNetworks, chainHealth.MessageMonitor)
+		monitorRunnable = NewMessageMonitor(config, mintControllerMap, ethNetworks, chainHealth.MessageMonitor)
 	}
 	monitorRunnerService := service.NewRunnerService(
 		"monitor",
-		monitorRunner,
+		monitorRunnable,
 		config.MessageMonitor.Enabled,
 		time.Duration(config.MessageMonitor.IntervalMS)*time.Millisecond,
 		chain,
 	)
 
-	var signerRunner service.Runner = &service.EmptyRunner{}
+	var signerRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageSigner.Enabled {
-		signerRunner = NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+		signerRunnable = NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
 	}
 
 	signerRunnerService := service.NewRunnerService(
 		"signer",
-		signerRunner,
+		signerRunnable,
 		config.MessageSigner.Enabled,
 		time.Duration(config.MessageSigner.IntervalMS)*time.Millisecond,
 		chain,
 	)
 
-	var relayerRunner service.Runner = &service.EmptyRunner{}
+	var relayerRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageRelayer.Enabled {
-		relayerRunner = NewMessageRelayer(config, chainHealth.MessageRelayer)
+		relayerRunnable = NewMessageRelayer(config, chainHealth.MessageRelayer)
 	}
 
 	relayerRunnerService := service.NewRunnerService(
 		"relayer",
-		relayerRunner,
+		relayerRunnable,
 		config.MessageRelayer.Enabled,
 		time.Duration(config.MessageRelayer.IntervalMS)*time.Millisecond,
 		chain,

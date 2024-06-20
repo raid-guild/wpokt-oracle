@@ -28,12 +28,12 @@ type TransactionTestSuite struct {
 
 func (suite *TransactionTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
-	suite.oldMongoDB = mongoDB
-	mongoDB = suite.mockDB
+	suite.oldMongoDB = MongoDB
+	MongoDB = suite.mockDB
 }
 
 func (suite *TransactionTestSuite) TearDownTest() {
-	mongoDB = suite.oldMongoDB
+	MongoDB = suite.oldMongoDB
 }
 
 func (suite *TransactionTestSuite) TestNewEthereumTransaction() {

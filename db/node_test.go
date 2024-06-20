@@ -21,12 +21,12 @@ type NodeTestSuite struct {
 
 func (suite *NodeTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
-	suite.oldMongoDB = mongoDB
-	mongoDB = suite.mockDB
+	suite.oldMongoDB = MongoDB
+	MongoDB = suite.mockDB
 }
 
 func (suite *NodeTestSuite) TearDownTest() {
-	mongoDB = suite.oldMongoDB
+	MongoDB = suite.oldMongoDB
 }
 
 func (suite *NodeTestSuite) TestFindNode() {

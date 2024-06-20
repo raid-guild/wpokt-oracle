@@ -9,13 +9,13 @@ import (
 
 func FindNode(filter interface{}) (*models.Node, error) {
 	var node models.Node
-	err := mongoDB.FindOne(common.CollectionNodes, filter, &node)
+	err := MongoDB.FindOne(common.CollectionNodes, filter, &node)
 	return &node, err
 }
 
 func UpsertNode(filter interface{}, onUpdate interface{}, onInsert interface{}) error {
 	update := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
 
-	_, err := mongoDB.UpsertOne(common.CollectionNodes, filter, update)
+	_, err := MongoDB.UpsertOne(common.CollectionNodes, filter, update)
 	return err
 }

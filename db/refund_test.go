@@ -27,12 +27,12 @@ type RefundTestSuite struct {
 
 func (suite *RefundTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
-	suite.oldMongoDB = mongoDB
-	mongoDB = suite.mockDB
+	suite.oldMongoDB = MongoDB
+	MongoDB = suite.mockDB
 }
 
 func (suite *RefundTestSuite) TearDownTest() {
-	mongoDB = suite.oldMongoDB
+	MongoDB = suite.oldMongoDB
 }
 
 func (suite *RefundTestSuite) TestNewRefund() {

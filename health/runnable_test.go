@@ -13,8 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	mocks "github.com/dan13ram/wpokt-oracle/db/mocks"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,24 +26,20 @@ func (m *mockChainService) Health() models.ChainServiceHealth {
 	return m.health
 }
 
-func TesthealthCheckRunnable_Run(t *testing.T) {
+func Test_HealthCheckRunnable_Run(t *testing.T) {
 	healthCheck := &healthCheckRunnable{
 		logger: log.NewEntry(log.New()),
 	}
-	oldMongoDB := db.MongoDB
-	mockDB := mocks.NewMockDatabase(t)
-	db.MongoDB = mockDB
-	defer func() {
-		mockDB.AssertExpectations(t)
-		db.MongoDB = oldMongoDB
-	}()
+	mockDB := db.MockDatabase(t)
+	defer db.UnmockDatabase()
 
 	mockDB.On("UpsertOne", common.CollectionNodes, mock.Anything, mock.Anything).Return(primitive.ObjectID{}, nil).Once()
 
 	healthCheck.Run()
+	mockDB.AssertExpectations(t)
 }
 
-func TesthealthCheckRunnable_AddServices(t *testing.T) {
+func Test_HealthCheckRunnable_AddServices(t *testing.T) {
 	healthCheck := &healthCheckRunnable{}
 	services := []service.ChainService{
 		&mockChainService{},
@@ -54,7 +48,7 @@ func TesthealthCheckRunnable_AddServices(t *testing.T) {
 	assert.Equal(t, services, healthCheck.services)
 }
 
-func TesthealthCheckRunnable_GetLastHealth(t *testing.T) {
+func Test_HealthCheckRunnable_GetLastHealth(t *testing.T) {
 	healthCheck := &healthCheckRunnable{
 		cosmosAddress: "cosmosAddress",
 		ethAddress:    "ethAddress",
@@ -62,13 +56,8 @@ func TesthealthCheckRunnable_GetLastHealth(t *testing.T) {
 		oracleID:      "oracleID",
 	}
 
-	oldMongoDB := db.MongoDB
-	mockDB := mocks.NewMockDatabase(t)
-	db.MongoDB = mockDB
-	defer func() {
-		mockDB.AssertExpectations(t)
-		db.MongoDB = oldMongoDB
-	}()
+	mockDB := db.MockDatabase(t)
+	defer db.UnmockDatabase()
 
 	expectedFilter := bson.M{
 		"cosmos_address": "cosmosAddress",
@@ -81,9 +70,10 @@ func TesthealthCheckRunnable_GetLastHealth(t *testing.T) {
 	health, err := healthCheck.GetLastHealth()
 	assert.NoError(t, err)
 	assert.NotNil(t, health)
+	mockDB.AssertExpectations(t)
 }
 
-func TesthealthCheckRunnable_ServiceHealths(t *testing.T) {
+func Test_HealthCheckRunnable_ServiceHealths(t *testing.T) {
 	serviceHealth := models.ChainServiceHealth{
 		Chain: models.Chain{
 			ChainName: "TestChain",
@@ -99,7 +89,7 @@ func TesthealthCheckRunnable_ServiceHealths(t *testing.T) {
 	assert.Equal(t, serviceHealth, healths[0])
 }
 
-func TesthealthCheckRunnable_PostHealth(t *testing.T) {
+func Test_HealthCheckRunnable_PostHealth(t *testing.T) {
 	healthCheck := &healthCheckRunnable{
 		cosmosAddress: "cosmosAddress",
 		ethAddress:    "ethAddress",
@@ -108,13 +98,8 @@ func TesthealthCheckRunnable_PostHealth(t *testing.T) {
 		logger:        log.NewEntry(log.New()),
 	}
 
-	oldMongoDB := db.MongoDB
-	mockDB := mocks.NewMockDatabase(t)
-	db.MongoDB = mockDB
-	defer func() {
-		mockDB.AssertExpectations(t)
-		db.MongoDB = oldMongoDB
-	}()
+	mockDB := db.MockDatabase(t)
+	defer db.UnmockDatabase()
 
 	expectedFilter := bson.M{
 		"cosmos_address": "cosmosAddress",
@@ -153,6 +138,7 @@ func TesthealthCheckRunnable_PostHealth(t *testing.T) {
 
 	success := healthCheck.PostHealth()
 	assert.True(t, success)
+	mockDB.AssertExpectations(t)
 }
 
 func TestNewHealthCheck(t *testing.T) {

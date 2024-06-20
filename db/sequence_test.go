@@ -22,12 +22,12 @@ type SequenceTestSuite struct {
 
 func (suite *SequenceTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
-	suite.oldMongoDB = MongoDB
-	MongoDB = suite.mockDB
+	suite.oldMongoDB = mongoDB
+	mongoDB = suite.mockDB
 }
 
 func (suite *SequenceTestSuite) TearDownTest() {
-	MongoDB = suite.oldMongoDB
+	mongoDB = suite.oldMongoDB
 }
 
 func (suite *SequenceTestSuite) TestFindMaxSequenceFromRefunds() {

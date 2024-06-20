@@ -21,12 +21,12 @@ var oldMongoDB Database
 
 func (suite *LockTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
-	suite.oldMongoDB = MongoDB
-	MongoDB = suite.mockDB
+	suite.oldMongoDB = mongoDB
+	mongoDB = suite.mockDB
 }
 
 func (suite *LockTestSuite) TearDownTest() {
-	MongoDB = suite.oldMongoDB
+	mongoDB = suite.oldMongoDB
 }
 
 func (suite *LockTestSuite) TestUnlock() {

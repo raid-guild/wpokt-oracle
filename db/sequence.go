@@ -23,7 +23,7 @@ func FindMaxSequenceFromRefunds() (*uint64, error) {
 	}
 
 	var result ResultMaxSequence
-	err := MongoDB.AggregateOne(common.CollectionRefunds, pipeline, &result)
+	err := mongoDB.AggregateOne(common.CollectionRefunds, pipeline, &result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -47,7 +47,7 @@ func FindMaxSequenceFromMessages(chain models.Chain) (*uint64, error) {
 	}
 
 	var result ResultMaxSequence
-	err := MongoDB.AggregateOne(common.CollectionMessages, pipeline, &result)
+	err := mongoDB.AggregateOne(common.CollectionMessages, pipeline, &result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil

@@ -53,11 +53,11 @@ func NewRefund(
 }
 
 func InsertRefund(tx models.Refund) (primitive.ObjectID, error) {
-	insertedID, err := MongoDB.InsertOne(common.CollectionRefunds, tx)
+	insertedID, err := mongoDB.InsertOne(common.CollectionRefunds, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			var refundDoc models.Refund
-			if err = MongoDB.FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, &refundDoc); err != nil {
+			if err = mongoDB.FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": tx.OriginTransactionHash}, &refundDoc); err != nil {
 				return insertedID, err
 			}
 			return *refundDoc.ID, nil
@@ -72,7 +72,7 @@ func UpdateRefund(refundID *primitive.ObjectID, update bson.M) error {
 	if refundID == nil {
 		return fmt.Errorf("refundID is nil")
 	}
-	_, err := MongoDB.UpdateOne(
+	_, err := mongoDB.UpdateOne(
 		common.CollectionRefunds,
 		bson.M{"_id": refundID},
 		bson.M{"$set": update},
@@ -96,7 +96,7 @@ func GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {
 		},
 	}
 
-	err := MongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
+	err := mongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
 
 	return refunds, err
 }
@@ -106,7 +106,7 @@ func GetSignedRefunds() ([]models.Refund, error) {
 	filter := bson.M{"status": models.RefundStatusSigned}
 	sort := bson.M{"sequence": 1}
 
-	err := MongoDB.FindManySorted(common.CollectionRefunds, filter, sort, &refunds)
+	err := mongoDB.FindManySorted(common.CollectionRefunds, filter, sort, &refunds)
 
 	return refunds, err
 }
@@ -115,7 +115,7 @@ func GetBroadcastedRefunds() ([]models.Refund, error) {
 	refunds := []models.Refund{}
 	filter := bson.M{"status": models.RefundStatusBroadcasted, "transaction": nil}
 
-	err := MongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
+	err := mongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
 
 	return refunds, err
 }

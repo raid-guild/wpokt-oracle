@@ -15,12 +15,12 @@ func isGSMValue(value string) bool {
 }
 
 // if env variable is gsm:secret-name, read the secret from Google Secret Manager
-func readSecretFromGSM(client *secretmanager.Client, label string, value string) string {
+func readSecretFromGSM(client *secretmanager.Client, label string, value string) (string, error) {
 	if !isGSMValue(value) {
 		logger.
 			WithField("config", label).
 			Debugf("Already set, skipping GSM read")
-		return value
+		return value, nil
 	}
 	name := value[4:]
 	logger.
@@ -38,23 +38,23 @@ func readSecretFromGSM(client *secretmanager.Client, label string, value string)
 			WithField("secret", name).
 			WithError(err).
 			Errorf("Failed to read GSM secret")
-		return ""
+		return "", err
 	}
 
 	logger.
 		WithField("config", label).
 		WithField("secret", name).
 		Debugf("Successfully read secret from GSM")
-	return string(result.Payload.Data)
+	return string(result.Payload.Data), nil
 }
 
-func loadSecretsFromGSM(config models.Config) models.Config {
+func loadSecretsFromGSM(config models.Config) (models.Config, error) {
 	logger.Debugf("Loading secrets from GSM")
 	configWithSecrets := config
 
 	if !isGSMValue(config.MongoDB.URI) && !isGSMValue(config.Mnemonic) {
 		logger.Debugf("No secrets to load from GSM")
-		return configWithSecrets
+		return configWithSecrets, nil
 	}
 
 	ctx := context.Background()
@@ -63,14 +63,20 @@ func loadSecretsFromGSM(config models.Config) models.Config {
 		logger.
 			WithError(err).
 			Errorf("Failed to create secretmanager client")
-		return configWithSecrets
+		return configWithSecrets, err
 	}
 	defer client.Close()
 
-	configWithSecrets.MongoDB.URI = readSecretFromGSM(client, "MongoDB.URI", config.MongoDB.URI)
+	configWithSecrets.MongoDB.URI, err = readSecretFromGSM(client, "MongoDB.URI", config.MongoDB.URI)
+	if err != nil {
+		return configWithSecrets, err
+	}
 
-	configWithSecrets.Mnemonic = readSecretFromGSM(client, "Mnemonic", config.Mnemonic)
+	configWithSecrets.Mnemonic, err = readSecretFromGSM(client, "Mnemonic", config.Mnemonic)
+	if err != nil {
+		return configWithSecrets, err
+	}
 
 	logger.Debugf("Successfully loaded secrets from GSM")
-	return configWithSecrets
+	return configWithSecrets, nil
 }

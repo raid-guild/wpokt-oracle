@@ -14,11 +14,26 @@ func init() {
 
 func InitConfig(yamlFile string, envFile string) models.Config {
 	logger.Debug("Initializing config")
-	yamlConfig := loadConfigFromYamlFile(yamlFile)
-	envConfig := loadConfigFromEnv(envFile)
+	yamlConfig, err := loadConfigFromYamlFile(yamlFile)
+	if err != nil {
+		logger.
+			WithFields(log.Fields{"error": err}).
+			Fatal("Error loading yaml config")
+	}
+	envConfig, err := loadConfigFromEnv(envFile)
+	if err != nil {
+		logger.
+			WithFields(log.Fields{"error": err}).
+			Fatal("Error loading env config")
+	}
 	mergedConfig := mergeConfigs(yamlConfig, envConfig)
-	gsmConfig := loadSecretsFromGSM(mergedConfig)
-	err := validateConfig(gsmConfig)
+	gsmConfig, err := loadSecretsFromGSM(mergedConfig)
+	if err != nil {
+		logger.
+			WithFields(log.Fields{"error": err}).
+			Fatal("Error loading secrets from GSM")
+	}
+	err = validateConfig(gsmConfig)
 
 	if err != nil {
 		logger.

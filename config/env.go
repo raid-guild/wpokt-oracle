@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func loadConfigFromEnv(envFile string) models.Config {
+func loadConfigFromEnv(envFile string) (models.Config, error) {
 
 	// Load environment variables from a .env file if needed
 	if envFile != "" {
@@ -19,6 +20,7 @@ func loadConfigFromEnv(envFile string) models.Config {
 			logger.
 				WithFields(log.Fields{"error": err}).
 				Warn("Error loading env file")
+			return models.Config{}, err
 		} else {
 			logger.Debug("Loading env file")
 		}
@@ -37,6 +39,7 @@ func loadConfigFromEnv(envFile string) models.Config {
 	config.Logger.Format = getStringEnv("LOGGER_FORMAT")
 	config.MongoDB.URI = getStringEnv("MONGODB_URI")
 	config.MongoDB.Database = getStringEnv("MONGODB_DATABASE")
+	fmt.Println(os.Getenv("MONGODB_TIMEOUT_MS"))
 	config.MongoDB.TimeoutMS = getUint64Env("MONGODB_TIMEOUT_MS")
 
 	// Mnemonic for both Ethereum and Cosmos networks
@@ -53,32 +56,34 @@ func loadConfigFromEnv(envFile string) models.Config {
 			Fatal("Number of Ethereum networks does not match")
 	}
 
-	config.EthereumNetworks = make([]models.EthereumNetworkConfig, numEthereumNetworks)
-	for i := 0; i < numEthereumNetworks; i++ {
-		config.EthereumNetworks[i] = models.EthereumNetworkConfig{
-			StartBlockHeight:      getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
-			Confirmations:         getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
-			RPCURL:                getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
-			TimeoutMS:             getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_TIMEOUT_MS"),
-			ChainID:               getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
-			ChainName:             getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
-			MailboxAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MAILBOX_ADDRESS"),
-			MintControllerAddress: getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MINT_CONTROLLER_ADDRESS"),
-			OmniTokenAddress:      getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_OMNI_TOKEN_ADDRESS"),
-			WarpISMAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_WARP_ISM_ADDRESS"),
-			OracleAddresses:       getStringArrayEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_ORACLE_ADDRESSES"),
-			MessageMonitor: models.ServiceConfig{
-				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_ENABLED"),
-				IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_INTERVAL_MS"),
-			},
-			MessageSigner: models.ServiceConfig{
-				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_ENABLED"),
-				IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
-			},
-			MessageRelayer: models.ServiceConfig{
-				Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_ENABLED"),
-				IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
-			},
+	if numEthereumNetworks > 0 {
+		config.EthereumNetworks = make([]models.EthereumNetworkConfig, numEthereumNetworks)
+		for i := 0; i < numEthereumNetworks; i++ {
+			config.EthereumNetworks[i] = models.EthereumNetworkConfig{
+				StartBlockHeight:      getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_START_BLOCK_HEIGHT"),
+				Confirmations:         getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CONFIRMATIONS"),
+				RPCURL:                getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_RPC_URL"),
+				TimeoutMS:             getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_TIMEOUT_MS"),
+				ChainID:               getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_ID"),
+				ChainName:             getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_CHAIN_NAME"),
+				MailboxAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MAILBOX_ADDRESS"),
+				MintControllerAddress: getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MINT_CONTROLLER_ADDRESS"),
+				OmniTokenAddress:      getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_OMNI_TOKEN_ADDRESS"),
+				WarpISMAddress:        getStringEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_WARP_ISM_ADDRESS"),
+				OracleAddresses:       getStringArrayEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_ORACLE_ADDRESSES"),
+				MessageMonitor: models.ServiceConfig{
+					Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_ENABLED"),
+					IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_MONITOR_INTERVAL_MS"),
+				},
+				MessageSigner: models.ServiceConfig{
+					Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_ENABLED"),
+					IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_SIGNER_INTERVAL_MS"),
+				},
+				MessageRelayer: models.ServiceConfig{
+					Enabled:    getBoolEnv("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_ENABLED"),
+					IntervalMS: getUint64Env("ETHEREUM_NETWORKS_" + strconv.Itoa(i) + "_MESSAGE_RELAYER_INTERVAL_MS"),
+				},
+			}
 		}
 	}
 
@@ -115,7 +120,7 @@ func loadConfigFromEnv(envFile string) models.Config {
 
 	logger.Debug("Config loaded from env")
 
-	return config
+	return config, nil
 }
 
 // Helper functions to retrieve environment variables with fallback values
@@ -148,7 +153,7 @@ func getStringEnv(key string) string {
 func getStringArrayEnv(key string) []string {
 	val := os.Getenv(key)
 	if val == "" {
-		return []string{} // Default value
+		return nil // Default value
 	}
 	return strings.Split(val, ",")
 }

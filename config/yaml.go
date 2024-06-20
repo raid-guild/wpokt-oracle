@@ -8,27 +8,21 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func loadConfigFromYamlFile(configFile string) models.Config {
+func loadConfigFromYamlFile(configFile string) (models.Config, error) {
 	if configFile == "" {
 		logger.Debug("No yaml file provided")
-		return models.Config{}
+		return models.Config{}, nil
 	}
 	logger.Debugf("Loading yaml file")
 	var yamlFile, err = os.ReadFile(configFile)
 	if err != nil {
-		logger.
-			WithError(err).
-			Warnf("Error reading yaml file")
-		return models.Config{}
+		return models.Config{}, err
 	}
 	var config models.Config
 	err = yaml.Unmarshal(yamlFile, &config)
 	if err != nil {
-		logger.
-			WithError(err).
-			Warnf("Error unmarshalling yaml file")
-		return models.Config{}
+		return models.Config{}, err
 	}
 	logger.Debugf("Config loaded from yaml")
-	return config
+	return config, nil
 }

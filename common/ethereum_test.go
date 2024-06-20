@@ -27,6 +27,7 @@ func TestEthereumAddressFromMnemonic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, address)
 	assert.True(t, strings.HasPrefix(address, "0x"))
+	assert.Equal(t, "0x9858EfFD232B4033E47d90003D41EC34EcaEda94", address)
 }
 
 func TestHexToAddress(t *testing.T) {

@@ -23,12 +23,14 @@ type RefundTestSuite struct {
 	suite.Suite
 	oldMongoDB Database
 	mockDB     *mocks.MockDatabase
+	db         RefundDB
 }
 
 func (suite *RefundTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
 	suite.oldMongoDB = mongoDB
 	mongoDB = suite.mockDB
+	suite.db = &refundDB{}
 }
 
 func (suite *RefundTestSuite) TearDownTest() {
@@ -44,7 +46,7 @@ func (suite *RefundTestSuite) TestNewRefund() {
 	recipientAddress := ethcommon.HexToAddress("0x010203")
 	amountCoin := sdk.Coin{Amount: math.NewInt(100)}
 
-	refund, err := NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	refund, err := suite.db.NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), txDoc.ID, &refund.OriginTransaction)
 	assert.Equal(suite.T(), txDoc.Hash, refund.OriginTransactionHash)
@@ -63,28 +65,28 @@ func (suite *RefundTestSuite) TestNewRefund_NilDoc() {
 	amountCoin := sdk.Coin{Amount: math.NewInt(100)}
 	expectedError := fmt.Errorf("txRes or txDoc is nil")
 
-	_, err := NewRefund(nil, txDoc, recipientAddress[:], amountCoin)
+	_, err := suite.db.NewRefund(nil, txDoc, recipientAddress[:], amountCoin)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 
-	_, err = NewRefund(txRes, nil, recipientAddress[:], amountCoin)
+	_, err = suite.db.NewRefund(txRes, nil, recipientAddress[:], amountCoin)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 
 	txRes.TxHash = ""
-	_, err = NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	_, err = suite.db.NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 
 	txRes.TxHash = "0x010203"
 	txDoc.ID = nil
-	_, err = NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	_, err = suite.db.NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 
 	txDoc.ID = &primitive.ObjectID{}
 	txDoc.Hash = ""
-	_, err = NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	_, err = suite.db.NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -100,7 +102,7 @@ func (suite *RefundTestSuite) TestNewRefund_TxHashMismatch() {
 
 	expectedError := fmt.Errorf("tx hash mismatch")
 
-	_, err := NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	_, err := suite.db.NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -116,7 +118,7 @@ func (suite *RefundTestSuite) TestNewRefund_InvalidRecipient() {
 
 	expectedError := fmt.Errorf("invalid recipient address: %w", common.ErrInvalidAddressLength)
 
-	_, err := NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
+	_, err := suite.db.NewRefund(txRes, txDoc, recipientAddress[:], amountCoin)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -129,7 +131,7 @@ func (suite *RefundTestSuite) TestInsertRefund() {
 
 	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, nil).Once()
 
-	gotID, err := InsertRefund(refund)
+	gotID, err := suite.db.InsertRefund(refund)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), insertedID, gotID)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -151,7 +153,7 @@ func (suite *RefundTestSuite) TestInsertRefund_DuplicateKeyError() {
 		*arg = existingRefund
 	})
 
-	gotID, err := InsertRefund(refund)
+	gotID, err := suite.db.InsertRefund(refund)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), insertedID, gotID)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -168,7 +170,7 @@ func (suite *RefundTestSuite) TestInsertRefund_DuplicateKeyError_FindError() {
 	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, duplicateError).Once()
 	suite.mockDB.On("FindOne", common.CollectionRefunds, bson.M{"origin_transaction_hash": refund.OriginTransactionHash}, &models.Refund{}).Return(expectedError).Once()
 
-	gotID, err := InsertRefund(refund)
+	gotID, err := suite.db.InsertRefund(refund)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), insertedID, gotID)
@@ -184,7 +186,7 @@ func (suite *RefundTestSuite) TestInsertRefund_InsertError() {
 
 	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, expectedError).Once()
 
-	gotID, err := InsertRefund(refund)
+	gotID, err := suite.db.InsertRefund(refund)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), insertedID, gotID)
@@ -197,14 +199,14 @@ func (suite *RefundTestSuite) TestUpdateRefund() {
 
 	suite.mockDB.On("UpdateOne", common.CollectionRefunds, bson.M{"_id": &refundID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
-	err := UpdateRefund(&refundID, update)
+	err := suite.db.UpdateRefund(&refundID, update)
 	assert.NoError(suite.T(), err)
 	suite.mockDB.AssertExpectations(suite.T())
 }
 
 func (suite *RefundTestSuite) TestUpdateRefund_NilRefundID() {
 	update := bson.M{"status": models.RefundStatusSigned}
-	err := UpdateRefund(nil, update)
+	err := suite.db.UpdateRefund(nil, update)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), fmt.Errorf("refundID is nil"), err)
 }
@@ -236,7 +238,7 @@ func (suite *RefundTestSuite) TestGetPendingRefunds() {
 		*arg = refunds
 	})
 
-	gotRefunds, err := GetPendingRefunds(signerToExclude)
+	gotRefunds, err := suite.db.GetPendingRefunds(signerToExclude)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), refunds, gotRefunds)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -257,7 +259,7 @@ func (suite *RefundTestSuite) TestGetSignedRefunds() {
 		*arg = refunds
 	})
 
-	gotRefunds, err := GetSignedRefunds()
+	gotRefunds, err := suite.db.GetSignedRefunds()
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), refunds, gotRefunds)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -277,7 +279,7 @@ func (suite *RefundTestSuite) TestGetBroadcastedRefunds() {
 		*arg = refunds
 	})
 
-	gotRefunds, err := GetBroadcastedRefunds()
+	gotRefunds, err := suite.db.GetBroadcastedRefunds()
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), refunds, gotRefunds)
 	suite.mockDB.AssertExpectations(suite.T())

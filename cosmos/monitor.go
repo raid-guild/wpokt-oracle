@@ -35,6 +35,8 @@ type CosmosMessageMonitorRunnable struct {
 
 	startBlockHeight   uint64
 	currentBlockHeight uint64
+
+	db db.DB
 }
 
 func (x *CosmosMessageMonitorRunnable) Run() {
@@ -69,12 +71,12 @@ func (x *CosmosMessageMonitorRunnable) CreateTransaction(
 ) bool {
 	logger := x.logger.WithField("tx_hash", txResponse.TxHash).WithField("section", "create")
 
-	transaction, err := db.NewCosmosTransaction(txResponse, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
+	transaction, err := x.db.NewCosmosTransaction(txResponse, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
 	if err != nil {
 		logger.WithError(err).Errorf("Error creating transaction")
 		return false
 	}
-	_, err = db.InsertTransaction(transaction)
+	_, err = x.db.InsertTransaction(transaction)
 	if err != nil {
 		logger.WithError(err).Errorf("Error inserting transaction")
 		return false
@@ -86,7 +88,7 @@ func (x *CosmosMessageMonitorRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := db.UpdateTransaction(tx.ID, update)
+	err := x.db.UpdateTransaction(tx.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -101,19 +103,19 @@ func (x *CosmosMessageMonitorRunnable) CreateRefund(
 	amount sdk.Coin,
 ) bool {
 
-	refund, err := db.NewRefund(txRes, txDoc, toAddr, amount)
+	refund, err := x.db.NewRefund(txRes, txDoc, toAddr, amount)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating refund")
 		return false
 	}
 
-	insertedID, err := db.InsertRefund(refund)
+	insertedID, err := x.db.InsertRefund(refund)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error inserting refund")
 		return false
 	}
 
-	err = db.UpdateTransaction(txDoc.ID, bson.M{"refund": insertedID})
+	err = x.db.UpdateTransaction(txDoc.ID, bson.M{"refund": insertedID})
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -126,7 +128,7 @@ func (x *CosmosMessageMonitorRunnable) CreateMessage(
 	txRes *sdk.TxResponse,
 	tx *tx.Tx,
 	txDoc *models.Transaction,
-	senderAddr []byte,
+	senderAddress []byte,
 	amountCoin sdk.Coin,
 	memo models.MintMemo,
 ) bool {
@@ -136,8 +138,8 @@ func (x *CosmosMessageMonitorRunnable) CreateMessage(
 		return false
 	}
 
-	messageBody, err := db.NewMessageBody(
-		senderAddr,
+	messageBody, err := x.db.NewMessageBody(
+		senderAddress,
 		amountCoin.Amount.BigInt(),
 		recipientAddr,
 	)
@@ -150,7 +152,8 @@ func (x *CosmosMessageMonitorRunnable) CreateMessage(
 		x.logger.Errorf("No signer infos found")
 		return false
 	}
-
+	nonce := uint32(tx.AuthInfo.SignerInfos[0].Sequence)
+	originDomain := uint32(x.chain.ChainDomain)
 	chainID, _ := strconv.Atoi(memo.ChainID)
 	destinationDomain := uint32(chainID)
 	destMintController, ok := x.mintControllerMap[destinationDomain]
@@ -159,10 +162,10 @@ func (x *CosmosMessageMonitorRunnable) CreateMessage(
 		return false
 	}
 
-	messageContent, err := db.NewMessageContent(
-		uint32(tx.AuthInfo.SignerInfos[0].Sequence),
-		x.chain.ChainDomain,
-		senderAddr,
+	messageContent, err := x.db.NewMessageContent(
+		nonce,
+		originDomain,
+		senderAddress,
 		destinationDomain,
 		destMintController,
 		messageBody,
@@ -172,13 +175,13 @@ func (x *CosmosMessageMonitorRunnable) CreateMessage(
 		return false
 	}
 
-	message, err := db.NewMessage(txDoc, messageContent, models.MessageStatusPending)
+	message, err := x.db.NewMessage(txDoc, messageContent, models.MessageStatusPending)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating message")
 		return false
 	}
 
-	messageID, err := db.InsertMessage(message)
+	messageID, err := x.db.InsertMessage(message)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error inserting message")
 		return false
@@ -186,7 +189,7 @@ func (x *CosmosMessageMonitorRunnable) CreateMessage(
 
 	txDoc.Messages = append(txDoc.Messages, messageID)
 
-	err = db.UpdateTransaction(txDoc.ID, bson.M{"messages": common.RemoveDuplicates(txDoc.Messages)})
+	err = x.db.UpdateTransaction(txDoc.ID, bson.M{"messages": common.RemoveDuplicates(txDoc.Messages)})
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -252,7 +255,7 @@ func (x *CosmosMessageMonitorRunnable) ValidateAndConfirmTx(txDoc *models.Transa
 
 func (x *CosmosMessageMonitorRunnable) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
-	txs, err := db.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
+	txs, err := x.db.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending txs")
 		return false
@@ -290,11 +293,11 @@ func (x *CosmosMessageMonitorRunnable) ValidateTxAndCreate(txDoc *models.Transac
 		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
 	}
 
-	if lockID, err := db.LockWriteTransaction(txDoc); err != nil {
+	if lockID, err := x.db.LockWriteTransaction(txDoc); err != nil {
 		logger.WithError(err).Errorf("Error locking transaction")
 		return false
 	} else {
-		defer db.Unlock(lockID)
+		defer x.db.Unlock(lockID)
 	}
 
 	if result.NeedsRefund {
@@ -306,7 +309,7 @@ func (x *CosmosMessageMonitorRunnable) ValidateTxAndCreate(txDoc *models.Transac
 
 func (x *CosmosMessageMonitorRunnable) CreateRefundsOrMessagesForConfirmedTxs() bool {
 	x.logger.Infof("Creating refunds or messages for confirmed txs")
-	txDocs, err := db.GetConfirmedTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
+	txDocs, err := x.db.GetConfirmedTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting confirmed txs")
 		return false
@@ -400,6 +403,8 @@ func NewMessageMonitor(
 		config: config,
 
 		logger: logger,
+
+		db: db.NewDB(),
 	}
 
 	x.UpdateCurrentHeight()

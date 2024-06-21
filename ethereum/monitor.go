@@ -38,6 +38,8 @@ type EthMessageMonitorRunnable struct {
 	minimumAmount *big.Int
 
 	logger *log.Entry
+
+	db db.DB
 }
 
 func (x *EthMessageMonitorRunnable) Run() {
@@ -69,7 +71,7 @@ func (x *EthMessageMonitorRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := db.UpdateTransaction(tx.ID, update)
+	err := x.db.UpdateTransaction(tx.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -157,13 +159,13 @@ func (x *EthMessageMonitorRunnable) CreateTxForDispatchEvent(event *autogen.Mail
 		return false
 	}
 
-	txDoc, err := db.NewEthereumTransaction(result.tx, x.mailbox.Address().Bytes(), result.receipt, x.chain, models.TransactionStatusPending)
+	txDoc, err := x.db.NewEthereumTransaction(result.tx, x.mailbox.Address().Bytes(), result.receipt, x.chain, models.TransactionStatusPending)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating transaction")
 		return false
 	}
 
-	_, err = db.InsertTransaction(txDoc)
+	_, err = x.db.InsertTransaction(txDoc)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error inserting transaction")
 		return false
@@ -251,11 +253,11 @@ func (x *EthMessageMonitorRunnable) CreateMessagesForTx(txDoc *models.Transactio
 		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
 	}
 
-	if lockID, err := db.LockWriteTransaction(txDoc); err != nil {
+	if lockID, err := x.db.LockWriteTransaction(txDoc); err != nil {
 		logger.WithError(err).Error("Error locking transaction")
 		return false
 	} else {
-		defer db.Unlock(lockID)
+		defer x.db.Unlock(lockID)
 	}
 
 	success := true
@@ -265,14 +267,14 @@ func (x *EthMessageMonitorRunnable) CreateMessagesForTx(txDoc *models.Transactio
 
 		messageContent.DecodeFromBytes(event.Message) // event was validated already
 
-		message, err := db.NewMessage(txDoc, messageContent, models.MessageStatusPending)
+		message, err := x.db.NewMessage(txDoc, messageContent, models.MessageStatusPending)
 		if err != nil {
 			logger.WithError(err).Errorf("Error creating message")
 			success = false
 			continue
 		}
 
-		messageID, err := db.InsertMessage(message)
+		messageID, err := x.db.InsertMessage(message)
 		if err != nil {
 			logger.WithError(err).Errorf("Error inserting message")
 			success = false
@@ -376,7 +378,7 @@ func (x *EthMessageMonitorRunnable) SyncNewBlocks() bool {
 func (x *EthMessageMonitorRunnable) ConfirmDispatchTxs() bool {
 	logger := x.logger.WithField("section", "ConfirmDispatchTxs")
 
-	txs, err := db.GetPendingTransactionsTo(x.chain, x.mailbox.Address().Bytes())
+	txs, err := x.db.GetPendingTransactionsTo(x.chain, x.mailbox.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Error("Error getting pending transactions")
 		return false
@@ -393,7 +395,7 @@ func (x *EthMessageMonitorRunnable) ConfirmDispatchTxs() bool {
 func (x *EthMessageMonitorRunnable) CreateMessagesForTxs() bool {
 	logger := x.logger.WithField("section", "CreateMessagesForTxs")
 
-	txs, err := db.GetConfirmedTransactionsTo(x.chain, x.mailbox.Address().Bytes())
+	txs, err := x.db.GetConfirmedTransactionsTo(x.chain, x.mailbox.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Error("Error getting confirmed transactions")
 		return false
@@ -464,6 +466,8 @@ func NewMessageMonitor(
 		chain: util.ParseChain(config),
 
 		logger: logger,
+
+		db: db.NewDB(),
 	}
 
 	x.UpdateCurrentBlockHeight()

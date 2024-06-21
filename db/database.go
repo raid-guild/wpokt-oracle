@@ -76,12 +76,10 @@ func (d *MongoDatabase) Connect() error {
 func (d *MongoDatabase) SetupLocker() error {
 	d.logger.Debug("Setting up locker")
 
-	var locker *lock.Client
-
 	ctx, cancel := context.WithTimeout(context.Background(), d.timeout)
 	defer cancel()
 
-	locker = lock.NewClient(d.db.Collection(common.CollectionLocks))
+	locker := lock.NewClient(d.db.Collection(common.CollectionLocks))
 	err := locker.CreateIndexes(ctx)
 	if err != nil {
 		return err

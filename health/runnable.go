@@ -28,6 +28,7 @@ type healthCheckRunnable struct {
 	hostname      string
 	oracleID      string
 	services      []service.ChainService
+	db            db.DB
 
 	logger *log.Entry
 }
@@ -47,7 +48,7 @@ func (x *healthCheckRunnable) GetLastHealth() (*models.Node, error) {
 		"hostname":       x.hostname,
 		"oracle_id":      x.oracleID,
 	}
-	health, err := db.FindNode(filter)
+	health, err := x.db.FindNode(filter)
 	return health, err
 }
 
@@ -84,7 +85,7 @@ func (x *healthCheckRunnable) PostHealth() bool {
 		"updated_at":      time.Now(),
 	}
 
-	err := db.UpsertNode(filter, onUpdate, onInsert)
+	err := x.db.UpsertNode(filter, onUpdate, onInsert)
 
 	if err != nil {
 		x.logger.Error("Error posting health: ", err)
@@ -144,6 +145,7 @@ func newHealthCheck(config models.Config) *healthCheckRunnable {
 		hostname:      hostname,
 		oracleID:      oracleID,
 		logger:        logger,
+		db:            db.NewDB(),
 	}
 
 	x.logger.Info("Initialized health")

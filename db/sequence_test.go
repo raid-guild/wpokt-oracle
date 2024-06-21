@@ -18,12 +18,14 @@ type SequenceTestSuite struct {
 	suite.Suite
 	mockDB     *mocks.MockDatabase
 	oldMongoDB Database
+	db         SequenceDB
 }
 
 func (suite *SequenceTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
 	suite.oldMongoDB = mongoDB
 	mongoDB = suite.mockDB
+	suite.db = &sequenceDB{}
 }
 
 func (suite *SequenceTestSuite) TearDownTest() {
@@ -39,10 +41,10 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromRefunds() {
 		}}},
 	}
 
-	result := ResultMaxSequence{}
+	result := resultMaxSequence{}
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, pipeline, &result).Return(nil).Once()
 
-	maxSequence, err := FindMaxSequenceFromRefunds()
+	maxSequence, err := findMaxSequenceFromRefunds()
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), uint64(0), *maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -57,10 +59,10 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromRefunds_NoDocuments() {
 		}}},
 	}
 
-	var result ResultMaxSequence
+	var result resultMaxSequence
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, pipeline, &result).Return(mongo.ErrNoDocuments).Once()
 
-	maxSequence, err := FindMaxSequenceFromRefunds()
+	maxSequence, err := findMaxSequenceFromRefunds()
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -78,7 +80,7 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromRefunds_SomeError() {
 
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, pipeline, mock.Anything).Return(expectedError).Once()
 
-	maxSequence, err := FindMaxSequenceFromRefunds()
+	maxSequence, err := findMaxSequenceFromRefunds()
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Nil(suite.T(), maxSequence)
@@ -95,10 +97,10 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromMessages() {
 		}}},
 	}
 
-	result := ResultMaxSequence{}
+	result := resultMaxSequence{}
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, pipeline, &result).Return(nil).Once()
 
-	maxSequence, err := FindMaxSequenceFromMessages(chain)
+	maxSequence, err := findMaxSequenceFromMessages(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), uint64(0), *maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -114,10 +116,10 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromMessages_NoDocuments() {
 		}}},
 	}
 
-	var result ResultMaxSequence
+	var result resultMaxSequence
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, pipeline, &result).Return(mongo.ErrNoDocuments).Once()
 
-	maxSequence, err := FindMaxSequenceFromMessages(chain)
+	maxSequence, err := findMaxSequenceFromMessages(chain)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -136,7 +138,7 @@ func (suite *SequenceTestSuite) TestFindMaxSequenceFromMessages_SomeError() {
 
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, pipeline, mock.Anything).Return(expectedError).Once()
 
-	maxSequence, err := FindMaxSequenceFromMessages(chain)
+	maxSequence, err := findMaxSequenceFromMessages(chain)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Nil(suite.T(), maxSequence)
@@ -149,16 +151,16 @@ func (suite *SequenceTestSuite) TestFindMaxSequence() {
 	maxSequenceMessages := uint64(456)
 
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceRefunds
 	}).Once()
 
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceMessages
 	}).Once()
 
-	maxSequence, err := FindMaxSequence(chain)
+	maxSequence, err := suite.db.FindMaxSequence(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), maxSequenceMessages, *maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -170,16 +172,16 @@ func (suite *SequenceTestSuite) TestFindMaxSequence_RefundsGreater() {
 	maxSequenceMessages := uint64(123)
 
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceRefunds
 	}).Once()
 
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceMessages
 	}).Once()
 
-	maxSequence, err := FindMaxSequence(chain)
+	maxSequence, err := suite.db.FindMaxSequence(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), maxSequenceRefunds, *maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -192,16 +194,16 @@ func (suite *SequenceTestSuite) TestFindMaxSequence_ErrorMessages() {
 	expectedError := errors.New("some error")
 
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceRefunds
 	}).Once()
 
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(expectedError).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceMessages
 	}).Once()
 
-	_, err := FindMaxSequence(chain)
+	_, err := suite.db.FindMaxSequence(chain)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -213,11 +215,11 @@ func (suite *SequenceTestSuite) TestFindMaxSequence_ErrorRefunds() {
 	expectedError := errors.New("some error")
 
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(expectedError).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceRefunds
 	}).Once()
 
-	_, err := FindMaxSequence(chain)
+	_, err := suite.db.FindMaxSequence(chain)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -228,13 +230,13 @@ func (suite *SequenceTestSuite) TestFindMaxSequence_OnlyRefunds() {
 	maxSequenceRefunds := uint64(123)
 
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceRefunds
 	}).Once()
 
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(mongo.ErrNoDocuments).Once()
 
-	maxSequence, err := FindMaxSequence(chain)
+	maxSequence, err := suite.db.FindMaxSequence(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), maxSequenceRefunds, *maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -247,11 +249,11 @@ func (suite *SequenceTestSuite) TestFindMaxSequence_OnlyMessages() {
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(mongo.ErrNoDocuments).Once()
 
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
-		result := args.Get(2).(*ResultMaxSequence)
+		result := args.Get(2).(*resultMaxSequence)
 		result.MaxSequence = maxSequenceMessages
 	}).Once()
 
-	maxSequence, err := FindMaxSequence(chain)
+	maxSequence, err := suite.db.FindMaxSequence(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), maxSequenceMessages, *maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -263,7 +265,7 @@ func (suite *SequenceTestSuite) TestFindMaxSequence_NoSequences() {
 	suite.mockDB.On("AggregateOne", common.CollectionRefunds, mock.Anything, mock.Anything).Return(mongo.ErrNoDocuments).Once()
 	suite.mockDB.On("AggregateOne", common.CollectionMessages, mock.Anything, mock.Anything).Return(mongo.ErrNoDocuments).Once()
 
-	maxSequence, err := FindMaxSequence(chain)
+	maxSequence, err := suite.db.FindMaxSequence(chain)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), maxSequence)
 	suite.mockDB.AssertExpectations(suite.T())

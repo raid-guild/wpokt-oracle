@@ -24,12 +24,14 @@ type TransactionTestSuite struct {
 	suite.Suite
 	mockDB     *mocks.MockDatabase
 	oldMongoDB Database
+	db         TransactionDB
 }
 
 func (suite *TransactionTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
 	suite.oldMongoDB = mongoDB
 	mongoDB = suite.mockDB
+	suite.db = &transactionDB{}
 }
 
 func (suite *TransactionTestSuite) TearDownTest() {
@@ -61,7 +63,7 @@ func (suite *TransactionTestSuite) TestNewEthereumTransaction() {
 	chain := models.Chain{ChainID: "eth"}
 	txStatus := models.TransactionStatusPending
 
-	ethTx, err := NewEthereumTransaction(tx, toAddress.Bytes(), receipt, chain, txStatus)
+	ethTx, err := suite.db.NewEthereumTransaction(tx, toAddress.Bytes(), receipt, chain, txStatus)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), common.Ensure0xPrefix(receipt.TxHash.String()), ethTx.Hash)
 	assert.Equal(suite.T(), toAddress.Hex(), ethTx.ToAddress)
@@ -95,7 +97,7 @@ func (suite *TransactionTestSuite) TestNewEthereumTransaction_InvalidToAddress()
 	txStatus := models.TransactionStatusPending
 	expectedError := fmt.Errorf("invalid to address: %w", common.ErrInvalidAddressLength)
 
-	_, err = NewEthereumTransaction(tx, toAddress, receipt, chain, txStatus)
+	_, err = suite.db.NewEthereumTransaction(tx, toAddress, receipt, chain, txStatus)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -119,7 +121,7 @@ func (suite *TransactionTestSuite) TestNewEthereumTransaction_InvalidFromAddress
 	chain := models.Chain{ChainID: "eth"}
 	txStatus := models.TransactionStatusPending
 
-	_, err := NewEthereumTransaction(tx, toAddress.Bytes(), receipt, chain, txStatus)
+	_, err := suite.db.NewEthereumTransaction(tx, toAddress.Bytes(), receipt, chain, txStatus)
 	assert.Error(suite.T(), err)
 }
 
@@ -131,7 +133,7 @@ func (suite *TransactionTestSuite) TestNewCosmosTransaction() {
 	chain := models.Chain{ChainID: "cosmos"}
 	txStatus := models.TransactionStatusPending
 
-	cosmosTx, err := NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
+	cosmosTx, err := suite.db.NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), common.Ensure0xPrefix(txRes.TxHash), cosmosTx.Hash)
 	assert.Equal(suite.T(), strings.ToLower(fromAddress.Hex()), cosmosTx.FromAddress)
@@ -149,7 +151,7 @@ func (suite *TransactionTestSuite) TestNewCosmosTransaction_InvalidFromAddress()
 	txStatus := models.TransactionStatusPending
 	expectedError := fmt.Errorf("invalid from address: %w", common.ErrInvalidAddressLength)
 
-	_, err := NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
+	_, err := suite.db.NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -163,7 +165,7 @@ func (suite *TransactionTestSuite) TestNewCosmosTransaction_InvalidToAddress() {
 	txStatus := models.TransactionStatusPending
 	expectedError := fmt.Errorf("invalid to address: %w", common.ErrInvalidAddressLength)
 
-	_, err := NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
+	_, err := suite.db.NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -176,7 +178,7 @@ func (suite *TransactionTestSuite) TestNewCosmosTransaction_InvalidTxHash() {
 	txStatus := models.TransactionStatusPending
 	expectedError := fmt.Errorf("invalid tx hash")
 
-	_, err := NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
+	_, err := suite.db.NewCosmosTransaction(txRes, chain, fromAddress[:], toAddress[:], txStatus)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -187,7 +189,7 @@ func (suite *TransactionTestSuite) TestInsertTransaction() {
 
 	suite.mockDB.On("InsertOne", common.CollectionTransactions, tx).Return(insertedID, nil).Once()
 
-	gotID, err := InsertTransaction(tx)
+	gotID, err := suite.db.InsertTransaction(tx)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), insertedID, gotID)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -205,7 +207,7 @@ func (suite *TransactionTestSuite) TestInsertTransaction_DuplicateKeyError() {
 		*tx = existingTx
 	})
 
-	gotID, err := InsertTransaction(tx)
+	gotID, err := suite.db.InsertTransaction(tx)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), insertedID, gotID)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -222,7 +224,7 @@ func (suite *TransactionTestSuite) TestInsertTransaction_DuplicateKeyError_FindE
 	suite.mockDB.On("InsertOne", common.CollectionTransactions, tx).Return(insertedID, duplicateError).Once()
 	suite.mockDB.On("FindOne", common.CollectionTransactions, bson.M{"hash": tx.Hash}, &models.Transaction{}).Return(expectedError).Once()
 
-	gotID, err := InsertTransaction(tx)
+	gotID, err := suite.db.InsertTransaction(tx)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), insertedID, gotID)
@@ -238,7 +240,7 @@ func (suite *TransactionTestSuite) TestInsertTransaction_InsertError() {
 
 	suite.mockDB.On("InsertOne", common.CollectionTransactions, tx).Return(insertedID, expectedError).Once()
 
-	gotID, err := InsertTransaction(tx)
+	gotID, err := suite.db.InsertTransaction(tx)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), insertedID, gotID)
@@ -251,7 +253,7 @@ func (suite *TransactionTestSuite) TestUpdateTransaction() {
 
 	suite.mockDB.On("UpdateOne", common.CollectionTransactions, bson.M{"_id": txID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
-	err := UpdateTransaction(&txID, update)
+	err := suite.db.UpdateTransaction(&txID, update)
 	assert.NoError(suite.T(), err)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -259,7 +261,7 @@ func (suite *TransactionTestSuite) TestUpdateTransaction() {
 func (suite *TransactionTestSuite) TestUpdateTransaction_NilTxDoc() {
 	update := bson.M{"status": models.TransactionStatusConfirmed}
 
-	err := UpdateTransaction(nil, update)
+	err := suite.db.UpdateTransaction(nil, update)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "txID is nil", err.Error())
 }
@@ -282,7 +284,7 @@ func (suite *TransactionTestSuite) TestGetPendingTransactionsTo() {
 		*txs = expectedTxs
 	})
 
-	gotTxs, err := GetPendingTransactionsTo(chain, toAddress[:])
+	gotTxs, err := suite.db.GetPendingTransactionsTo(chain, toAddress[:])
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), expectedTxs, gotTxs)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -293,7 +295,7 @@ func (suite *TransactionTestSuite) TestGetPendingTransactionsTo_InvalidToAddress
 	toAddress := []byte{0x01}
 
 	expectedError := fmt.Errorf("invalid to address: %w", common.ErrInvalidAddressLength)
-	_, err := GetPendingTransactionsTo(chain, toAddress[:])
+	_, err := suite.db.GetPendingTransactionsTo(chain, toAddress[:])
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -329,7 +331,7 @@ func (suite *TransactionTestSuite) TestGetConfirmedTransactionsTo() {
 		*txs = expectedTxs
 	})
 
-	gotTxs, err := GetConfirmedTransactionsTo(chain, toAddress[:])
+	gotTxs, err := suite.db.GetConfirmedTransactionsTo(chain, toAddress[:])
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), expectedTxs, gotTxs)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -340,7 +342,7 @@ func (suite *TransactionTestSuite) TestGetConfirmedTransactionsTo_InvalidToAddre
 	toAddress := []byte{0x01}
 
 	expectedError := fmt.Errorf("invalid to address: %w", common.ErrInvalidAddressLength)
-	_, err := GetConfirmedTransactionsTo(chain, toAddress[:])
+	_, err := suite.db.GetConfirmedTransactionsTo(chain, toAddress[:])
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -363,7 +365,7 @@ func (suite *TransactionTestSuite) TestGetPendingTransactionsFrom() {
 		*txs = expectedTxs
 	})
 
-	gotTxs, err := GetPendingTransactionsFrom(chain, fromAddress[:])
+	gotTxs, err := suite.db.GetPendingTransactionsFrom(chain, fromAddress[:])
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), expectedTxs, gotTxs)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -374,7 +376,7 @@ func (suite *TransactionTestSuite) TestGetPendingTransactionsFrom_InvalidFromAdd
 	fromAddress := []byte{0x01}
 
 	expectedError := fmt.Errorf("invalid from address: %w", common.ErrInvalidAddressLength)
-	_, err := GetPendingTransactionsFrom(chain, fromAddress[:])
+	_, err := suite.db.GetPendingTransactionsFrom(chain, fromAddress[:])
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }

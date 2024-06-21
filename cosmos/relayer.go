@@ -29,6 +29,8 @@ type CosmosMessageRelayerRunnable struct {
 
 	startBlockHeight   uint64
 	currentBlockHeight uint64
+
+	db db.DB
 }
 
 func (x *CosmosMessageRelayerRunnable) Run() {
@@ -56,7 +58,7 @@ func (x *CosmosMessageRelayerRunnable) UpdateRefund(
 	refundID *primitive.ObjectID,
 	update bson.M,
 ) bool {
-	err := db.UpdateRefund(refundID, update)
+	err := x.db.UpdateRefund(refundID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -68,7 +70,7 @@ func (x *CosmosMessageRelayerRunnable) UpdateMessage(
 	messageID *primitive.ObjectID,
 	update bson.M,
 ) bool {
-	err := db.UpdateMessage(messageID, update)
+	err := x.db.UpdateMessage(messageID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating message")
 		return false
@@ -99,7 +101,7 @@ func (x *CosmosMessageRelayerRunnable) CreateMessageTransaction(
 		return false
 	}
 
-	transaction, err := db.NewCosmosTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
+	transaction, err := x.db.NewCosmosTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error creating transaction")
@@ -108,7 +110,7 @@ func (x *CosmosMessageRelayerRunnable) CreateMessageTransaction(
 
 	transaction.Messages = append(transaction.Messages, *messageDoc.ID)
 
-	insertedID, err := db.InsertTransaction(transaction)
+	insertedID, err := x.db.InsertTransaction(transaction)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error inserting transaction")
@@ -140,7 +142,7 @@ func (x *CosmosMessageRelayerRunnable) CreateRefundTransaction(
 		return false
 	}
 
-	transaction, err := db.NewCosmosTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
+	transaction, err := x.db.NewCosmosTransaction(tx, x.chain, x.multisigPk.Address().Bytes(), toAddress, txStatus)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error creating transaction")
@@ -148,7 +150,7 @@ func (x *CosmosMessageRelayerRunnable) CreateRefundTransaction(
 	}
 
 	transaction.Refund = refundDoc.ID
-	insertedID, err := db.InsertTransaction(transaction)
+	insertedID, err := x.db.InsertTransaction(transaction)
 	if err != nil {
 		x.logger.WithError(err).
 			Errorf("Error inserting transaction")
@@ -160,7 +162,7 @@ func (x *CosmosMessageRelayerRunnable) CreateRefundTransaction(
 
 func (x *CosmosMessageRelayerRunnable) CreateTxForRefunds() bool {
 	x.logger.Infof("Relaying refunds")
-	refunds, err := db.GetBroadcastedRefunds()
+	refunds, err := x.db.GetBroadcastedRefunds()
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting broadcasted refunds")
 		return false
@@ -176,7 +178,7 @@ func (x *CosmosMessageRelayerRunnable) CreateTxForRefunds() bool {
 
 func (x *CosmosMessageRelayerRunnable) CreateTxForMessages() bool {
 	x.logger.Infof("Relaying messages")
-	messages, err := db.GetBroadcastedMessages(x.chain)
+	messages, err := x.db.GetBroadcastedMessages(x.chain)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting broadcasted messages")
 		return false
@@ -194,7 +196,7 @@ func (x *CosmosMessageRelayerRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := db.UpdateTransaction(tx.ID, update)
+	err := x.db.UpdateTransaction(tx.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -241,7 +243,7 @@ func (x *CosmosMessageRelayerRunnable) ResetMessage(
 
 func (x *CosmosMessageRelayerRunnable) ConfirmTransactions() bool {
 	x.logger.Infof("Relaying transactions")
-	txs, err := db.GetPendingTransactionsFrom(x.chain, x.multisigPk.Address().Bytes())
+	txs, err := x.db.GetPendingTransactionsFrom(x.chain, x.multisigPk.Address().Bytes())
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending txs")
 		return false
@@ -386,6 +388,8 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 		config: config,
 
 		logger: logger,
+
+		db: db.NewDB(),
 	}
 
 	x.UpdateCurrentHeight()

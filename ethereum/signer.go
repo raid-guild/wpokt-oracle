@@ -54,6 +54,8 @@ type EthMessageSignerRunnable struct {
 	domain          util.DomainData
 
 	logger *log.Entry
+
+	db db.DB
 }
 
 func (x *EthMessageSignerRunnable) Run() {
@@ -103,7 +105,7 @@ func (x *EthMessageSignerRunnable) UpdateMessage(
 	message *models.Message,
 	update bson.M,
 ) bool {
-	err := db.UpdateMessage(message.ID, update)
+	err := x.db.UpdateMessage(message.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating message")
 		return false
@@ -115,11 +117,11 @@ func (x *EthMessageSignerRunnable) SignMessage(messageDoc *models.Message) bool 
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-message")
 	logger.Debugf("Signing message")
 
-	if lockID, err := db.LockWriteMessage(messageDoc); err != nil {
+	if lockID, err := x.db.LockWriteMessage(messageDoc); err != nil {
 		logger.WithError(err).Errorf("Error locking message")
 		return false
 	} else {
-		defer db.Unlock(lockID)
+		defer x.db.Unlock(lockID)
 	}
 
 	if err := util.SignMessage(messageDoc, x.domain, x.privateKey); err != nil {
@@ -297,7 +299,7 @@ func (x *EthMessageSignerRunnable) SignMessages() bool {
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting address hex")
 	}
-	messages, err := db.GetPendingMessages(common.Ensure0xPrefix(addressHex), x.chain)
+	messages, err := x.db.GetPendingMessages(common.Ensure0xPrefix(addressHex), x.chain)
 
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending messages")
@@ -474,6 +476,8 @@ func NewMessageSigner(
 		signerThreshold: 0,
 
 		logger: logger,
+
+		db: db.NewDB(),
 	}
 
 	x.UpdateCurrentBlockHeight()

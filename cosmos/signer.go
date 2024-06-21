@@ -55,6 +55,8 @@ type CosmosMessageSignerRunnable struct {
 	logger *log.Entry
 
 	currentBlockHeight uint64
+
+	db db.DB
 }
 
 func (x *CosmosMessageSignerRunnable) Run() {
@@ -87,7 +89,7 @@ func (x *CosmosMessageSignerRunnable) UpdateMessage(
 	message *models.Message,
 	update bson.M,
 ) bool {
-	err := db.UpdateMessage(message.ID, update)
+	err := x.db.UpdateMessage(message.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating message")
 		return false
@@ -254,14 +256,14 @@ func (x *CosmosMessageSignerRunnable) SignMessage(
 		update["status"] = models.MessageStatusSigned
 	}
 
-	if lockID, err := db.LockWriteSequence(); err != nil {
+	if lockID, err := x.db.LockWriteSequence(); err != nil {
 		logger.WithError(err).Error("Error locking sequence")
 		return false
 	} else {
-		defer db.Unlock(lockID)
+		defer x.db.Unlock(lockID)
 	}
 
-	err = db.UpdateMessage(messageDoc.ID, update)
+	err = x.db.UpdateMessage(messageDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating message")
 		return false
@@ -359,11 +361,11 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDo
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	if lockID, err := db.LockWriteMessage(messageDoc); err != nil {
+	if lockID, err := x.db.LockWriteMessage(messageDoc); err != nil {
 		logger.WithError(err).Error("Error locking message")
 		return false
 	} else {
-		defer db.Unlock(lockID)
+		defer x.db.Unlock(lockID)
 	}
 
 	return x.SignMessage(messageDoc)
@@ -375,7 +377,7 @@ func (x *CosmosMessageSignerRunnable) SignMessages() bool {
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting address hex")
 	}
-	messages, err := db.GetPendingMessages(addressHex, x.chain)
+	messages, err := x.db.GetPendingMessages(addressHex, x.chain)
 
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending messages")
@@ -394,7 +396,7 @@ func (x *CosmosMessageSignerRunnable) UpdateRefund(
 	refund *models.Refund,
 	update bson.M,
 ) bool {
-	err := db.UpdateRefund(refund.ID, update)
+	err := x.db.UpdateRefund(refund.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -497,13 +499,13 @@ func isTxSigner(user []byte, signers [][]byte) bool {
 }
 
 func (x *CosmosMessageSignerRunnable) FindMaxSequence() (uint64, error) {
-	lockID, err := db.LockReadSequences()
+	lockID, err := x.db.LockReadSequences()
 	if err != nil {
 		return 0, fmt.Errorf("could not lock sequences: %w", err)
 	}
-	defer db.Unlock(lockID)
+	defer x.db.Unlock(lockID)
 
-	maxSequence, err := db.FindMaxSequence(x.chain)
+	maxSequence, err := x.db.FindMaxSequence(x.chain)
 	if err != nil {
 		return 0, err
 	}
@@ -671,15 +673,15 @@ func (x *CosmosMessageSignerRunnable) SignRefund(
 		update["status"] = models.RefundStatusSigned
 	}
 
-	lockID, err := db.LockWriteSequence()
+	lockID, err := x.db.LockWriteSequence()
 	if err != nil {
 		logger.WithError(err).Error("Error locking sequence")
 		return false
 	}
 
-	defer db.Unlock(lockID)
+	defer x.db.Unlock(lockID)
 
-	err = db.UpdateRefund(refundDoc.ID, update)
+	err = x.db.UpdateRefund(refundDoc.ID, update)
 	if err != nil {
 		logger.WithError(err).Errorf("Error updating refund")
 		return false
@@ -831,14 +833,14 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndBroadcastMessage(mess
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	lockID, err := db.LockWriteMessage(messageDoc)
+	lockID, err := x.db.LockWriteMessage(messageDoc)
 	// lock before signing so that no other validator adds a signature at the same time
 	if err != nil {
 		logger.WithError(err).Error("Error locking message")
 		return false
 	}
 
-	defer db.Unlock(lockID)
+	defer x.db.Unlock(lockID)
 
 	return x.BroadcastMessage(messageDoc)
 
@@ -846,7 +848,7 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndBroadcastMessage(mess
 
 func (x *CosmosMessageSignerRunnable) BroadcastMessages() bool {
 	x.logger.Infof("Broadcasting messages")
-	messages, err := db.GetSignedMessages(x.chain)
+	messages, err := x.db.GetSignedMessages(x.chain)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting signed messages")
 		return false
@@ -1023,7 +1025,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefund(
 
 func (x *CosmosMessageSignerRunnable) BroadcastRefunds() bool {
 	x.logger.Infof("Broadcasting refunds")
-	refunds, err := db.GetSignedRefunds()
+	refunds, err := x.db.GetSignedRefunds()
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting signed refunds")
 		return false
@@ -1064,7 +1066,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefunds() bool {
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 		}
 
-		lockID, err := db.LockWriteRefund(&refundDoc)
+		lockID, err := x.db.LockWriteRefund(&refundDoc)
 		// lock before signing so that no other validator adds a signature at the same time
 		if err != nil {
 			logger.WithError(err).Error("Error locking refund")
@@ -1074,7 +1076,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefunds() bool {
 
 		success = x.BroadcastRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
 
-		if err = db.Unlock(lockID); err != nil {
+		if err = x.db.Unlock(lockID); err != nil {
 			logger.WithError(err).Error("Error unlocking refund")
 			success = false
 		}
@@ -1089,7 +1091,7 @@ func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting address hex")
 	}
-	refunds, err := db.GetPendingRefunds(addressHex)
+	refunds, err := x.db.GetPendingRefunds(addressHex)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending refunds")
 		return false
@@ -1136,7 +1138,7 @@ func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 			return x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
 		}
 
-		lockID, err := db.LockWriteRefund(&refundDoc)
+		lockID, err := x.db.LockWriteRefund(&refundDoc)
 		// lock before signing so that no other validator adds a signature at the same time
 		if err != nil {
 			logger.WithError(err).Error("Error locking refund")
@@ -1146,7 +1148,7 @@ func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 
 		success = x.SignRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
 
-		if err = db.Unlock(lockID); err != nil {
+		if err = x.db.Unlock(lockID); err != nil {
 			logger.WithError(err).Error("Error unlocking refund")
 			success = false
 		}
@@ -1245,6 +1247,8 @@ func NewMessageSigner(
 		config: config,
 
 		logger: logger,
+
+		db: db.NewDB(),
 	}
 
 	x.UpdateCurrentHeight()

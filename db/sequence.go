@@ -8,11 +8,15 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-type ResultMaxSequence struct {
+type SequenceDB interface {
+	FindMaxSequence(chain models.Chain) (*uint64, error)
+}
+
+type resultMaxSequence struct {
 	MaxSequence uint64 `bson:"max_sequence"`
 }
 
-func FindMaxSequenceFromRefunds() (*uint64, error) {
+func findMaxSequenceFromRefunds() (*uint64, error) {
 	filter := bson.M{"sequence": bson.M{"$ne": nil}}
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: filter}},
@@ -22,7 +26,7 @@ func FindMaxSequenceFromRefunds() (*uint64, error) {
 		}}},
 	}
 
-	var result ResultMaxSequence
+	var result resultMaxSequence
 	err := mongoDB.AggregateOne(common.CollectionRefunds, pipeline, &result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -36,7 +40,7 @@ func FindMaxSequenceFromRefunds() (*uint64, error) {
 	return &maxSequence, nil
 }
 
-func FindMaxSequenceFromMessages(chain models.Chain) (*uint64, error) {
+func findMaxSequenceFromMessages(chain models.Chain) (*uint64, error) {
 	filter := bson.M{"content.destination_domain": chain.ChainDomain, "sequence": bson.M{"$ne": nil}}
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: filter}},
@@ -46,7 +50,7 @@ func FindMaxSequenceFromMessages(chain models.Chain) (*uint64, error) {
 		}}},
 	}
 
-	var result ResultMaxSequence
+	var result resultMaxSequence
 	err := mongoDB.AggregateOne(common.CollectionMessages, pipeline, &result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -60,13 +64,13 @@ func FindMaxSequenceFromMessages(chain models.Chain) (*uint64, error) {
 	return &maxSequence, nil
 }
 
-func FindMaxSequence(chain models.Chain) (*uint64, error) {
-	maxSequenceRefunds, err := FindMaxSequenceFromRefunds()
+func findMaxSequence(chain models.Chain) (*uint64, error) {
+	maxSequenceRefunds, err := findMaxSequenceFromRefunds()
 	if err != nil {
 		return nil, err
 	}
 
-	maxSequenceMessages, err := FindMaxSequenceFromMessages(chain)
+	maxSequenceMessages, err := findMaxSequenceFromMessages(chain)
 	if err != nil {
 		return nil, err
 	}
@@ -88,4 +92,10 @@ func FindMaxSequence(chain models.Chain) (*uint64, error) {
 	}
 
 	return maxSequenceMessages, nil
+}
+
+type sequenceDB struct{}
+
+func (db *sequenceDB) FindMaxSequence(chain models.Chain) (*uint64, error) {
+	return findMaxSequence(chain)
 }

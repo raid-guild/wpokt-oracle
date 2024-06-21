@@ -13,7 +13,44 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func NewMessageBody(
+type MessageDB interface {
+	NewMessageBody(
+		senderAddress []byte,
+		amount *big.Int,
+		recipientAddress []byte,
+	) (models.MessageBody, error)
+
+	NewMessageContent(
+		nonce uint32,
+		originDomain uint32,
+		senderAddress []byte,
+		destinationDomain uint32,
+		recipientAddress []byte,
+		messageBody models.MessageBody,
+	) (models.MessageContent, error)
+
+	NewMessage(
+		txDoc *models.Transaction,
+		content models.MessageContent,
+		status models.MessageStatus,
+	) (models.Message, error)
+
+	FindMessage(filter bson.M) (models.Message, error)
+
+	UpdateMessage(messageID *primitive.ObjectID, update bson.M) error
+
+	UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error)
+
+	InsertMessage(tx models.Message) (primitive.ObjectID, error)
+
+	GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Message, error)
+
+	GetSignedMessages(chain models.Chain) ([]models.Message, error)
+
+	GetBroadcastedMessages(chain models.Chain) ([]models.Message, error)
+}
+
+func newMessageBody(
 	senderAddress []byte,
 	amount *big.Int,
 	recipientAddress []byte,
@@ -36,7 +73,7 @@ func NewMessageBody(
 	}, nil
 }
 
-func NewMessageContent(
+func newMessageContent(
 	nonce uint32,
 	originDomain uint32,
 	senderAddress []byte,
@@ -66,7 +103,7 @@ func NewMessageContent(
 	}, nil
 }
 
-func NewMessage(
+func newMessage(
 	txDoc *models.Transaction,
 	content models.MessageContent,
 	status models.MessageStatus,
@@ -96,13 +133,13 @@ func NewMessage(
 	}, nil
 }
 
-func FindMessage(filter bson.M) (models.Message, error) {
+func findMessage(filter bson.M) (models.Message, error) {
 	var message models.Message
 	err := mongoDB.FindOne(common.CollectionMessages, filter, &message)
 	return message, err
 }
 
-func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
+func updateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	if messageID == nil {
 		return fmt.Errorf("messageID is nil")
 	}
@@ -114,7 +151,7 @@ func UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
 	return err
 }
 
-func UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error) {
+func updateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error) {
 	messageIDHex := common.Ensure0xPrefix(common.HexFromBytes(messageID[:]))
 
 	return mongoDB.UpdateOne(
@@ -124,7 +161,7 @@ func UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.Obje
 	)
 }
 
-func InsertMessage(tx models.Message) (primitive.ObjectID, error) {
+func insertMessage(tx models.Message) (primitive.ObjectID, error) {
 	insertedID, err := mongoDB.InsertOne(common.CollectionMessages, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
@@ -140,7 +177,7 @@ func InsertMessage(tx models.Message) (primitive.ObjectID, error) {
 	return insertedID, nil
 }
 
-func GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Message, error) {
+func getPendingMessages(signerToExclude string, chain models.Chain) ([]models.Message, error) {
 	messages := []models.Message{}
 	filter := bson.M{
 		"$and": []bson.M{
@@ -163,7 +200,7 @@ func GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Me
 	return messages, err
 }
 
-func GetSignedMessages(chain models.Chain) ([]models.Message, error) {
+func getSignedMessages(chain models.Chain) ([]models.Message, error) {
 	messages := []models.Message{}
 	sort := bson.M{"sequence": 1}
 	filter := bson.M{
@@ -176,7 +213,7 @@ func GetSignedMessages(chain models.Chain) ([]models.Message, error) {
 	return messages, err
 }
 
-func GetBroadcastedMessages(chain models.Chain) ([]models.Message, error) {
+func getBroadcastedMessages(chain models.Chain) ([]models.Message, error) {
 	messages := []models.Message{}
 	filter := bson.M{
 		"content.destination_domain": chain.ChainDomain,
@@ -187,4 +224,61 @@ func GetBroadcastedMessages(chain models.Chain) ([]models.Message, error) {
 	err := mongoDB.FindMany(common.CollectionMessages, filter, &messages)
 
 	return messages, err
+}
+
+type messageDB struct{}
+
+func (db *messageDB) NewMessageBody(
+	senderAddress []byte,
+	amount *big.Int,
+	recipientAddress []byte,
+) (models.MessageBody, error) {
+	return newMessageBody(senderAddress, amount, recipientAddress)
+}
+
+func (db *messageDB) NewMessageContent(
+	nonce uint32,
+	originDomain uint32,
+	senderAddress []byte,
+	destinationDomain uint32,
+	recipientAddress []byte,
+	messageBody models.MessageBody,
+) (models.MessageContent, error) {
+	return newMessageContent(nonce, originDomain, senderAddress, destinationDomain, recipientAddress, messageBody)
+}
+
+func (db *messageDB) NewMessage(
+	txDoc *models.Transaction,
+	content models.MessageContent,
+	status models.MessageStatus,
+) (models.Message, error) {
+	return newMessage(txDoc, content, status)
+}
+
+func (db *messageDB) FindMessage(filter bson.M) (models.Message, error) {
+	return findMessage(filter)
+}
+
+func (db *messageDB) UpdateMessage(messageID *primitive.ObjectID, update bson.M) error {
+	return updateMessage(messageID, update)
+}
+
+func (db *messageDB) UpdateMessageByMessageID(messageID [32]byte, update bson.M) (primitive.ObjectID, error) {
+	return updateMessageByMessageID(messageID, update)
+}
+
+func (db *messageDB) InsertMessage(tx models.Message) (primitive.ObjectID, error) {
+	return insertMessage(tx)
+}
+
+func (db *messageDB) GetPendingMessages(signerToExclude string, chain models.Chain) ([]models.Message, error) {
+	return getPendingMessages(signerToExclude, chain)
+}
+
+func (db *messageDB) GetSignedMessages(chain models.Chain) ([]models.Message, error) {
+	return getSignedMessages(chain)
+}
+
+func (db *messageDB) GetBroadcastedMessages(chain models.Chain) ([]models.Message, error) {
+	return getBroadcastedMessages(chain)
 }

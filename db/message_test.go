@@ -23,12 +23,14 @@ type MessageTestSuite struct {
 	suite.Suite
 	mockDB     *mocks.MockDatabase
 	oldMongoDB Database
+	db         MessageDB
 }
 
 func (suite *MessageTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
 	suite.oldMongoDB = mongoDB
 	mongoDB = suite.mockDB
+	suite.db = &messageDB{}
 }
 
 func (suite *MessageTestSuite) TearDownTest() {
@@ -40,7 +42,7 @@ func (suite *MessageTestSuite) TestNewMessageBody() {
 	recipientAddress := ethcommon.BytesToAddress([]byte{4, 5, 6})
 	amount := big.NewInt(100)
 
-	messageBody, err := NewMessageBody(senderAddress[:], amount, recipientAddress[:])
+	messageBody, err := suite.db.NewMessageBody(senderAddress[:], amount, recipientAddress[:])
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), strings.ToLower(senderAddress.Hex()), messageBody.SenderAddress)
 	assert.Equal(suite.T(), amount.String(), messageBody.Amount)
@@ -53,7 +55,7 @@ func (suite *MessageTestSuite) TestNewMessageBody_InvalidSender() {
 	amount := big.NewInt(100)
 	expectedError := fmt.Errorf("invalid sender address: %w", common.ErrInvalidAddressLength)
 
-	_, err := NewMessageBody(senderAddress[:], amount, recipientAddress[:])
+	_, err := suite.db.NewMessageBody(senderAddress[:], amount, recipientAddress[:])
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -64,7 +66,7 @@ func (suite *MessageTestSuite) TestNewMessageBody_InvalidRecipient() {
 	amount := big.NewInt(100)
 	expectedError := fmt.Errorf("invalid recipient address: %w", common.ErrInvalidAddressLength)
 
-	_, err := NewMessageBody(senderAddress[:], amount, recipientAddress[:])
+	_, err := suite.db.NewMessageBody(senderAddress[:], amount, recipientAddress[:])
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -81,7 +83,7 @@ func (suite *MessageTestSuite) TestNewMessageContent() {
 		RecipientAddress: "0x040506",
 	}
 
-	messageContent, err := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
+	messageContent, err := suite.db.NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), common.HyperlaneVersion, messageContent.Version)
 	assert.Equal(suite.T(), nonce, messageContent.Nonce)
@@ -105,7 +107,7 @@ func (suite *MessageTestSuite) TestNewMessageContent_InvalidSender() {
 	}
 	expectedError := fmt.Errorf("invalid sender address: %w", common.ErrInvalidAddressLength)
 
-	_, err := NewMessageContent(nonce, originDomain, senderAddress, destinationDomain, recipientAddress[:], messageBody)
+	_, err := suite.db.NewMessageContent(nonce, originDomain, senderAddress, destinationDomain, recipientAddress[:], messageBody)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -123,7 +125,7 @@ func (suite *MessageTestSuite) TestNewMessageContent_InvalidRecipient() {
 	}
 	expectedError := fmt.Errorf("invalid recipient address: %w", common.ErrInvalidAddressLength)
 
-	_, err := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress, messageBody)
+	_, err := suite.db.NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress, messageBody)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -144,10 +146,10 @@ func (suite *MessageTestSuite) TestNewMessage() {
 		RecipientAddress: strings.ToLower(recipientAddress.Hex()),
 	}
 
-	content, _ := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
+	content, _ := suite.db.NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
 	status := models.MessageStatusPending
 
-	message, err := NewMessage(txDoc, content, status)
+	message, err := suite.db.NewMessage(txDoc, content, status)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), *txDoc.ID, message.OriginTransaction)
 	assert.Equal(suite.T(), txDoc.Hash, message.OriginTransactionHash)
@@ -166,12 +168,12 @@ func (suite *MessageTestSuite) TestNewMessage_InvalidTxDoc() {
 		RecipientAddress: strings.ToLower(recipientAddress.Hex()),
 	}
 
-	content, _ := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
+	content, _ := suite.db.NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
 	status := models.MessageStatusPending
 
 	expectedError := fmt.Errorf("invalid txDoc")
 
-	_, err := NewMessage(nil, content, status)
+	_, err := suite.db.NewMessage(nil, content, status)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 }
@@ -188,14 +190,14 @@ func (suite *MessageTestSuite) TestNewMessage_InvalidMessageID() {
 		RecipientAddress: strings.ToLower(recipientAddress.Hex()),
 	}
 
-	content, _ := NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
+	content, _ := suite.db.NewMessageContent(nonce, originDomain, senderAddress[:], destinationDomain, recipientAddress[:], messageBody)
 	status := models.MessageStatusPending
 
 	txDoc := &models.Transaction{
 		ID:   &primitive.ObjectID{},
 		Hash: "0x123",
 	}
-	_, err := NewMessage(txDoc, content, status)
+	_, err := suite.db.NewMessage(txDoc, content, status)
 	assert.Error(suite.T(), err)
 }
 
@@ -205,7 +207,7 @@ func (suite *MessageTestSuite) TestFindMessage() {
 
 	suite.mockDB.On("FindOne", common.CollectionMessages, filter, &expectedMessage).Return(nil).Once()
 
-	gotMessage, err := FindMessage(filter)
+	gotMessage, err := suite.db.FindMessage(filter)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), expectedMessage, gotMessage)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -217,7 +219,7 @@ func (suite *MessageTestSuite) TestUpdateMessage() {
 
 	suite.mockDB.On("UpdateOne", common.CollectionMessages, bson.M{"_id": &messageID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
-	err := UpdateMessage(&messageID, update)
+	err := suite.db.UpdateMessage(&messageID, update)
 	assert.NoError(suite.T(), err)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -225,7 +227,7 @@ func (suite *MessageTestSuite) TestUpdateMessage() {
 func (suite *MessageTestSuite) TestUpdateMessage_NilMessageID() {
 	update := bson.M{"status": models.MessageStatusSigned}
 
-	err := UpdateMessage(nil, update)
+	err := suite.db.UpdateMessage(nil, update)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), fmt.Errorf("messageID is nil"), err)
 }
@@ -237,7 +239,7 @@ func (suite *MessageTestSuite) TestUpdateMessageByMessageID() {
 
 	suite.mockDB.On("UpdateOne", common.CollectionMessages, bson.M{"message_id": messageIDHex}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
-	_, err := UpdateMessageByMessageID(messageID, update)
+	_, err := suite.db.UpdateMessageByMessageID(messageID, update)
 	assert.NoError(suite.T(), err)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -250,7 +252,7 @@ func (suite *MessageTestSuite) TestInsertMessage() {
 
 	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, nil).Once()
 
-	gotID, err := InsertMessage(message)
+	gotID, err := suite.db.InsertMessage(message)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), insertedID, gotID)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -272,7 +274,7 @@ func (suite *MessageTestSuite) TestInsertMessage_DuplicateKeyError() {
 		*arg = existingMessage
 	})
 
-	gotID, err := InsertMessage(message)
+	gotID, err := suite.db.InsertMessage(message)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), insertedID, gotID)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -289,7 +291,7 @@ func (suite *MessageTestSuite) TestInsertMessage_DuplicateKeyError_FindError() {
 	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, duplicateError).Once()
 	suite.mockDB.On("FindOne", common.CollectionMessages, bson.M{"origin_transaction_hash": message.OriginTransactionHash}, &models.Message{}).Return(expectedError).Once()
 
-	gotID, err := InsertMessage(message)
+	gotID, err := suite.db.InsertMessage(message)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), insertedID, gotID)
@@ -305,7 +307,7 @@ func (suite *MessageTestSuite) TestInsertMessage_InsertError() {
 
 	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, expectedError).Once()
 
-	gotID, err := InsertMessage(message)
+	gotID, err := suite.db.InsertMessage(message)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), insertedID, gotID)
@@ -342,7 +344,7 @@ func (suite *MessageTestSuite) TestGetPendingMessages() {
 		*arg = messages
 	})
 
-	gotMessages, err := GetPendingMessages(signerToExclude, chain)
+	gotMessages, err := suite.db.GetPendingMessages(signerToExclude, chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), messages, gotMessages)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -367,7 +369,7 @@ func (suite *MessageTestSuite) TestGetSignedMessages() {
 		*arg = messages
 	})
 
-	gotMessages, err := GetSignedMessages(chain)
+	gotMessages, err := suite.db.GetSignedMessages(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), messages, gotMessages)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -392,7 +394,7 @@ func (suite *MessageTestSuite) TestGetBroadcastedMessages() {
 		*arg = messages
 	})
 
-	gotMessages, err := GetBroadcastedMessages(chain)
+	gotMessages, err := suite.db.GetBroadcastedMessages(chain)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), messages, gotMessages)
 	suite.mockDB.AssertExpectations(suite.T())

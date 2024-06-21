@@ -8,6 +8,7 @@ packages:
   github.com/dan13ram/wpokt-oracle/db:
     interfaces:
       Database:
+      DB:
   github.com/dan13ram/wpokt-oracle/cosmos/client:
     interfaces:
       CosmosClient:

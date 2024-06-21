@@ -17,12 +17,14 @@ type NodeTestSuite struct {
 	suite.Suite
 	mockDB     *mocks.MockDatabase
 	oldMongoDB Database
+	db         NodeDB
 }
 
 func (suite *NodeTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
 	suite.oldMongoDB = mongoDB
 	mongoDB = suite.mockDB
+	suite.db = &nodeDB{}
 }
 
 func (suite *NodeTestSuite) TearDownTest() {
@@ -35,7 +37,7 @@ func (suite *NodeTestSuite) TestFindNode() {
 
 	suite.mockDB.On("FindOne", common.CollectionNodes, filter, &expectedNode).Return(nil).Once()
 
-	gotNode, err := FindNode(filter)
+	gotNode, err := suite.db.FindNode(filter)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), &expectedNode, gotNode)
 	suite.mockDB.AssertExpectations(suite.T())
@@ -48,7 +50,7 @@ func (suite *NodeTestSuite) TestFindNode_SomeError() {
 
 	suite.mockDB.On("FindOne", common.CollectionNodes, filter, &expectedNode).Return(expectedError).Once()
 
-	gotNode, err := FindNode(filter)
+	gotNode, err := suite.db.FindNode(filter)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	assert.Equal(suite.T(), &expectedNode, gotNode)
@@ -63,7 +65,7 @@ func (suite *NodeTestSuite) TestUpsertNode() {
 
 	suite.mockDB.On("UpsertOne", common.CollectionNodes, filter, update).Return(primitive.ObjectID{}, nil).Once()
 
-	err := UpsertNode(filter, onUpdate, onInsert)
+	err := suite.db.UpsertNode(filter, onUpdate, onInsert)
 	assert.NoError(suite.T(), err)
 	suite.mockDB.AssertExpectations(suite.T())
 }
@@ -77,7 +79,7 @@ func (suite *NodeTestSuite) TestUpsertNode_SomeError() {
 
 	suite.mockDB.On("UpsertOne", common.CollectionNodes, filter, update).Return(primitive.ObjectID{}, expectedError).Once()
 
-	err := UpsertNode(filter, onUpdate, onInsert)
+	err := suite.db.UpsertNode(filter, onUpdate, onInsert)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), expectedError, err)
 	suite.mockDB.AssertExpectations(suite.T())

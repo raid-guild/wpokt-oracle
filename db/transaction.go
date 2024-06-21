@@ -16,7 +16,35 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func NewEthereumTransaction(
+type TransactionDB interface {
+	NewEthereumTransaction(
+		tx *types.Transaction,
+		toAddress []byte,
+		receipt *types.Receipt,
+		chain models.Chain,
+		txStatus models.TransactionStatus,
+	) (models.Transaction, error)
+
+	NewCosmosTransaction(
+		txRes *sdk.TxResponse,
+		chain models.Chain,
+		fromAddress []byte,
+		toAddress []byte,
+		txStatus models.TransactionStatus,
+	) (models.Transaction, error)
+
+	InsertTransaction(tx models.Transaction) (primitive.ObjectID, error)
+
+	UpdateTransaction(txID *primitive.ObjectID, update bson.M) error
+
+	GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error)
+
+	GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error)
+
+	GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]models.Transaction, error)
+}
+
+func newEthereumTransaction(
 	tx *types.Transaction,
 	toAddress []byte,
 	receipt *types.Receipt,
@@ -51,7 +79,7 @@ func NewEthereumTransaction(
 	}, nil
 }
 
-func NewCosmosTransaction(
+func newCosmosTransaction(
 	txRes *sdk.TxResponse,
 	chain models.Chain,
 	fromAddress []byte,
@@ -87,7 +115,7 @@ func NewCosmosTransaction(
 	}, nil
 }
 
-func InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
+func insertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
 	insertedID, err := mongoDB.InsertOne(common.CollectionTransactions, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
@@ -103,7 +131,7 @@ func InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
 	return insertedID, nil
 }
 
-func UpdateTransaction(txID *primitive.ObjectID, update bson.M) error {
+func updateTransaction(txID *primitive.ObjectID, update bson.M) error {
 	if txID == nil {
 		return fmt.Errorf("txID is nil")
 	}
@@ -115,7 +143,7 @@ func UpdateTransaction(txID *primitive.ObjectID, update bson.M) error {
 	return err
 }
 
-func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
+func getPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
 	txTo, err := common.AddressHexFromBytes(toAddress)
@@ -134,7 +162,7 @@ func GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Tr
 	return txs, err
 }
 
-func GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
+func getConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
 	txTo, err := common.AddressHexFromBytes(toAddress)
@@ -176,7 +204,7 @@ func GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.
 	return txs, err
 }
 
-func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]models.Transaction, error) {
+func getPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]models.Transaction, error) {
 	txs := []models.Transaction{}
 
 	txFrom, err := common.AddressHexFromBytes(fromAddress)
@@ -193,4 +221,46 @@ func GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]model
 	err = mongoDB.FindMany(common.CollectionTransactions, filter, &txs)
 
 	return txs, err
+}
+
+type transactionDB struct{}
+
+func (db *transactionDB) NewEthereumTransaction(
+	tx *types.Transaction,
+	toAddress []byte,
+	receipt *types.Receipt,
+	chain models.Chain,
+	txStatus models.TransactionStatus,
+) (models.Transaction, error) {
+	return newEthereumTransaction(tx, toAddress, receipt, chain, txStatus)
+}
+
+func (db *transactionDB) NewCosmosTransaction(
+	txRes *sdk.TxResponse,
+	chain models.Chain,
+	fromAddress []byte,
+	toAddress []byte,
+	txStatus models.TransactionStatus,
+) (models.Transaction, error) {
+	return newCosmosTransaction(txRes, chain, fromAddress, toAddress, txStatus)
+}
+
+func (db *transactionDB) InsertTransaction(tx models.Transaction) (primitive.ObjectID, error) {
+	return insertTransaction(tx)
+}
+
+func (db *transactionDB) UpdateTransaction(txID *primitive.ObjectID, update bson.M) error {
+	return updateTransaction(txID, update)
+}
+
+func (db *transactionDB) GetPendingTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
+	return getPendingTransactionsTo(chain, toAddress)
+}
+
+func (db *transactionDB) GetConfirmedTransactionsTo(chain models.Chain, toAddress []byte) ([]models.Transaction, error) {
+	return getConfirmedTransactionsTo(chain, toAddress)
+}
+
+func (db *transactionDB) GetPendingTransactionsFrom(chain models.Chain, fromAddress []byte) ([]models.Transaction, error) {
+	return getPendingTransactionsFrom(chain, fromAddress)
 }

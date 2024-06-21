@@ -33,6 +33,8 @@ type EthMessageRelayerRunnable struct {
 	chain models.Chain
 
 	logger *log.Entry
+
+	db db.DB
 }
 
 func (x *EthMessageRelayerRunnable) Run() {
@@ -74,13 +76,13 @@ func (x *EthMessageRelayerRunnable) CreateTxForFulfillmentEvent(event *autogen.M
 		return false
 	}
 
-	txDoc, err := db.NewEthereumTransaction(result.tx, x.mintController.Address().Bytes(), result.receipt, x.chain, models.TransactionStatusPending)
+	txDoc, err := x.db.NewEthereumTransaction(result.tx, x.mintController.Address().Bytes(), result.receipt, x.chain, models.TransactionStatusPending)
 	if err != nil {
 		logger.WithError(err).Errorf("Error creating transaction")
 		return false
 	}
 
-	_, err = db.InsertTransaction(txDoc)
+	_, err = x.db.InsertTransaction(txDoc)
 	if err != nil {
 		logger.WithError(err).Errorf("Error inserting transaction")
 		return false
@@ -133,7 +135,7 @@ func (x *EthMessageRelayerRunnable) UpdateTransaction(
 	tx *models.Transaction,
 	update bson.M,
 ) bool {
-	err := db.UpdateTransaction(tx.ID, update)
+	err := x.db.UpdateTransaction(tx.ID, update)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error updating transaction")
 		return false
@@ -179,11 +181,11 @@ func (x *EthMessageRelayerRunnable) ConfirmMessagesForTx(txDoc *models.Transacti
 		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
 	}
 
-	if lockID, err := db.LockWriteTransaction(txDoc); err != nil {
+	if lockID, err := x.db.LockWriteTransaction(txDoc); err != nil {
 		logger.WithError(err).Error("Error locking transaction")
 		return false
 	} else {
-		defer db.Unlock(lockID)
+		defer x.db.Unlock(lockID)
 	}
 
 	update := bson.M{
@@ -195,7 +197,7 @@ func (x *EthMessageRelayerRunnable) ConfirmMessagesForTx(txDoc *models.Transacti
 	success := true
 
 	for _, event := range result.Events {
-		docID, err := db.UpdateMessageByMessageID(event.OrderId, update)
+		docID, err := x.db.UpdateMessageByMessageID(event.OrderId, update)
 		if err != nil {
 			logger.WithError(err).Errorf("Error updating message")
 			success = false
@@ -288,7 +290,7 @@ func (x *EthMessageRelayerRunnable) SyncNewBlocks() bool {
 func (x *EthMessageRelayerRunnable) ConfirmFulfillmentTxs() bool {
 	logger := x.logger.WithField("section", "ConfirmFulfillmentTxs")
 
-	txs, err := db.GetPendingTransactionsTo(x.chain, x.mintController.Address().Bytes())
+	txs, err := x.db.GetPendingTransactionsTo(x.chain, x.mintController.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Error("Error getting pending transactions")
 		return false
@@ -305,7 +307,7 @@ func (x *EthMessageRelayerRunnable) ConfirmFulfillmentTxs() bool {
 func (x *EthMessageRelayerRunnable) ConfirmMessages() bool {
 	logger := x.logger.WithField("section", "ConfirmMessages")
 
-	txs, err := db.GetConfirmedTransactionsTo(x.chain, x.mintController.Address().Bytes())
+	txs, err := x.db.GetConfirmedTransactionsTo(x.chain, x.mintController.Address().Bytes())
 	if err != nil {
 		logger.WithError(err).Error("Error getting confirmed transactions")
 		return false
@@ -376,6 +378,8 @@ func NewMessageRelayer(
 		chain: util.ParseChain(config),
 
 		logger: logger,
+
+		db: db.NewDB(),
 	}
 
 	x.UpdateCurrentBlockHeight()

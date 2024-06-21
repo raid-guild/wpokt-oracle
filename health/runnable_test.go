@@ -5,13 +5,12 @@ import (
 	"testing"
 
 	"github.com/dan13ram/wpokt-oracle/common"
-	"github.com/dan13ram/wpokt-oracle/db"
+	mocks "github.com/dan13ram/wpokt-oracle/db/mocks"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -27,13 +26,13 @@ func (m *mockChainService) Health() models.ChainServiceHealth {
 }
 
 func Test_HealthCheckRunnable_Run(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
 	healthCheck := &healthCheckRunnable{
 		logger: log.NewEntry(log.New()),
+		db:     mockDB,
 	}
-	mockDB := db.MockDatabase(t)
-	defer db.UnmockDatabase()
 
-	mockDB.On("UpsertOne", common.CollectionNodes, mock.Anything, mock.Anything).Return(primitive.ObjectID{}, nil).Once()
+	mockDB.EXPECT().UpsertNode(mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 
 	healthCheck.Run()
 	mockDB.AssertExpectations(t)
@@ -49,15 +48,14 @@ func Test_HealthCheckRunnable_AddServices(t *testing.T) {
 }
 
 func Test_HealthCheckRunnable_GetLastHealth(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
 	healthCheck := &healthCheckRunnable{
 		cosmosAddress: "cosmosAddress",
 		ethAddress:    "ethAddress",
 		hostname:      "hostname",
 		oracleID:      "oracleID",
+		db:            mockDB,
 	}
-
-	mockDB := db.MockDatabase(t)
-	defer db.UnmockDatabase()
 
 	expectedFilter := bson.M{
 		"cosmos_address": "cosmosAddress",
@@ -65,7 +63,7 @@ func Test_HealthCheckRunnable_GetLastHealth(t *testing.T) {
 		"hostname":       "hostname",
 		"oracle_id":      "oracleID",
 	}
-	mockDB.On("FindOne", common.CollectionNodes, expectedFilter, &models.Node{}).Return(nil).Once()
+	mockDB.EXPECT().FindNode(expectedFilter).Return(&models.Node{}, nil).Once()
 
 	health, err := healthCheck.GetLastHealth()
 	assert.NoError(t, err)
@@ -79,10 +77,12 @@ func Test_HealthCheckRunnable_ServiceHealths(t *testing.T) {
 			ChainName: "TestChain",
 		},
 	}
+	mockDB := mocks.NewMockDB(t)
 	healthCheck := &healthCheckRunnable{
 		services: []service.ChainService{
 			&mockChainService{health: serviceHealth},
 		},
+		db: mockDB,
 	}
 	healths := healthCheck.ServiceHealths()
 	assert.Equal(t, 1, len(healths))
@@ -90,16 +90,15 @@ func Test_HealthCheckRunnable_ServiceHealths(t *testing.T) {
 }
 
 func Test_HealthCheckRunnable_PostHealth(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
 	healthCheck := &healthCheckRunnable{
 		cosmosAddress: "cosmosAddress",
 		ethAddress:    "ethAddress",
 		hostname:      "hostname",
 		oracleID:      "oracleID",
 		logger:        log.NewEntry(log.New()),
+		db:            mockDB,
 	}
-
-	mockDB := db.MockDatabase(t)
-	defer db.UnmockDatabase()
 
 	expectedFilter := bson.M{
 		"cosmos_address": "cosmosAddress",
@@ -108,7 +107,7 @@ func Test_HealthCheckRunnable_PostHealth(t *testing.T) {
 		"oracle_id":      "oracleID",
 	}
 
-	onInsert := bson.M{
+	expectedOnInsert := bson.M{
 		"cosmos_address": "cosmosAddress",
 		"eth_address":    "ethAddress",
 		"hostname":       "hostname",
@@ -116,24 +115,24 @@ func Test_HealthCheckRunnable_PostHealth(t *testing.T) {
 		"created_at":     nil,
 	}
 
-	onUpdate := bson.M{
+	expectedOnUpdate := bson.M{
 		"healthy":         true,
 		"service_healths": nil,
 		"updated_at":      nil,
 	}
 
-	expectedUpdate := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
+	mockDB.EXPECT().UpsertNode(expectedFilter, mock.Anything, mock.Anything).Return(nil).Once().Run(func(args mock.Arguments) {
+		onUpdate := args.Get(1).(bson.M)
+		onInsert := args.Get(2).(bson.M)
+		assert.NotNil(t, onUpdate)
+		assert.NotNil(t, onInsert)
 
-	mockDB.On("UpsertOne", common.CollectionNodes, expectedFilter, mock.Anything).Return(primitive.ObjectID{}, nil).Once().Run(func(args mock.Arguments) {
-		update := args.Get(2).(bson.M)
-		assert.NotNil(t, update["$set"])
-		assert.NotNil(t, update["$setOnInsert"])
+		onInsert["created_at"] = nil
+		onUpdate["service_healths"] = nil
+		onUpdate["updated_at"] = nil
 
-		update["$setOnInsert"].(bson.M)["created_at"] = nil
-		update["$set"].(bson.M)["service_healths"] = nil
-		update["$set"].(bson.M)["updated_at"] = nil
-
-		assert.Equal(t, expectedUpdate, update)
+		assert.Equal(t, expectedOnUpdate, onUpdate)
+		assert.Equal(t, expectedOnInsert, onInsert)
 	})
 
 	success := healthCheck.PostHealth()

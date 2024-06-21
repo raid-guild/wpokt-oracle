@@ -14,7 +14,23 @@ import (
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
-func NewRefund(
+type RefundDB interface {
+	NewRefund(
+		txRes *sdk.TxResponse,
+		txDoc *models.Transaction,
+		recipientAddress []byte,
+		amountCoin sdk.Coin,
+	) (models.Refund, error)
+
+	InsertRefund(tx models.Refund) (primitive.ObjectID, error)
+	UpdateRefund(refundID *primitive.ObjectID, update bson.M) error
+
+	GetPendingRefunds(signerToExclude string) ([]models.Refund, error)
+	GetSignedRefunds() ([]models.Refund, error)
+	GetBroadcastedRefunds() ([]models.Refund, error)
+}
+
+func newRefund(
 	txRes *sdk.TxResponse,
 	txDoc *models.Transaction,
 	recipientAddress []byte,
@@ -52,7 +68,7 @@ func NewRefund(
 	}, nil
 }
 
-func InsertRefund(tx models.Refund) (primitive.ObjectID, error) {
+func insertRefund(tx models.Refund) (primitive.ObjectID, error) {
 	insertedID, err := mongoDB.InsertOne(common.CollectionRefunds, tx)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
@@ -68,7 +84,7 @@ func InsertRefund(tx models.Refund) (primitive.ObjectID, error) {
 	return insertedID, nil
 }
 
-func UpdateRefund(refundID *primitive.ObjectID, update bson.M) error {
+func updateRefund(refundID *primitive.ObjectID, update bson.M) error {
 	if refundID == nil {
 		return fmt.Errorf("refundID is nil")
 	}
@@ -80,7 +96,7 @@ func UpdateRefund(refundID *primitive.ObjectID, update bson.M) error {
 	return err
 }
 
-func GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {
+func getPendingRefunds(signerToExclude string) ([]models.Refund, error) {
 	refunds := []models.Refund{}
 	filter := bson.M{
 		"$and": []bson.M{
@@ -101,7 +117,7 @@ func GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {
 	return refunds, err
 }
 
-func GetSignedRefunds() ([]models.Refund, error) {
+func getSignedRefunds() ([]models.Refund, error) {
 	refunds := []models.Refund{}
 	filter := bson.M{"status": models.RefundStatusSigned}
 	sort := bson.M{"sequence": 1}
@@ -111,11 +127,42 @@ func GetSignedRefunds() ([]models.Refund, error) {
 	return refunds, err
 }
 
-func GetBroadcastedRefunds() ([]models.Refund, error) {
+func getBroadcastedRefunds() ([]models.Refund, error) {
 	refunds := []models.Refund{}
 	filter := bson.M{"status": models.RefundStatusBroadcasted, "transaction": nil}
 
 	err := mongoDB.FindMany(common.CollectionRefunds, filter, &refunds)
 
 	return refunds, err
+}
+
+type refundDB struct{}
+
+func (db *refundDB) NewRefund(
+	txRes *sdk.TxResponse,
+	txDoc *models.Transaction,
+	recipientAddress []byte,
+	amountCoin sdk.Coin,
+) (models.Refund, error) {
+	return newRefund(txRes, txDoc, recipientAddress, amountCoin)
+}
+
+func (db *refundDB) InsertRefund(tx models.Refund) (primitive.ObjectID, error) {
+	return insertRefund(tx)
+}
+
+func (db *refundDB) UpdateRefund(refundID *primitive.ObjectID, update bson.M) error {
+	return updateRefund(refundID, update)
+}
+
+func (db *refundDB) GetPendingRefunds(signerToExclude string) ([]models.Refund, error) {
+	return getPendingRefunds(signerToExclude)
+}
+
+func (db *refundDB) GetSignedRefunds() ([]models.Refund, error) {
+	return getSignedRefunds()
+}
+
+func (db *refundDB) GetBroadcastedRefunds() ([]models.Refund, error) {
+	return getBroadcastedRefunds()
 }

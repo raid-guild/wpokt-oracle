@@ -1041,7 +1041,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefunds() bool {
 			continue
 		}
 
-		result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
+		result, err := utilValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 
 		if err != nil {
 			logger.WithError(err).Errorf("Error validating tx")
@@ -1107,7 +1107,7 @@ func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 			continue
 		}
 
-		result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
+		result, err := utilValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 
 		if err != nil {
 			logger.WithError(err).Errorf("Error validating tx")

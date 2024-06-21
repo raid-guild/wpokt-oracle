@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ValidateTxToCosmosMultisigResult struct {
+type ValidateTxResult struct {
 	Memo          models.MintMemo
 	Confirmations uint64
 	TxStatus      models.TransactionStatus
@@ -29,12 +29,12 @@ func ValidateTxToCosmosMultisig(
 	config models.CosmosNetworkConfig,
 	supportedChainIDsEthereum map[uint32]bool,
 	currentCosmosBlockHeight uint64,
-) (*ValidateTxToCosmosMultisigResult, error) {
+) (*ValidateTxResult, error) {
 	logger := log.
 		WithField("operation", "validateTxToCosmosMultisig").
 		WithField("tx_hash", txResponse.TxHash)
 
-	result := ValidateTxToCosmosMultisigResult{
+	result := ValidateTxResult{
 		Memo:          models.MintMemo{},
 		TxStatus:      models.TransactionStatusInvalid,
 		Tx:            nil,

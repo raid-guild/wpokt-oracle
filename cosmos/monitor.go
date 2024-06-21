@@ -22,7 +22,7 @@ import (
 )
 
 type CosmosMessageMonitorRunnable struct {
-	multisigPk *multisig.LegacyAminoPubKey
+	multisigAddressBytes []byte
 
 	mintControllerMap         map[uint32][]byte
 	supportedChainIDsEthereum map[uint32]bool
@@ -62,38 +62,6 @@ func (x *CosmosMessageMonitorRunnable) UpdateCurrentHeight() {
 	x.logger.
 		WithField("current_block_height", x.currentBlockHeight).
 		Info("updated current block height")
-}
-
-func (x *CosmosMessageMonitorRunnable) CreateTransaction(
-	senderAddress []byte,
-	txResponse *sdk.TxResponse,
-	txStatus models.TransactionStatus,
-) bool {
-	logger := x.logger.WithField("tx_hash", txResponse.TxHash).WithField("section", "create")
-
-	transaction, err := x.db.NewCosmosTransaction(txResponse, x.chain, senderAddress, x.multisigPk.Address().Bytes(), txStatus)
-	if err != nil {
-		logger.WithError(err).Errorf("Error creating transaction")
-		return false
-	}
-	_, err = x.db.InsertTransaction(transaction)
-	if err != nil {
-		logger.WithError(err).Errorf("Error inserting transaction")
-		return false
-	}
-	return true
-}
-
-func (x *CosmosMessageMonitorRunnable) UpdateTransaction(
-	tx *models.Transaction,
-	update bson.M,
-) bool {
-	err := x.db.UpdateTransaction(tx.ID, update)
-	if err != nil {
-		x.logger.WithError(err).Errorf("Error updating transaction")
-		return false
-	}
-	return true
 }
 
 func (x *CosmosMessageMonitorRunnable) CreateRefund(
@@ -215,14 +183,26 @@ func (x *CosmosMessageMonitorRunnable) SyncNewTxs() bool {
 	for _, txResponse := range txResponses {
 		logger := x.logger.WithField("tx_hash", txResponse.TxHash).WithField("section", "sync")
 
-		result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
+		result, err := utilValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 		if err != nil {
-			success = false
 			logger.WithError(err).Errorf("Error validating tx")
+			success = false
 			continue
 		}
 
-		success = x.CreateTransaction(result.SenderAddress, txResponse, result.TxStatus) && success
+		transaction, err := x.db.NewCosmosTransaction(txResponse, x.chain, result.SenderAddress, x.multisigAddressBytes, result.TxStatus)
+		if err != nil {
+			logger.WithError(err).Errorf("Error creating transaction")
+			success = false
+			continue
+		}
+
+		_, err = x.db.InsertTransaction(transaction)
+		if err != nil {
+			logger.WithError(err).Errorf("Error inserting transaction")
+			success = false
+			continue
+		}
 	}
 
 	if success {
@@ -240,7 +220,7 @@ func (x *CosmosMessageMonitorRunnable) ValidateAndConfirmTx(txDoc *models.Transa
 		return false
 	}
 
-	result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
+	result, err := utilValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 	if err != nil {
 		logger.WithError(err).Errorf("Error validating tx")
 		return false
@@ -250,12 +230,17 @@ func (x *CosmosMessageMonitorRunnable) ValidateAndConfirmTx(txDoc *models.Transa
 		"confirmations": result.Confirmations,
 		"status":        result.TxStatus,
 	}
-	return x.UpdateTransaction(txDoc, update)
+	err = x.db.UpdateTransaction(txDoc.ID, update)
+	if err != nil {
+		logger.WithError(err).Errorf("Error updating transaction")
+		return false
+	}
+	return true
 }
 
 func (x *CosmosMessageMonitorRunnable) ConfirmTxs() bool {
 	x.logger.Infof("Confirming txs")
-	txs, err := x.db.GetPendingTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
+	txs, err := x.db.GetPendingTransactionsTo(x.chain, x.multisigAddressBytes)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending txs")
 		return false
@@ -277,7 +262,7 @@ func (x *CosmosMessageMonitorRunnable) ValidateTxAndCreate(txDoc *models.Transac
 		return false
 	}
 
-	result, err := util.ValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
+	result, err := utilValidateTxToCosmosMultisig(txResponse, x.config, x.supportedChainIDsEthereum, x.currentBlockHeight)
 	if err != nil {
 		logger.WithError(err).Errorf("Error validating tx")
 		return false
@@ -290,7 +275,12 @@ func (x *CosmosMessageMonitorRunnable) ValidateTxAndCreate(txDoc *models.Transac
 
 	if result.TxStatus != models.TransactionStatusConfirmed {
 		logger.Warnf("Found tx with status %s", result.TxStatus)
-		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
+		err = x.db.UpdateTransaction(txDoc.ID, bson.M{"status": result.TxStatus})
+		if err != nil {
+			logger.WithError(err).Errorf("Error updating transaction")
+			return false
+		}
+		return true
 	}
 
 	if lockID, err := x.db.LockWriteTransaction(txDoc); err != nil {
@@ -309,7 +299,7 @@ func (x *CosmosMessageMonitorRunnable) ValidateTxAndCreate(txDoc *models.Transac
 
 func (x *CosmosMessageMonitorRunnable) CreateRefundsOrMessagesForConfirmedTxs() bool {
 	x.logger.Infof("Creating refunds or messages for confirmed txs")
-	txDocs, err := x.db.GetConfirmedTransactionsTo(x.chain, x.multisigPk.Address().Bytes())
+	txDocs, err := x.db.GetConfirmedTransactionsTo(x.chain, x.multisigAddressBytes)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting confirmed txs")
 		return false
@@ -390,7 +380,7 @@ func NewMessageMonitor(
 	// TODO: check max amount for corresponding chain and disallow if too high
 
 	x := &CosmosMessageMonitorRunnable{
-		multisigPk: multisigPk,
+		multisigAddressBytes: multisigPk.Address().Bytes(),
 
 		startBlockHeight:   config.StartBlockHeight,
 		currentBlockHeight: 0,

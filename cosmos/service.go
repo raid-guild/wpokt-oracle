@@ -9,6 +9,8 @@ import (
 	"github.com/dan13ram/wpokt-oracle/service"
 )
 
+var utilValidateTxToCosmosMultisig = util.ValidateTxToCosmosMultisig
+
 func NewCosmosChainService(
 	config models.CosmosNetworkConfig,
 	mintControllerMap map[uint32][]byte,

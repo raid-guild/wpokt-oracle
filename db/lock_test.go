@@ -33,7 +33,7 @@ func (suite *LockTestSuite) TearDownTest() {
 
 func (suite *LockTestSuite) TestUnlock() {
 	lockID := "lock123"
-	suite.mockDB.On("Unlock", lockID).Return(nil).Once()
+	suite.mockDB.EXPECT().Unlock(lockID).Return(nil).Once()
 
 	err := suite.db.Unlock(lockID)
 	assert.NoError(suite.T(), err)
@@ -45,7 +45,7 @@ func (suite *LockTestSuite) TestLockWriteTransaction() {
 	resourceID := "transactions/" + txDoc.ID.Hex()
 	lockID := "lock123"
 
-	suite.mockDB.On("XLock", resourceID).Return(lockID, nil).Once()
+	suite.mockDB.EXPECT().XLock(resourceID).Return(lockID, nil).Once()
 
 	gotLockID, err := suite.db.LockWriteTransaction(txDoc)
 	assert.NoError(suite.T(), err)
@@ -59,7 +59,7 @@ func (suite *LockTestSuite) TestLockWriteTransaction_SomeError() {
 	lockID := "lock123"
 	expectedErr := errors.New("some error")
 
-	suite.mockDB.On("XLock", resourceID).Return(lockID, expectedErr).Once()
+	suite.mockDB.EXPECT().XLock(resourceID).Return(lockID, expectedErr).Once()
 
 	gotLockID, err := suite.db.LockWriteTransaction(txDoc)
 	assert.Error(suite.T(), err)
@@ -73,7 +73,7 @@ func (suite *LockTestSuite) TestLockWriteRefund() {
 	resourceID := "refunds/" + refundDoc.ID.Hex()
 	lockID := "lock123"
 
-	suite.mockDB.On("XLock", resourceID).Return(lockID, nil).Once()
+	suite.mockDB.EXPECT().XLock(resourceID).Return(lockID, nil).Once()
 
 	gotLockID, err := suite.db.LockWriteRefund(refundDoc)
 	assert.NoError(suite.T(), err)
@@ -87,7 +87,7 @@ func (suite *LockTestSuite) TestLockWriteRefund_SomeError() {
 	lockID := "lock123"
 	expectedErr := errors.New("some error")
 
-	suite.mockDB.On("XLock", resourceID).Return(lockID, expectedErr).Once()
+	suite.mockDB.EXPECT().XLock(resourceID).Return(lockID, expectedErr).Once()
 
 	gotLockID, err := suite.db.LockWriteRefund(refundDoc)
 	assert.Error(suite.T(), err)
@@ -101,7 +101,7 @@ func (suite *LockTestSuite) TestLockWriteMessage() {
 	resourceID := "messages/" + messageDoc.ID.Hex()
 	lockID := "lock123"
 
-	suite.mockDB.On("XLock", resourceID).Return(lockID, nil).Once()
+	suite.mockDB.EXPECT().XLock(resourceID).Return(lockID, nil).Once()
 
 	gotLockID, err := suite.db.LockWriteMessage(messageDoc)
 	assert.NoError(suite.T(), err)
@@ -115,7 +115,7 @@ func (suite *LockTestSuite) TestLockWriteMessage_SomeError() {
 	lockID := "lock123"
 	expectedErr := errors.New("some error")
 
-	suite.mockDB.On("XLock", resourceID).Return(lockID, expectedErr).Once()
+	suite.mockDB.EXPECT().XLock(resourceID).Return(lockID, expectedErr).Once()
 
 	gotLockID, err := suite.db.LockWriteMessage(messageDoc)
 	assert.Error(suite.T(), err)
@@ -128,7 +128,7 @@ func (suite *LockTestSuite) TestLockReadSequences() {
 	lockID := "lock123"
 	sequenceResourceID := "comsos_sequence"
 
-	suite.mockDB.On("SLock", sequenceResourceID).Return(lockID, nil).Once()
+	suite.mockDB.EXPECT().SLock(sequenceResourceID).Return(lockID, nil).Once()
 
 	gotLockID, err := suite.db.LockReadSequences()
 	assert.NoError(suite.T(), err)
@@ -141,7 +141,7 @@ func (suite *LockTestSuite) TestLockReadSequences_SomeError() {
 	sequenceResourceID := "comsos_sequence"
 	expectedErr := errors.New("some error")
 
-	suite.mockDB.On("SLock", sequenceResourceID).Return(lockID, expectedErr).Once()
+	suite.mockDB.EXPECT().SLock(sequenceResourceID).Return(lockID, expectedErr).Once()
 
 	gotLockID, err := suite.db.LockReadSequences()
 	assert.Error(suite.T(), err)
@@ -154,7 +154,7 @@ func (suite *LockTestSuite) TestLockWriteSequence() {
 	lockID := "lock123"
 	sequenceResourceID := "comsos_sequence"
 
-	suite.mockDB.On("SLock", sequenceResourceID).Return(lockID, nil).Once()
+	suite.mockDB.EXPECT().SLock(sequenceResourceID).Return(lockID, nil).Once()
 
 	gotLockID, err := suite.db.LockWriteSequence()
 	assert.NoError(suite.T(), err)
@@ -167,7 +167,7 @@ func (suite *LockTestSuite) TestLockWriteSequence_SomeError() {
 	sequenceResourceID := "comsos_sequence"
 	expectedErr := errors.New("some error")
 
-	suite.mockDB.On("SLock", sequenceResourceID).Return(lockID, expectedErr).Once()
+	suite.mockDB.EXPECT().SLock(sequenceResourceID).Return(lockID, expectedErr).Once()
 
 	gotLockID, err := suite.db.LockWriteSequence()
 	assert.Error(suite.T(), err)

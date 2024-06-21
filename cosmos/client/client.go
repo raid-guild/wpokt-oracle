@@ -41,7 +41,6 @@ type CosmosClient interface {
 	GetTxsSentToAddressAfterHeight(address string, height uint64) ([]*sdk.TxResponse, error)
 	GetAccount(address string) (*auth.BaseAccount, error)
 	BroadcastTx(txBytes []byte) (string, error)
-	// SubmitRawTx(params rpc.SendRawTxParams) (*SubmitRawTxResponse, error)
 	GetTx(hash string) (*sdk.TxResponse, error)
 	ValidateNetwork() error
 }

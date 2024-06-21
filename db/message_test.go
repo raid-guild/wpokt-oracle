@@ -205,7 +205,7 @@ func (suite *MessageTestSuite) TestFindMessage() {
 	filter := bson.M{"_id": primitive.NewObjectID()}
 	expectedMessage := models.Message{}
 
-	suite.mockDB.On("FindOne", common.CollectionMessages, filter, &expectedMessage).Return(nil).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionMessages, filter, &expectedMessage).Return(nil).Once()
 
 	gotMessage, err := suite.db.FindMessage(filter)
 	assert.NoError(suite.T(), err)
@@ -217,7 +217,7 @@ func (suite *MessageTestSuite) TestUpdateMessage() {
 	messageID := primitive.NewObjectID()
 	update := bson.M{"status": models.MessageStatusSigned}
 
-	suite.mockDB.On("UpdateOne", common.CollectionMessages, bson.M{"_id": &messageID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
+	suite.mockDB.EXPECT().UpdateOne(common.CollectionMessages, bson.M{"_id": &messageID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
 	err := suite.db.UpdateMessage(&messageID, update)
 	assert.NoError(suite.T(), err)
@@ -237,7 +237,7 @@ func (suite *MessageTestSuite) TestUpdateMessageByMessageID() {
 	update := bson.M{"status": models.MessageStatusSigned}
 	messageIDHex := common.Ensure0xPrefix(common.HexFromBytes(messageID[:]))
 
-	suite.mockDB.On("UpdateOne", common.CollectionMessages, bson.M{"message_id": messageIDHex}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
+	suite.mockDB.EXPECT().UpdateOne(common.CollectionMessages, bson.M{"message_id": messageIDHex}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
 	_, err := suite.db.UpdateMessageByMessageID(messageID, update)
 	assert.NoError(suite.T(), err)
@@ -250,7 +250,7 @@ func (suite *MessageTestSuite) TestInsertMessage() {
 	}
 	insertedID := primitive.NewObjectID()
 
-	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, nil).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionMessages, message).Return(insertedID, nil).Once()
 
 	gotID, err := suite.db.InsertMessage(message)
 	assert.NoError(suite.T(), err)
@@ -268,8 +268,8 @@ func (suite *MessageTestSuite) TestInsertMessage_DuplicateKeyError() {
 		ID: &insertedID,
 	}
 
-	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(primitive.ObjectID{}, duplicateError).Once()
-	suite.mockDB.On("FindOne", common.CollectionMessages, bson.M{"origin_transaction_hash": message.OriginTransactionHash}, &models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().InsertOne(common.CollectionMessages, message).Return(primitive.ObjectID{}, duplicateError).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionMessages, bson.M{"origin_transaction_hash": message.OriginTransactionHash}, &models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*models.Message)
 		*arg = existingMessage
 	})
@@ -288,8 +288,8 @@ func (suite *MessageTestSuite) TestInsertMessage_DuplicateKeyError_FindError() {
 	insertedID := primitive.NewObjectID()
 	expectedError := fmt.Errorf("find error")
 
-	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, duplicateError).Once()
-	suite.mockDB.On("FindOne", common.CollectionMessages, bson.M{"origin_transaction_hash": message.OriginTransactionHash}, &models.Message{}).Return(expectedError).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionMessages, message).Return(insertedID, duplicateError).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionMessages, bson.M{"origin_transaction_hash": message.OriginTransactionHash}, &models.Message{}).Return(expectedError).Once()
 
 	gotID, err := suite.db.InsertMessage(message)
 	assert.Error(suite.T(), err)
@@ -305,7 +305,7 @@ func (suite *MessageTestSuite) TestInsertMessage_InsertError() {
 	insertedID := primitive.NewObjectID()
 	expectedError := fmt.Errorf("insert error")
 
-	suite.mockDB.On("InsertOne", common.CollectionMessages, message).Return(insertedID, expectedError).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionMessages, message).Return(insertedID, expectedError).Once()
 
 	gotID, err := suite.db.InsertMessage(message)
 	assert.Error(suite.T(), err)
@@ -339,7 +339,7 @@ func (suite *MessageTestSuite) TestGetPendingMessages() {
 	}
 	sort := bson.M{"content.nonce": 1}
 
-	suite.mockDB.On("FindManySorted", common.CollectionMessages, filter, sort, &[]models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindManySorted(common.CollectionMessages, filter, sort, &[]models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(3).(*[]models.Message)
 		*arg = messages
 	})
@@ -364,7 +364,7 @@ func (suite *MessageTestSuite) TestGetSignedMessages() {
 		"status":                     models.MessageStatusSigned,
 	}
 
-	suite.mockDB.On("FindManySorted", common.CollectionMessages, filter, sort, &[]models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindManySorted(common.CollectionMessages, filter, sort, &[]models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(3).(*[]models.Message)
 		*arg = messages
 	})
@@ -389,7 +389,7 @@ func (suite *MessageTestSuite) TestGetBroadcastedMessages() {
 		"transaction":                nil,
 	}
 
-	suite.mockDB.On("FindMany", common.CollectionMessages, filter, &[]models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindMany(common.CollectionMessages, filter, &[]models.Message{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*[]models.Message)
 		*arg = messages
 	})

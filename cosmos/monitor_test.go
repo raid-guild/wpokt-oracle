@@ -21,7 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func TestUpdateCurrentHeight(t *testing.T) {
+func TestMonitorUpdateCurrentHeight(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "monitor")
@@ -32,7 +32,7 @@ func TestUpdateCurrentHeight(t *testing.T) {
 		logger: logger,
 	}
 
-	mockClient.On("GetLatestBlockHeight").Return(int64(100), nil)
+	mockClient.EXPECT().GetLatestBlockHeight().Return(int64(100), nil)
 
 	monitor.UpdateCurrentHeight()
 
@@ -54,9 +54,9 @@ func TestCreateRefund(t *testing.T) {
 		logger: logger,
 	}
 
-	mockDB.On("NewRefund", txRes, txDoc, toAddr, amount).Return(models.Refund{}, nil)
-	mockDB.On("InsertRefund", mock.Anything).Return(primitive.ObjectID{}, nil)
-	mockDB.On("UpdateTransaction", txDoc.ID, mock.Anything).Return(nil)
+	mockDB.EXPECT().NewRefund(txRes, txDoc, toAddr, amount).Return(models.Refund{}, nil)
+	mockDB.EXPECT().InsertRefund(mock.Anything).Return(primitive.ObjectID{}, nil)
+	mockDB.EXPECT().UpdateTransaction(txDoc.ID, mock.Anything).Return(nil)
 
 	result := monitor.CreateRefund(txRes, txDoc, toAddr, amount)
 
@@ -86,11 +86,11 @@ func TestCreateMessage(t *testing.T) {
 		mintControllerMap: mintControllerMap,
 	}
 
-	mockDB.On("NewMessageBody", senderAddress[:], amountCoin.Amount.BigInt(), recipientAddress[:]).Return(models.MessageBody{}, nil)
-	mockDB.On("NewMessageContent", uint32(1), uint32(0), senderAddress[:], uint32(1), mintControllerAddress[:], models.MessageBody{}).Return(models.MessageContent{}, nil)
-	mockDB.On("NewMessage", txDoc, mock.Anything, models.MessageStatusPending).Return(models.Message{}, nil)
-	mockDB.On("InsertMessage", mock.Anything).Return(primitive.ObjectID{}, nil)
-	mockDB.On("UpdateTransaction", txDoc.ID, mock.Anything).Return(nil)
+	mockDB.EXPECT().NewMessageBody(senderAddress[:], amountCoin.Amount.BigInt(), recipientAddress[:]).Return(models.MessageBody{}, nil)
+	mockDB.EXPECT().NewMessageContent(uint32(1), uint32(0), senderAddress[:], uint32(1), mintControllerAddress[:], models.MessageBody{}).Return(models.MessageContent{}, nil)
+	mockDB.EXPECT().NewMessage(txDoc, mock.Anything, models.MessageStatusPending).Return(models.Message{}, nil)
+	mockDB.EXPECT().InsertMessage(mock.Anything).Return(primitive.ObjectID{}, nil)
+	mockDB.EXPECT().UpdateTransaction(txDoc.ID, mock.Anything).Return(nil)
 
 	result := monitor.CreateMessage(txRes, tx, txDoc, senderAddress[:], amountCoin, memo)
 
@@ -121,9 +121,9 @@ func TestSyncNewTxs(t *testing.T) {
 		{TxHash: "tx2"},
 	}
 
-	mockClient.On("GetTxsSentToAddressAfterHeight", multisigAddress.Hex(), uint64(1)).Return(txResponses, nil).Once()
-	mockDB.On("NewCosmosTransaction", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(models.Transaction{}, nil).Twice()
-	mockDB.On("InsertTransaction", mock.Anything).Return(primitive.ObjectID{}, nil).Twice()
+	mockClient.EXPECT().GetTxsSentToAddressAfterHeight(multisigAddress.Hex(), uint64(1)).Return(txResponses, nil).Once()
+	mockDB.EXPECT().NewCosmosTransaction(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(models.Transaction{}, nil).Twice()
+	mockDB.EXPECT().InsertTransaction(mock.Anything).Return(primitive.ObjectID{}, nil).Twice()
 	result := &util.ValidateTxResult{
 		Confirmations: 0,
 		TxStatus:      models.TransactionStatusPending,
@@ -158,7 +158,7 @@ func TestValidateAndConfirmTx(t *testing.T) {
 
 	txResponse := &sdk.TxResponse{}
 
-	mockClient.On("GetTx", "hash1").Return(txResponse, nil)
+	mockClient.EXPECT().GetTx("hash1").Return(txResponse, nil)
 
 	result := &util.ValidateTxResult{
 		Confirmations: 2,
@@ -169,7 +169,7 @@ func TestValidateAndConfirmTx(t *testing.T) {
 		return result, nil
 	}
 
-	mockDB.On("UpdateTransaction", &primitive.ObjectID{}, bson.M{
+	mockDB.EXPECT().UpdateTransaction(&primitive.ObjectID{}, bson.M{
 		"confirmations": uint64(2),
 		"status":        models.TransactionStatusConfirmed,
 	}).Return(nil)
@@ -197,12 +197,12 @@ func TestConfirmTxs(t *testing.T) {
 		{ID: &primitive.ObjectID{}, Hash: "hash2"},
 	}
 
-	mockDB.On("GetPendingTransactionsTo", mock.Anything, mock.Anything).Return(txs, nil)
-	mockClient.On("GetTx", "hash1").Return(&sdk.TxResponse{}, nil)
-	mockClient.On("GetTx", "hash2").Return(&sdk.TxResponse{}, nil)
+	mockDB.EXPECT().GetPendingTransactionsTo(mock.Anything, mock.Anything).Return(txs, nil)
+	mockClient.EXPECT().GetTx("hash1").Return(&sdk.TxResponse{}, nil)
+	mockClient.EXPECT().GetTx("hash2").Return(&sdk.TxResponse{}, nil)
 
-	mockDB.On("UpdateTransaction", &primitive.ObjectID{}, mock.Anything).Return(nil)
-	mockDB.On("UpdateTransaction", &primitive.ObjectID{}, mock.Anything).Return(nil)
+	mockDB.EXPECT().UpdateTransaction(&primitive.ObjectID{}, mock.Anything).Return(nil)
+	mockDB.EXPECT().UpdateTransaction(&primitive.ObjectID{}, mock.Anything).Return(nil)
 
 	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
 		return &util.ValidateTxResult{
@@ -256,19 +256,19 @@ func TestValidateTxAndCreate(t *testing.T) {
 		Tx:            tx,
 	}
 
-	mockClient.On("GetTx", "hash1").Return(txResponse, nil)
-	mockDB.On("LockWriteTransaction", txDoc).Return("lock-id", nil)
-	mockDB.On("Unlock", "lock-id").Return(nil)
+	mockClient.EXPECT().GetTx("hash1").Return(txResponse, nil)
+	mockDB.EXPECT().LockWriteTransaction(txDoc).Return("lock-id", nil)
+	mockDB.EXPECT().Unlock("lock-id").Return(nil)
 
 	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
 		return result, nil
 	}
 
-	mockDB.On("NewMessageBody", senderAddress[:], amountCoin.Amount.BigInt(), recipientAddress[:]).Return(models.MessageBody{}, nil)
-	mockDB.On("NewMessageContent", uint32(1), uint32(0), senderAddress[:], uint32(1), mintControllerAddress[:], models.MessageBody{}).Return(models.MessageContent{}, nil)
-	mockDB.On("NewMessage", txDoc, mock.Anything, models.MessageStatusPending).Return(models.Message{}, nil)
-	mockDB.On("InsertMessage", mock.Anything).Return(primitive.ObjectID{}, nil)
-	mockDB.On("UpdateTransaction", txDoc.ID, mock.Anything).Return(nil)
+	mockDB.EXPECT().NewMessageBody(senderAddress[:], amountCoin.Amount.BigInt(), recipientAddress[:]).Return(models.MessageBody{}, nil)
+	mockDB.EXPECT().NewMessageContent(uint32(1), uint32(0), senderAddress[:], uint32(1), mintControllerAddress[:], models.MessageBody{}).Return(models.MessageContent{}, nil)
+	mockDB.EXPECT().NewMessage(txDoc, mock.Anything, models.MessageStatusPending).Return(models.Message{}, nil)
+	mockDB.EXPECT().InsertMessage(mock.Anything).Return(primitive.ObjectID{}, nil)
+	mockDB.EXPECT().UpdateTransaction(txDoc.ID, mock.Anything).Return(nil)
 
 	success := monitor.ValidateTxAndCreate(txDoc)
 
@@ -300,12 +300,12 @@ func TestCreateRefundsOrMessagesForConfirmedTxs(t *testing.T) {
 		{ID: &primitive.ObjectID{}, Hash: "hash2"},
 	}
 
-	mockDB.On("GetConfirmedTransactionsTo", mock.Anything, mock.Anything).Return(txs, nil)
-	mockClient.On("GetTx", "hash1").Return(&sdk.TxResponse{}, nil)
-	mockClient.On("GetTx", "hash2").Return(&sdk.TxResponse{}, nil)
+	mockDB.EXPECT().GetConfirmedTransactionsTo(mock.Anything, mock.Anything).Return(txs, nil)
+	mockClient.EXPECT().GetTx("hash1").Return(&sdk.TxResponse{}, nil)
+	mockClient.EXPECT().GetTx("hash2").Return(&sdk.TxResponse{}, nil)
 
-	mockDB.On("LockWriteTransaction", mock.Anything).Return("lock-id", nil)
-	mockDB.On("Unlock", "lock-id").Return(nil)
+	mockDB.EXPECT().LockWriteTransaction(mock.Anything).Return("lock-id", nil)
+	mockDB.EXPECT().Unlock("lock-id").Return(nil)
 
 	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
 		return &util.ValidateTxResult{
@@ -319,11 +319,11 @@ func TestCreateRefundsOrMessagesForConfirmedTxs(t *testing.T) {
 		}, nil
 	}
 
-	mockDB.On("NewMessageBody", mock.Anything, mock.Anything, mock.Anything).Return(models.MessageBody{}, nil)
-	mockDB.On("NewMessageContent", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(models.MessageContent{}, nil)
-	mockDB.On("NewMessage", mock.Anything, mock.Anything, models.MessageStatusPending).Return(models.Message{}, nil)
-	mockDB.On("InsertMessage", mock.Anything).Return(primitive.ObjectID{}, nil)
-	mockDB.On("UpdateTransaction", mock.Anything, mock.Anything).Return(nil)
+	mockDB.EXPECT().NewMessageBody(mock.Anything, mock.Anything, mock.Anything).Return(models.MessageBody{}, nil)
+	mockDB.EXPECT().NewMessageContent(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(models.MessageContent{}, nil)
+	mockDB.EXPECT().NewMessage(mock.Anything, mock.Anything, models.MessageStatusPending).Return(models.Message{}, nil)
+	mockDB.EXPECT().InsertMessage(mock.Anything).Return(primitive.ObjectID{}, nil)
+	mockDB.EXPECT().UpdateTransaction(mock.Anything, mock.Anything).Return(nil)
 
 	success := monitor.CreateRefundsOrMessagesForConfirmedTxs()
 
@@ -332,7 +332,7 @@ func TestCreateRefundsOrMessagesForConfirmedTxs(t *testing.T) {
 	assert.True(t, success)
 }
 
-func TestInitStartBlockHeight(t *testing.T) {
+func TestMonitorInitStartBlockHeight(t *testing.T) {
 	logger := log.New().WithField("test", "monitor")
 	lastHealth := &models.RunnerServiceStatus{BlockHeight: 100}
 
@@ -365,7 +365,7 @@ func TestInitStartBlockHeight(t *testing.T) {
 	assert.Equal(t, uint64(200), monitor.startBlockHeight)
 }
 
-func TestRun(t *testing.T) {
+func TestMonitorRun(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "monitor")
@@ -376,10 +376,10 @@ func TestRun(t *testing.T) {
 		logger: logger,
 	}
 
-	mockClient.On("GetLatestBlockHeight").Return(int64(100), nil)
-	mockClient.On("GetTxsSentToAddressAfterHeight", mock.Anything, mock.Anything).Return([]*sdk.TxResponse{}, nil)
-	mockDB.On("GetPendingTransactionsTo", mock.Anything, mock.Anything).Return([]models.Transaction{}, nil)
-	mockDB.On("GetConfirmedTransactionsTo", mock.Anything, mock.Anything).Return([]models.Transaction{}, nil)
+	mockClient.EXPECT().GetLatestBlockHeight().Return(int64(100), nil)
+	mockClient.EXPECT().GetTxsSentToAddressAfterHeight(mock.Anything, mock.Anything).Return([]*sdk.TxResponse{}, nil)
+	mockDB.EXPECT().GetPendingTransactionsTo(mock.Anything, mock.Anything).Return([]models.Transaction{}, nil)
+	mockDB.EXPECT().GetConfirmedTransactionsTo(mock.Anything, mock.Anything).Return([]models.Transaction{}, nil)
 
 	monitor.Run()
 

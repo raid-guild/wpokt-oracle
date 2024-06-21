@@ -187,7 +187,7 @@ func (suite *TransactionTestSuite) TestInsertTransaction() {
 	tx := models.Transaction{Hash: "01020304"}
 	insertedID := primitive.NewObjectID()
 
-	suite.mockDB.On("InsertOne", common.CollectionTransactions, tx).Return(insertedID, nil).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionTransactions, tx).Return(insertedID, nil).Once()
 
 	gotID, err := suite.db.InsertTransaction(tx)
 	assert.NoError(suite.T(), err)
@@ -201,8 +201,8 @@ func (suite *TransactionTestSuite) TestInsertTransaction_DuplicateKeyError() {
 	insertedID := primitive.NewObjectID()
 	existingTx := models.Transaction{ID: &insertedID}
 
-	suite.mockDB.On("InsertOne", common.CollectionTransactions, tx).Return(primitive.ObjectID{}, duplicateError).Once()
-	suite.mockDB.On("FindOne", common.CollectionTransactions, bson.M{"hash": tx.Hash}, &models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().InsertOne(common.CollectionTransactions, tx).Return(primitive.ObjectID{}, duplicateError).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, &models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		tx := args.Get(2).(*models.Transaction)
 		*tx = existingTx
 	})
@@ -221,8 +221,8 @@ func (suite *TransactionTestSuite) TestInsertTransaction_DuplicateKeyError_FindE
 	insertedID := primitive.NewObjectID()
 	expectedError := fmt.Errorf("find error")
 
-	suite.mockDB.On("InsertOne", common.CollectionTransactions, tx).Return(insertedID, duplicateError).Once()
-	suite.mockDB.On("FindOne", common.CollectionTransactions, bson.M{"hash": tx.Hash}, &models.Transaction{}).Return(expectedError).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionTransactions, tx).Return(insertedID, duplicateError).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionTransactions, bson.M{"hash": tx.Hash}, &models.Transaction{}).Return(expectedError).Once()
 
 	gotID, err := suite.db.InsertTransaction(tx)
 	assert.Error(suite.T(), err)
@@ -238,7 +238,7 @@ func (suite *TransactionTestSuite) TestInsertTransaction_InsertError() {
 	insertedID := primitive.NewObjectID()
 	expectedError := fmt.Errorf("insert error")
 
-	suite.mockDB.On("InsertOne", common.CollectionTransactions, tx).Return(insertedID, expectedError).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionTransactions, tx).Return(insertedID, expectedError).Once()
 
 	gotID, err := suite.db.InsertTransaction(tx)
 	assert.Error(suite.T(), err)
@@ -251,7 +251,7 @@ func (suite *TransactionTestSuite) TestUpdateTransaction() {
 	txID := primitive.NewObjectID()
 	update := bson.M{"status": models.TransactionStatusConfirmed}
 
-	suite.mockDB.On("UpdateOne", common.CollectionTransactions, bson.M{"_id": txID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
+	suite.mockDB.EXPECT().UpdateOne(common.CollectionTransactions, bson.M{"_id": txID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
 	err := suite.db.UpdateTransaction(&txID, update)
 	assert.NoError(suite.T(), err)
@@ -279,7 +279,7 @@ func (suite *TransactionTestSuite) TestGetPendingTransactionsTo() {
 		"to_address": strings.ToLower(toAddress.Hex()),
 	}
 
-	suite.mockDB.On("FindMany", common.CollectionTransactions, filter, &[]models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindMany(common.CollectionTransactions, filter, &[]models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		txs := args.Get(2).(*[]models.Transaction)
 		*txs = expectedTxs
 	})
@@ -326,7 +326,7 @@ func (suite *TransactionTestSuite) TestGetConfirmedTransactionsTo() {
 		},
 	}
 
-	suite.mockDB.On("FindMany", common.CollectionTransactions, filter, &[]models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindMany(common.CollectionTransactions, filter, &[]models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		txs := args.Get(2).(*[]models.Transaction)
 		*txs = expectedTxs
 	})
@@ -360,7 +360,7 @@ func (suite *TransactionTestSuite) TestGetPendingTransactionsFrom() {
 		"from_address": strings.ToLower(fromAddress.Hex()),
 	}
 
-	suite.mockDB.On("FindMany", common.CollectionTransactions, filter, &[]models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindMany(common.CollectionTransactions, filter, &[]models.Transaction{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		txs := args.Get(2).(*[]models.Transaction)
 		*txs = expectedTxs
 	})

@@ -129,7 +129,7 @@ func (suite *RefundTestSuite) TestInsertRefund() {
 	}
 	insertedID := primitive.NewObjectID()
 
-	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, nil).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionRefunds, refund).Return(insertedID, nil).Once()
 
 	gotID, err := suite.db.InsertRefund(refund)
 	assert.NoError(suite.T(), err)
@@ -147,8 +147,8 @@ func (suite *RefundTestSuite) TestInsertRefund_DuplicateKeyError() {
 		ID: &insertedID,
 	}
 
-	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(primitive.ObjectID{}, duplicateError).Once()
-	suite.mockDB.On("FindOne", common.CollectionRefunds, bson.M{"origin_transaction_hash": refund.OriginTransactionHash}, &models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().InsertOne(common.CollectionRefunds, refund).Return(primitive.ObjectID{}, duplicateError).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": refund.OriginTransactionHash}, &models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*models.Refund)
 		*arg = existingRefund
 	})
@@ -167,8 +167,8 @@ func (suite *RefundTestSuite) TestInsertRefund_DuplicateKeyError_FindError() {
 	insertedID := primitive.NewObjectID()
 	expectedError := fmt.Errorf("find error")
 
-	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, duplicateError).Once()
-	suite.mockDB.On("FindOne", common.CollectionRefunds, bson.M{"origin_transaction_hash": refund.OriginTransactionHash}, &models.Refund{}).Return(expectedError).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionRefunds, refund).Return(insertedID, duplicateError).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionRefunds, bson.M{"origin_transaction_hash": refund.OriginTransactionHash}, &models.Refund{}).Return(expectedError).Once()
 
 	gotID, err := suite.db.InsertRefund(refund)
 	assert.Error(suite.T(), err)
@@ -184,7 +184,7 @@ func (suite *RefundTestSuite) TestInsertRefund_InsertError() {
 	insertedID := primitive.NewObjectID()
 	expectedError := fmt.Errorf("insert error")
 
-	suite.mockDB.On("InsertOne", common.CollectionRefunds, refund).Return(insertedID, expectedError).Once()
+	suite.mockDB.EXPECT().InsertOne(common.CollectionRefunds, refund).Return(insertedID, expectedError).Once()
 
 	gotID, err := suite.db.InsertRefund(refund)
 	assert.Error(suite.T(), err)
@@ -197,7 +197,7 @@ func (suite *RefundTestSuite) TestUpdateRefund() {
 	refundID := primitive.NewObjectID()
 	update := bson.M{"status": models.RefundStatusSigned}
 
-	suite.mockDB.On("UpdateOne", common.CollectionRefunds, bson.M{"_id": &refundID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
+	suite.mockDB.EXPECT().UpdateOne(common.CollectionRefunds, bson.M{"_id": &refundID}, bson.M{"$set": update}).Return(primitive.ObjectID{}, nil).Once()
 
 	err := suite.db.UpdateRefund(&refundID, update)
 	assert.NoError(suite.T(), err)
@@ -233,7 +233,7 @@ func (suite *RefundTestSuite) TestGetPendingRefunds() {
 		},
 	}
 
-	suite.mockDB.On("FindMany", common.CollectionRefunds, filter, &[]models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindMany(common.CollectionRefunds, filter, &[]models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*[]models.Refund)
 		*arg = refunds
 	})
@@ -254,7 +254,7 @@ func (suite *RefundTestSuite) TestGetSignedRefunds() {
 	filter := bson.M{"status": models.RefundStatusSigned}
 	sort := bson.M{"sequence": 1}
 
-	suite.mockDB.On("FindManySorted", common.CollectionRefunds, filter, sort, &[]models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindManySorted(common.CollectionRefunds, filter, sort, &[]models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(3).(*[]models.Refund)
 		*arg = refunds
 	})
@@ -274,7 +274,7 @@ func (suite *RefundTestSuite) TestGetBroadcastedRefunds() {
 	}
 	filter := bson.M{"status": models.RefundStatusBroadcasted, "transaction": nil}
 
-	suite.mockDB.On("FindMany", common.CollectionRefunds, filter, &[]models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
+	suite.mockDB.EXPECT().FindMany(common.CollectionRefunds, filter, &[]models.Refund{}).Return(nil).Once().Run(func(args mock.Arguments) {
 		arg := args.Get(2).(*[]models.Refund)
 		*arg = refunds
 	})

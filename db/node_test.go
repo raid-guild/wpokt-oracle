@@ -35,7 +35,7 @@ func (suite *NodeTestSuite) TestFindNode() {
 	filter := bson.M{"_id": "some-node-id"}
 	expectedNode := models.Node{}
 
-	suite.mockDB.On("FindOne", common.CollectionNodes, filter, &expectedNode).Return(nil).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionNodes, filter, &expectedNode).Return(nil).Once()
 
 	gotNode, err := suite.db.FindNode(filter)
 	assert.NoError(suite.T(), err)
@@ -48,7 +48,7 @@ func (suite *NodeTestSuite) TestFindNode_SomeError() {
 	expectedNode := models.Node{}
 	expectedError := errors.New("some error")
 
-	suite.mockDB.On("FindOne", common.CollectionNodes, filter, &expectedNode).Return(expectedError).Once()
+	suite.mockDB.EXPECT().FindOne(common.CollectionNodes, filter, &expectedNode).Return(expectedError).Once()
 
 	gotNode, err := suite.db.FindNode(filter)
 	assert.Error(suite.T(), err)
@@ -63,7 +63,7 @@ func (suite *NodeTestSuite) TestUpsertNode() {
 	onInsert := bson.M{"fieldToInsert": "insertedValue"}
 	update := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
 
-	suite.mockDB.On("UpsertOne", common.CollectionNodes, filter, update).Return(primitive.ObjectID{}, nil).Once()
+	suite.mockDB.EXPECT().UpsertOne(common.CollectionNodes, filter, update).Return(primitive.ObjectID{}, nil).Once()
 
 	err := suite.db.UpsertNode(filter, onUpdate, onInsert)
 	assert.NoError(suite.T(), err)
@@ -77,7 +77,7 @@ func (suite *NodeTestSuite) TestUpsertNode_SomeError() {
 	update := bson.M{"$set": onUpdate, "$setOnInsert": onInsert}
 	expectedError := errors.New("some error")
 
-	suite.mockDB.On("UpsertOne", common.CollectionNodes, filter, update).Return(primitive.ObjectID{}, expectedError).Once()
+	suite.mockDB.EXPECT().UpsertOne(common.CollectionNodes, filter, update).Return(primitive.ObjectID{}, expectedError).Once()
 
 	err := suite.db.UpsertNode(filter, onUpdate, onInsert)
 	assert.Error(suite.T(), err)

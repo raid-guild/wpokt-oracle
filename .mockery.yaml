@@ -1,8 +1,8 @@
 quiet: False
 with-expecter: True
-dir: "{{.InterfaceDir}}/mocks"
 filename: "{{ .InterfaceName | snakecase }}.go"
 outpkg: "mocks"
+dir: "{{.InterfaceDir}}/mocks"
 
 packages:
   github.com/dan13ram/wpokt-oracle/db:
@@ -20,3 +20,14 @@ packages:
       MintControllerContract:
       MintControllerFulfillmentIterator:
       WarpISMContract:
+  github.com/cosmos/cosmos-sdk/client:
+    config: 
+      dir: "cosmos/client/mocks"
+    interfaces:
+      TxBuilder:
+      TxConfig:
+  github.com/cosmos/cosmos-sdk/x/auth/signing:
+    config:
+      dir: "cosmos/client/mocks"
+    interfaces:
+      Tx:

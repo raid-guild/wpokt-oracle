@@ -143,7 +143,7 @@ func (x *CosmosMessageSignerRunnable) SignMessage(
 			return false
 		}
 
-		txBody, err := util.NewSendTx(
+		txBody, err := utilNewSendTx(
 			x.config.Bech32Prefix,
 			x.multisigPk.Address().Bytes(),
 			toAddr,
@@ -159,7 +159,7 @@ func (x *CosmosMessageSignerRunnable) SignMessage(
 		messageDoc.TransactionBody = txBody
 	}
 
-	txBuilder, txConfig, err := util.WrapTxBuilder(x.config.Bech32Prefix, messageDoc.TransactionBody)
+	txBuilder, txConfig, err := utilWrapTxBuilder(x.config.Bech32Prefix, messageDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Error("Error wrapping tx builder")
 		return false
@@ -194,7 +194,7 @@ func (x *CosmosMessageSignerRunnable) SignMessage(
 		Address:       sdk.AccAddress(pubKey.Address()).String(),
 	}
 
-	sigV2, _, err := util.SignWithPrivKey(
+	sigV2, _, err := utilSignWithPrivKey(
 		context.Background(),
 		signerData,
 		txBuilder,
@@ -333,9 +333,6 @@ func (x *CosmosMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc 
 		result.TxStatus = models.TransactionStatusConfirmed
 	}
 	if dispatchEvent == nil {
-		result.TxStatus = models.TransactionStatusInvalid
-	}
-	if messageIdFromContent, err := common.BytesFromHex(messageDoc.MessageID); err != nil || !bytes.Equal(messageIdFromContent, dispatchEvent.MessageId[:]) {
 		result.TxStatus = models.TransactionStatusInvalid
 	}
 	return result, nil
@@ -561,7 +558,7 @@ func (x *CosmosMessageSignerRunnable) SignRefund(
 	}
 
 	if refundDoc.TransactionBody == "" {
-		txBody, err := util.NewSendTx(
+		txBody, err := utilNewSendTx(
 			x.config.Bech32Prefix,
 			x.multisigPk.Address().Bytes(),
 			spender,
@@ -576,7 +573,7 @@ func (x *CosmosMessageSignerRunnable) SignRefund(
 		refundDoc.TransactionBody = txBody
 	}
 
-	txBuilder, txConfig, err := util.WrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
+	txBuilder, txConfig, err := utilWrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Error("Error wrapping tx builder")
 		return false
@@ -611,7 +608,7 @@ func (x *CosmosMessageSignerRunnable) SignRefund(
 		Address:       sdk.AccAddress(pubKey.Address()).String(),
 	}
 
-	sigV2, _, err := util.SignWithPrivKey(
+	sigV2, _, err := utilSignWithPrivKey(
 		context.Background(),
 		signerData,
 		txBuilder,
@@ -696,7 +693,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastMessage(messageDoc *models.Messag
 		WithField("tx_hash", messageDoc.OriginTransactionHash).
 		WithField("section", "broadcast-message")
 
-	txBuilder, txCfg, err := util.WrapTxBuilder(x.config.Bech32Prefix, messageDoc.TransactionBody)
+	txBuilder, txCfg, err := utilWrapTxBuilder(x.config.Bech32Prefix, messageDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Errorf("Error wrapping tx builder")
 		return false
@@ -969,7 +966,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefund(
 		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
 	}
 
-	txBuilder, txCfg, err := util.WrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
+	txBuilder, txCfg, err := utilWrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Error("Error wrapping tx builder")
 		return false

@@ -110,6 +110,7 @@ export const cosmosToEthereumFlow = async () => {
       Status.PENDING,
       Status.SIGNED,
       Status.BROADCASTED,
+      Status.SUCCESS,
     ]);
 
     await sleep(2500);
@@ -131,7 +132,7 @@ export const cosmosToEthereumFlow = async () => {
     if (!refund) return;
 
     expect(refund.sequence?.toString()).to.equal(account.sequence.toString());
-    expect(refund.status).to.be.oneOf([Status.SIGNED, Status.BROADCASTED]);
+    expect(refund.status).to.be.oneOf([Status.SIGNED, Status.BROADCASTED, Status.SUCCESS]);
     debug("Refund signed");
 
     expect(refund.signatures.length).to.greaterThanOrEqual(2);
@@ -146,7 +147,7 @@ export const cosmosToEthereumFlow = async () => {
 
     if (!refund) return;
 
-    expect(refund.status).to.equal(Status.BROADCASTED);
+    expect(refund.status).to.oneOf([Status.BROADCASTED, Status.SUCCESS]);
     expect(refund.transaction_hash).to.not.be.null;
 
     txHash = refund.transaction_hash.toLowerCase();

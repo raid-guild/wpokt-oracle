@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
+	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
@@ -13,7 +13,8 @@ import (
 
 var utilParseChain = util.ParseChain
 var utilSignMessage = util.SignMessage
-var ethValidateTransactionByHash = eth.ValidateTransactionByHash
+var ethValidateTransactionByHash = ValidateTransactionByHash
+var utilValidateTxToCosmosMultisig = cosmosUtil.ValidateTxToCosmosMultisig
 
 func NewEthereumChainService(
 	config models.EthereumNetworkConfig,

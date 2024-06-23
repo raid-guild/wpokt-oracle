@@ -21,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func TestUpdateCurrentBlockHeight(t *testing.T) {
+func TestMonitorUpdateCurrentBlockHeight(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockEthereumClient(t)
 	logger := logrus.New().WithField("test", "monitor")
@@ -152,8 +152,8 @@ func TestCreateTxForDispatchEvent(t *testing.T) {
 	mockDB.EXPECT().NewEthereumTransaction(mock.Anything, mock.Anything, mock.Anything, mock.Anything, models.TransactionStatusPending).Return(tx, nil)
 	mockDB.EXPECT().InsertTransaction(tx).Return(primitive.ObjectID{}, nil)
 
-	ethValidateTransactionByHash = func(client eth.EthereumClient, hash string) (*eth.ValidateTransactionByHashResult, error) {
-		result := &eth.ValidateTransactionByHashResult{
+	ethValidateTransactionByHash = func(client eth.EthereumClient, hash string) (*ValidateTransactionByHashResult, error) {
+		result := &ValidateTransactionByHashResult{
 			Tx:      &types.Transaction{},
 			Receipt: &types.Receipt{Status: types.ReceiptStatusSuccessful},
 		}
@@ -468,7 +468,7 @@ func TestInitStartBlockHeight(t *testing.T) {
 	assert.Equal(t, uint64(200), monitor.startBlockHeight)
 }
 
-func TestRun(t *testing.T) {
+func TestMonitorRun(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockEthereumClient(t)
 	logger := logrus.New().WithField("test", "monitor")

@@ -16,7 +16,6 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
-	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
@@ -149,7 +148,7 @@ func (x *EthMessageSignerRunnable) ValidateCosmosMessage(messageDoc *models.Mess
 
 	supportedChainIDsEthereum := map[uint32]bool{uint32(x.chain.ChainDomain): true}
 
-	result, err := cosmosUtil.ValidateTxToCosmosMultisig(txResponse, x.cosmosConfig, supportedChainIDsEthereum, x.currentCosmosBlockHeight)
+	result, err := utilValidateTxToCosmosMultisig(txResponse, x.cosmosConfig, supportedChainIDsEthereum, x.currentCosmosBlockHeight)
 	if err != nil {
 		return false, fmt.Errorf("error validating tx response: %w", err)
 	}
@@ -208,7 +207,7 @@ type ValidateTransactionAndParseDispatchIdEventsResult struct {
 	TxStatus      models.TransactionStatus
 }
 
-func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
+func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIDEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
 	chainDomain := messageDoc.Content.OriginDomain
 	txHash := messageDoc.OriginTransactionHash
 	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
@@ -264,9 +263,6 @@ func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc *mo
 	if dispatchEvent == nil {
 		result.TxStatus = models.TransactionStatusInvalid
 	}
-	if messageIdFromContent, err := common.BytesFromHex(messageDoc.MessageID); err != nil || !bytes.Equal(messageIdFromContent, dispatchEvent.MessageId[:]) {
-		result.TxStatus = models.TransactionStatusInvalid
-	}
 	return result, nil
 }
 
@@ -274,7 +270,7 @@ func (x *EthMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDoc *
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
-	result, err := x.ValidateAndFindDispatchIdEvent(messageDoc)
+	result, err := x.ValidateAndFindDispatchIDEvent(messageDoc)
 	if err != nil {
 		x.logger.WithError(err).Error("Error validating transaction and parsing DispatchId events")
 		return false

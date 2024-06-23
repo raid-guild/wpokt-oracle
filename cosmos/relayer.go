@@ -12,7 +12,6 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
-	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
@@ -384,7 +383,7 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 		currentBlockHeight: 0,
 		client:             client,
 
-		chain:  util.ParseChain(config),
+		chain:  utilParseChain(config),
 		config: config,
 
 		logger: logger,

@@ -1,19 +1,17 @@
-package ethereum
+package client
 
 import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/core/types"
-
-	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
 )
 
 type ValidateTransactionByHashResult struct {
-	tx      *types.Transaction
-	receipt *types.Receipt
+	Tx      *types.Transaction
+	Receipt *types.Receipt
 }
 
-func ValidateTransactionByHash(client eth.EthereumClient, txHash string) (*ValidateTransactionByHashResult, error) {
+func ValidateTransactionByHash(client EthereumClient, txHash string) (*ValidateTransactionByHashResult, error) {
 	tx, isPending, err := client.GetTransactionByHash(txHash)
 	if err != nil {
 		return nil, fmt.Errorf("error getting transaction by hash: %s", err)

@@ -13,6 +13,8 @@ var utilValidateTxToCosmosMultisig = util.ValidateTxToCosmosMultisig
 var utilWrapTxBuilder = util.WrapTxBuilder
 var utilSignWithPrivKey = util.SignWithPrivKey
 var utilNewSendTx = util.NewSendTx
+var utilParseChain = util.ParseChain
+var utilParseTxBody = util.ParseTxBody
 
 func NewCosmosChainService(
 	config models.CosmosNetworkConfig,

@@ -5,10 +5,15 @@ import (
 	"sync"
 	"time"
 
+	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
 	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 )
+
+var utilParseChain = util.ParseChain
+var utilSignMessage = util.SignMessage
+var ethValidateTransactionByHash = eth.ValidateTransactionByHash
 
 func NewEthereumChainService(
 	config models.EthereumNetworkConfig,
@@ -30,7 +35,7 @@ func NewEthereumChainService(
 		}
 	}
 
-	chain := util.ParseChain(config)
+	chain := utilParseChain(config)
 
 	var monitorRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageMonitor.Enabled {

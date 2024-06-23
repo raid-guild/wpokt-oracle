@@ -13,7 +13,6 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
-	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
@@ -389,7 +388,7 @@ func NewMessageMonitor(
 		mintControllerMap:         mintControllerMap,
 		supportedChainIDsEthereum: supportedChainIDsEthereum,
 
-		chain:  util.ParseChain(config),
+		chain:  utilParseChain(config),
 		config: config,
 
 		logger: logger,

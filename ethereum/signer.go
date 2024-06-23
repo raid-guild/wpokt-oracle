@@ -124,7 +124,7 @@ func (x *EthMessageSignerRunnable) SignMessage(messageDoc *models.Message) bool 
 		defer x.db.Unlock(lockID)
 	}
 
-	if err := util.SignMessage(messageDoc, x.domain, x.privateKey); err != nil {
+	if err := utilSignMessage(messageDoc, x.domain, x.privateKey); err != nil {
 		logger.WithError(err).Errorf("Error signing message")
 		return false
 	}
@@ -465,7 +465,7 @@ func NewMessageSigner(
 
 		privateKey: privateKey,
 
-		chain: util.ParseChain(config),
+		chain: utilParseChain(config),
 
 		client: client,
 

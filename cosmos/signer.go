@@ -20,7 +20,6 @@ import (
 
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
-	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
@@ -438,7 +437,7 @@ func (x *CosmosMessageSignerRunnable) ValidateRefund(
 		return true
 	}
 
-	tx, err := util.ParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
+	tx, err := utilParseTxBody(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Errorf("Error parsing tx body")
 		return false
@@ -1234,7 +1233,7 @@ func NewMessageSigner(
 
 		signerKey: privKey,
 
-		chain: util.ParseChain(config),
+		chain: utilParseChain(config),
 
 		mintControllerMap:         mintControllerMap,
 		ethClientMap:              ethClientMap,

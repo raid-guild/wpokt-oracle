@@ -17,7 +17,6 @@ import (
 	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
-	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 )
@@ -153,13 +152,19 @@ func (x *EthMessageMonitorRunnable) CreateTxForDispatchEvent(event *autogen.Mail
 		return false
 	}
 
-	result, err := ValidateTransactionByHash(x.client, txHash)
+	result, err := ethValidateTransactionByHash(x.client, txHash)
 	if err != nil {
 		logger.WithError(err).Errorf("Error validating transaction")
 		return false
 	}
 
-	txDoc, err := x.db.NewEthereumTransaction(result.tx, x.mailbox.Address().Bytes(), result.receipt, x.chain, models.TransactionStatusPending)
+	txDoc, err := x.db.NewEthereumTransaction(
+		result.Tx,
+		x.mailbox.Address().Bytes(),
+		result.Receipt,
+		x.chain,
+		models.TransactionStatusPending,
+	)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error creating transaction")
 		return false
@@ -463,7 +468,7 @@ func NewMessageMonitor(
 
 		client: client,
 
-		chain: util.ParseChain(config),
+		chain: utilParseChain(config),
 
 		logger: logger,
 

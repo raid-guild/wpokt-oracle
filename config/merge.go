@@ -96,6 +96,8 @@ func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 			if envEthNet.MessageRelayer.IntervalMS != 0 {
 				mergedConfig.EthereumNetworks[i].MessageRelayer.IntervalMS = envEthNet.MessageRelayer.IntervalMS
 			}
+		} else {
+			mergedConfig.EthereumNetworks = append(mergedConfig.EthereumNetworks, envEthNet)
 		}
 	}
 

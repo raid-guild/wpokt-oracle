@@ -7,6 +7,7 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 
 	"github.com/dan13ram/wpokt-oracle/models"
+	"github.com/googleapis/gax-go/v2"
 )
 
 func isGSMValue(value string) bool {
@@ -14,8 +15,19 @@ func isGSMValue(value string) bool {
 		value[0:4] == "gsm:"
 }
 
+type SecretManagerClient interface {
+	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	Close() error
+}
+
+func newSecretManagerClient() (SecretManagerClient, error) {
+	return secretmanager.NewClient(context.Background())
+}
+
+var NewSecretManagerClient = newSecretManagerClient
+
 // if env variable is gsm:secret-name, read the secret from Google Secret Manager
-func readSecretFromGSM(client *secretmanager.Client, label string, value string) (string, error) {
+func readSecretFromGSM(client SecretManagerClient, label string, value string) (string, error) {
 	if !isGSMValue(value) {
 		logger.
 			WithField("config", label).
@@ -57,8 +69,7 @@ func loadSecretsFromGSM(config models.Config) (models.Config, error) {
 		return configWithSecrets, nil
 	}
 
-	ctx := context.Background()
-	client, err := secretmanager.NewClient(ctx)
+	client, err := NewSecretManagerClient()
 	if err != nil {
 		logger.
 			WithError(err).

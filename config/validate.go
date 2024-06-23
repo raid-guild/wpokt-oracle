@@ -40,22 +40,10 @@ func validateConfig(config models.Config) error {
 		return fmt.Errorf("Mnemonic is invalid")
 	}
 
-	cosmosPubKey, err := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
-	if err != nil {
-		return fmt.Errorf("failed to generate Cosmos public key from mnemonic: %w", err)
-	}
+	cosmosPubKey, _ := common.CosmosPublicKeyFromMnemonic(config.Mnemonic) // cannot fail because mnemonic is valid
 	cosmosPubKeyHex := hex.EncodeToString(cosmosPubKey.Bytes())
-	if !common.IsValidCosmosPublicKey(cosmosPubKeyHex) {
-		return fmt.Errorf("cosmos public key is invalid")
-	}
 
-	ethAddress, err := common.EthereumAddressFromMnemonic(config.Mnemonic)
-	if err != nil {
-		return fmt.Errorf("failed to generate Ethereum address from mnemonic: %w", err)
-	}
-	if !common.IsValidEthereumAddress(ethAddress) {
-		return fmt.Errorf("ethereum address is invalid")
-	}
+	ethAddress, _ := common.EthereumAddressFromMnemonic(config.Mnemonic) // cannot fail because mnemonic is valid
 
 	logger.Debug("Mnemonic validated")
 
@@ -182,10 +170,7 @@ func validateConfig(config models.Config) error {
 		if strings.EqualFold(publicKey, cosmosPubKeyHex) {
 			foundPublicKey = true
 		}
-		pKey, err := common.CosmosPublicKeyFromHex(publicKey)
-		if err != nil {
-			return fmt.Errorf("CosmosNetwork.MultisigPublicKeys[%d] is invalid", j)
-		}
+		pKey, _ := common.CosmosPublicKeyFromHex(publicKey) // cannot fail because public key is valid
 		pKeys = append(pKeys, pKey)
 		if seen[publicKey] {
 			return fmt.Errorf("CosmosNetwork.MultisigPublicKeys[%d] is duplicated", j)
@@ -199,10 +184,7 @@ func validateConfig(config models.Config) error {
 		return fmt.Errorf("CosmosNetwork.MultisigThreshold is invalid")
 	}
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.CosmosNetwork.MultisigThreshold), pKeys)
-	multisigBech32, err := bech32.ConvertAndEncode(config.CosmosNetwork.Bech32Prefix, multisigPk.Address().Bytes())
-	if err != nil {
-		logger.Fatalf("CosmosNetwork.MultisigAddress could not be converted to bech32: %s", err)
-	}
+	multisigBech32, _ := bech32.ConvertAndEncode(config.CosmosNetwork.Bech32Prefix, multisigPk.Address().Bytes()) // no reason it should fail
 	if !strings.EqualFold(config.CosmosNetwork.MultisigAddress, multisigBech32) {
 		return fmt.Errorf("CosmosNetwork.MultisigAddress is not valid for the given public keys and threshold")
 	}

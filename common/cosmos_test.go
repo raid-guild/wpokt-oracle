@@ -17,10 +17,22 @@ func TestCosmosPrivateKeyFromMnemonic(t *testing.T) {
 	assert.NotNil(t, privKey)
 }
 
+func TestCosmosPrivateKeyFromMnemonic_Error(t *testing.T) {
+	privKey, err := CosmosPrivateKeyFromMnemonic("error")
+	assert.Error(t, err)
+	assert.Nil(t, privKey)
+}
+
 func TestCosmosPublicKeyFromMnemonic(t *testing.T) {
 	pubKey, err := CosmosPublicKeyFromMnemonic(testMnemonic)
 	assert.NoError(t, err)
 	assert.NotNil(t, pubKey)
+}
+
+func TestCosmosPublicKeyFromMnemonic_Error(t *testing.T) {
+	pubKey, err := CosmosPublicKeyFromMnemonic("error")
+	assert.Error(t, err)
+	assert.Nil(t, pubKey)
 }
 
 func TestCosmosPublicKeyHexFromMnemonic(t *testing.T) {
@@ -29,11 +41,23 @@ func TestCosmosPublicKeyHexFromMnemonic(t *testing.T) {
 	assert.NotEmpty(t, pubKeyHex)
 }
 
+func TestCosmosPublicKeyHexFromMnemonic_Error(t *testing.T) {
+	pubKeyHex, err := CosmosPublicKeyHexFromMnemonic("error")
+	assert.Error(t, err)
+	assert.Empty(t, pubKeyHex)
+}
+
 func TestCosmosPublicKeyFromHex(t *testing.T) {
 	pubKeyHex, _ := CosmosPublicKeyHexFromMnemonic(testMnemonic)
 	pubKey, err := CosmosPublicKeyFromHex(pubKeyHex)
 	assert.NoError(t, err)
 	assert.NotNil(t, pubKey)
+}
+
+func TestCosmosPublicKeyFromHex_Error(t *testing.T) {
+	pubKey, err := CosmosPublicKeyFromHex("error")
+	assert.Error(t, err)
+	assert.Nil(t, pubKey)
 }
 
 func TestCosmosPublicKeyFromHex_InvalidLength(t *testing.T) {
@@ -90,6 +114,13 @@ func TestAddressBytesFromBech32_InvalidLength(t *testing.T) {
 	bech32Prefix := "cosmos"
 	address, _ := bech32.ConvertAndEncode(bech32Prefix, []byte{1, 2, 3})
 	bytes, err := AddressBytesFromBech32(bech32Prefix, address)
+	assert.Error(t, err)
+	assert.Nil(t, bytes)
+}
+
+func TestAddressBytesFromBech32_Error(t *testing.T) {
+	bech32Prefix := "cosmos"
+	bytes, err := AddressBytesFromBech32(bech32Prefix, "error")
 	assert.Error(t, err)
 	assert.Nil(t, bytes)
 }

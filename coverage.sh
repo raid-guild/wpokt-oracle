@@ -13,4 +13,4 @@ sed -i '/mocks/d' coverage.out
 go tool cover -html=coverage.out -o coverage.html
 
 # Open coverage report in browser
-open coverage.html
+# open coverage.html

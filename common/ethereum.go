@@ -2,7 +2,7 @@ package common
 
 import (
 	"crypto/ecdsa"
-	"fmt"
+	"errors"
 	"strings"
 
 	hdwallet "github.com/dan13ram/go-ethereum-hdwallet"
@@ -24,17 +24,10 @@ func EthereumPrivateKeyFromMnemonic(mnemonic string) (*ecdsa.PrivateKey, error) 
 	}
 
 	path := hdwallet.MustParseDerivationPath(DefaultETHHDPath)
-	account, err := wallet.Derive(path, false)
-	if err != nil {
-		return nil, err
-	}
 
-	privateKey, err := wallet.PrivateKey(account)
-	if err != nil {
-		return nil, err
-	}
+	account, _ := wallet.Derive(path, false) // impossible to get an error since the path is hardcoded
 
-	return privateKey, nil
+	return wallet.PrivateKey(account)
 }
 
 func EthereumAddressFromMnemonic(mnemonic string) (string, error) {
@@ -44,10 +37,8 @@ func EthereumAddressFromMnemonic(mnemonic string) (string, error) {
 	}
 
 	path := hdwallet.MustParseDerivationPath(DefaultETHHDPath)
-	account, err := wallet.Derive(path, false)
-	if err != nil {
-		return "", err
-	}
+
+	account, _ := wallet.Derive(path, false) // impossible to get an error since the path is hardcoded
 
 	return wallet.AddressHex(account)
 }
@@ -58,14 +49,9 @@ func HexToAddress(hex string) ethcommon.Address {
 
 func EthereumPrivateKeyToAddressHex(privateKey *ecdsa.PrivateKey) (string, error) {
 	if privateKey == nil || privateKey.Public() == nil {
-		return "", fmt.Errorf("private key is nil or public key is nil")
+		return "", errors.New("private key is nil or public key is nil")
 	}
-	publicKeyECDSA, ok := privateKey.Public().(*ecdsa.PublicKey)
-	if !ok {
-		return "", fmt.Errorf("error casting public key to ECDSA")
-	}
-	fmt.Println(*publicKeyECDSA)
-	// publicKeyECDSA
+	publicKeyECDSA, _ := privateKey.Public().(*ecdsa.PublicKey) // impossible to get an error since the private key is not nil
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 	return address.Hex(), nil

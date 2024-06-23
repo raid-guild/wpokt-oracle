@@ -22,12 +22,24 @@ func TestEthereumPrivateKeyFromMnemonic(t *testing.T) {
 	assert.NotNil(t, privateKey)
 }
 
+func TestEthereumPrivateKeyFromMnemonic_Error(t *testing.T) {
+	privateKey, err := EthereumPrivateKeyFromMnemonic("Error")
+	assert.Error(t, err)
+	assert.Nil(t, privateKey)
+}
+
 func TestEthereumAddressFromMnemonic(t *testing.T) {
 	address, err := EthereumAddressFromMnemonic(testMnemonic)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, address)
 	assert.True(t, strings.HasPrefix(address, "0x"))
 	assert.Equal(t, "0x9858EfFD232B4033E47d90003D41EC34EcaEda94", address)
+}
+
+func TestEthereumAddressFromMnemonic_Error(t *testing.T) {
+	address, err := EthereumAddressFromMnemonic("Error")
+	assert.Error(t, err)
+	assert.Empty(t, address)
 }
 
 func TestHexToAddress(t *testing.T) {

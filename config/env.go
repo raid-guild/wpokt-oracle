@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -39,7 +38,6 @@ func loadConfigFromEnv(envFile string) (models.Config, error) {
 	config.Logger.Format = getStringEnv("LOGGER_FORMAT")
 	config.MongoDB.URI = getStringEnv("MONGODB_URI")
 	config.MongoDB.Database = getStringEnv("MONGODB_DATABASE")
-	fmt.Println(os.Getenv("MONGODB_TIMEOUT_MS"))
 	config.MongoDB.TimeoutMS = getUint64Env("MONGODB_TIMEOUT_MS")
 
 	// Mnemonic for both Ethereum and Cosmos networks
@@ -159,13 +157,13 @@ func getStringArrayEnv(key string) []string {
 }
 
 func getArrayLengthEnv(key string) int {
-	val := os.Getenv(key)
-	if val == "" {
-		return 0 // Default value
+	env := os.Environ()
+	var val int
+	for _, e := range env {
+		pair := strings.Split(e, "=")
+		if strings.HasPrefix(pair[0], key) {
+			val++
+		}
 	}
-	num, err := strconv.Atoi(val)
-	if err != nil {
-		return 0
-	}
-	return num
+	return val
 }

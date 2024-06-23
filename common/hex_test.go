@@ -13,6 +13,13 @@ func TestBytes32FromAddressHex(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
+func TestBytes32FromAddressHex_Error(t *testing.T) {
+	addr := "error"
+	result, err := Bytes32FromAddressHex(addr)
+	assert.Error(t, err)
+	assert.Empty(t, result)
+}
+
 func TestBytes32FromAddressHex_InvalidLength(t *testing.T) {
 	addr := "0xAb5801a7D398351b8bE11C439e05C5b3259aec"
 	result, err := Bytes32FromAddressHex(addr)

@@ -269,7 +269,7 @@ func TestCreateMessagesForTx(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestSyncBlocks(t *testing.T) {
+func TestMonitorSyncBlocks(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockEthereumClient(t)
 	logger := logrus.New().WithField("test", "monitor")
@@ -314,7 +314,7 @@ func TestSyncBlocks(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestSyncNewBlocks(t *testing.T) {
+func TestMonitorSyncNewBlocks(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockEthereumClient(t)
 	logger := logrus.New().WithField("test", "monitor")
@@ -435,7 +435,7 @@ func TestCreateMessagesForTxs(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestInitStartBlockHeight(t *testing.T) {
+func TestMonitorInitStartBlockHeight(t *testing.T) {
 	logger := logrus.New().WithField("test", "monitor")
 	lastHealth := &models.RunnerServiceStatus{BlockHeight: 100}
 

@@ -66,7 +66,7 @@ func (x *EthMessageRelayerRunnable) CreateTxForFulfillmentEvent(event *autogen.M
 		return false
 	}
 
-	txHash := event.Raw.TxHash.String()
+	txHash := event.Raw.TxHash.Hex()
 	logger := x.logger.WithField("tx_hash", txHash).WithField("section", "CreateTxForFulfillmentEvent")
 
 	result, err := ethValidateTransactionByHash(x.client, txHash)
@@ -148,9 +148,9 @@ func (x *EthMessageRelayerRunnable) UpdateTransaction(
 	return true
 }
 
-func (x *EthMessageRelayerRunnable) ConfirmTx(txDoc *models.Transaction) bool {
+func (x *EthMessageRelayerRunnable) ConfirmFulfillmentTx(txDoc *models.Transaction) bool {
 	if txDoc == nil {
-		x.logger.Error("ConfirmTx: txDoc is nil")
+		x.logger.Error("ConfirmFulfillmentTx: txDoc is nil")
 		return false
 	}
 
@@ -303,7 +303,7 @@ func (x *EthMessageRelayerRunnable) ConfirmFulfillmentTxs() bool {
 
 	success := true
 	for _, tx := range txs {
-		success = x.ConfirmTx(&tx) && success
+		success = x.ConfirmFulfillmentTx(&tx) && success
 	}
 
 	return success

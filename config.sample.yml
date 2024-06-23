@@ -36,10 +36,10 @@ ethereum_networks:
 cosmos_network:
   start_block_height: 50000
   confirmations: 0
-  rpc_url: "http://localhost:36657"
+  rpc_url: "http://localhost:26657"
   grpc_enabled: false
   grpc_host: 'localhost'
-  grpc_port: 36658
+  grpc_port: 9090
   timeout_ms: 5000
   chain_id: "poktroll"
   chain_name: "pokt_localnet"

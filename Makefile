@@ -62,5 +62,5 @@ docker_wipe: prompt_user ## [WARNING] Remove all the docker containers, images a
 	docker images -q | xargs -r -I {} docker rmi {}
 	docker volume ls -q | xargs -r -I {} docker volume rm {}
 
-.PHONY: e2e_tests
-e2e_tests :; cd e2e && yarn install && yarn test
+.PHONY: e2e_test
+e2e_test :; cd e2e && yarn install && yarn test

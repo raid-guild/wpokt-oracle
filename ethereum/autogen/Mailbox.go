@@ -31,7 +31,7 @@ var (
 
 // MailboxMetaData contains all meta data concerning the Mailbox contract.
 var MailboxMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_localDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"MAX_MESSAGE_BODY_BYTES\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"VERSION\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"count\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"defaultIsm\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractIInterchainSecurityModule\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"delivered\",\"inputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"dispatch\",\"inputs\":[{\"name\":\"_destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"initialize\",\"inputs\":[{\"name\":\"_owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_defaultIsm\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"isPaused\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"latestCheckpoint\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"localDomain\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"pause\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"process\",\"inputs\":[{\"name\":\"_metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"_message\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"recipientIsm\",\"inputs\":[{\"name\":\"_recipient\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractIInterchainSecurityModule\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"root\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setDefaultIsm\",\"inputs\":[{\"name\":\"_module\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"tree\",\"inputs\":[],\"outputs\":[{\"name\":\"count\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"unpause\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"DefaultIsmSet\",\"inputs\":[{\"name\":\"module\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Dispatch\",\"inputs\":[{\"name\":\"sender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"destination\",\"type\":\"uint32\",\"indexed\":true,\"internalType\":\"uint32\"},{\"name\":\"recipient\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"message\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DispatchId\",\"inputs\":[{\"name\":\"messageId\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint64\",\"indexed\":false,\"internalType\":\"uint64\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Paused\",\"inputs\":[],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Process\",\"inputs\":[{\"name\":\"origin\",\"type\":\"uint32\",\"indexed\":true,\"internalType\":\"uint32\"},{\"name\":\"sender\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"recipient\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ProcessId\",\"inputs\":[{\"name\":\"messageId\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Unpaused\",\"inputs\":[],\"anonymous\":false},{\"type\":\"error\",\"name\":\"InvalidInitialization\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotInitializing\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"OwnableInvalidOwner\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}]},{\"type\":\"error\",\"name\":\"OwnableUnauthorizedAccount\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"internalType\":\"address\"}]}]",
+	ABI: "[{\"type\":\"constructor\",\"inputs\":[{\"name\":\"_localDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"VERSION\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"defaultHook\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractIPostDispatchHook\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"defaultIsm\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractIInterchainSecurityModule\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"delivered\",\"inputs\":[{\"name\":\"_id\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deployedBlock\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"dispatch\",\"inputs\":[{\"name\":\"destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"hook\",\"type\":\"address\",\"internalType\":\"contractIPostDispatchHook\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"dispatch\",\"inputs\":[{\"name\":\"destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"hookMetadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"dispatch\",\"inputs\":[{\"name\":\"_destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"_recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"initialize\",\"inputs\":[{\"name\":\"_owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_defaultIsm\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_defaultHook\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_requiredHook\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"latestDispatchedId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"localDomain\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"nonce\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint32\",\"internalType\":\"uint32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"process\",\"inputs\":[{\"name\":\"_metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"_message\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"processedAt\",\"inputs\":[{\"name\":\"_id\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint48\",\"internalType\":\"uint48\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"processor\",\"inputs\":[{\"name\":\"_id\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"quoteDispatch\",\"inputs\":[{\"name\":\"destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"hook\",\"type\":\"address\",\"internalType\":\"contractIPostDispatchHook\"}],\"outputs\":[{\"name\":\"fee\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"quoteDispatch\",\"inputs\":[{\"name\":\"destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"fee\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"quoteDispatch\",\"inputs\":[{\"name\":\"destinationDomain\",\"type\":\"uint32\",\"internalType\":\"uint32\"},{\"name\":\"recipientAddress\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"messageBody\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"defaultHookMetadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"fee\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"recipientIsm\",\"inputs\":[{\"name\":\"_recipient\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractIInterchainSecurityModule\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"requiredHook\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"contractIPostDispatchHook\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setDefaultHook\",\"inputs\":[{\"name\":\"_hook\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setDefaultIsm\",\"inputs\":[{\"name\":\"_module\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"setRequiredHook\",\"inputs\":[{\"name\":\"_hook\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"DefaultHookSet\",\"inputs\":[{\"name\":\"hook\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DefaultIsmSet\",\"inputs\":[{\"name\":\"module\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Dispatch\",\"inputs\":[{\"name\":\"sender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"destination\",\"type\":\"uint32\",\"indexed\":true,\"internalType\":\"uint32\"},{\"name\":\"recipient\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"message\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"DispatchId\",\"inputs\":[{\"name\":\"messageId\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Process\",\"inputs\":[{\"name\":\"origin\",\"type\":\"uint32\",\"indexed\":true,\"internalType\":\"uint32\"},{\"name\":\"sender\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"recipient\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"ProcessId\",\"inputs\":[{\"name\":\"messageId\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RequiredHookSet\",\"inputs\":[{\"name\":\"hook\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false}]",
 }
 
 // MailboxABI is the input ABI used to generate the binding from.
@@ -180,37 +180,6 @@ func (_Mailbox *MailboxTransactorRaw) Transact(opts *bind.TransactOpts, method s
 	return _Mailbox.Contract.contract.Transact(opts, method, params...)
 }
 
-// MAXMESSAGEBODYBYTES is a free data retrieval call binding the contract method 0x522ae002.
-//
-// Solidity: function MAX_MESSAGE_BODY_BYTES() view returns(uint256)
-func (_Mailbox *MailboxCaller) MAXMESSAGEBODYBYTES(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _Mailbox.contract.Call(opts, &out, "MAX_MESSAGE_BODY_BYTES")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// MAXMESSAGEBODYBYTES is a free data retrieval call binding the contract method 0x522ae002.
-//
-// Solidity: function MAX_MESSAGE_BODY_BYTES() view returns(uint256)
-func (_Mailbox *MailboxSession) MAXMESSAGEBODYBYTES() (*big.Int, error) {
-	return _Mailbox.Contract.MAXMESSAGEBODYBYTES(&_Mailbox.CallOpts)
-}
-
-// MAXMESSAGEBODYBYTES is a free data retrieval call binding the contract method 0x522ae002.
-//
-// Solidity: function MAX_MESSAGE_BODY_BYTES() view returns(uint256)
-func (_Mailbox *MailboxCallerSession) MAXMESSAGEBODYBYTES() (*big.Int, error) {
-	return _Mailbox.Contract.MAXMESSAGEBODYBYTES(&_Mailbox.CallOpts)
-}
-
 // VERSION is a free data retrieval call binding the contract method 0xffa1ad74.
 //
 // Solidity: function VERSION() view returns(uint8)
@@ -242,35 +211,35 @@ func (_Mailbox *MailboxCallerSession) VERSION() (uint8, error) {
 	return _Mailbox.Contract.VERSION(&_Mailbox.CallOpts)
 }
 
-// Count is a free data retrieval call binding the contract method 0x06661abd.
+// DefaultHook is a free data retrieval call binding the contract method 0x3d1250b7.
 //
-// Solidity: function count() view returns(uint32)
-func (_Mailbox *MailboxCaller) Count(opts *bind.CallOpts) (uint32, error) {
+// Solidity: function defaultHook() view returns(address)
+func (_Mailbox *MailboxCaller) DefaultHook(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _Mailbox.contract.Call(opts, &out, "count")
+	err := _Mailbox.contract.Call(opts, &out, "defaultHook")
 
 	if err != nil {
-		return *new(uint32), err
+		return *new(common.Address), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
 
 	return out0, err
 
 }
 
-// Count is a free data retrieval call binding the contract method 0x06661abd.
+// DefaultHook is a free data retrieval call binding the contract method 0x3d1250b7.
 //
-// Solidity: function count() view returns(uint32)
-func (_Mailbox *MailboxSession) Count() (uint32, error) {
-	return _Mailbox.Contract.Count(&_Mailbox.CallOpts)
+// Solidity: function defaultHook() view returns(address)
+func (_Mailbox *MailboxSession) DefaultHook() (common.Address, error) {
+	return _Mailbox.Contract.DefaultHook(&_Mailbox.CallOpts)
 }
 
-// Count is a free data retrieval call binding the contract method 0x06661abd.
+// DefaultHook is a free data retrieval call binding the contract method 0x3d1250b7.
 //
-// Solidity: function count() view returns(uint32)
-func (_Mailbox *MailboxCallerSession) Count() (uint32, error) {
-	return _Mailbox.Contract.Count(&_Mailbox.CallOpts)
+// Solidity: function defaultHook() view returns(address)
+func (_Mailbox *MailboxCallerSession) DefaultHook() (common.Address, error) {
+	return _Mailbox.Contract.DefaultHook(&_Mailbox.CallOpts)
 }
 
 // DefaultIsm is a free data retrieval call binding the contract method 0x6e5f516e.
@@ -306,10 +275,10 @@ func (_Mailbox *MailboxCallerSession) DefaultIsm() (common.Address, error) {
 
 // Delivered is a free data retrieval call binding the contract method 0xe495f1d4.
 //
-// Solidity: function delivered(bytes32 ) view returns(bool)
-func (_Mailbox *MailboxCaller) Delivered(opts *bind.CallOpts, arg0 [32]byte) (bool, error) {
+// Solidity: function delivered(bytes32 _id) view returns(bool)
+func (_Mailbox *MailboxCaller) Delivered(opts *bind.CallOpts, _id [32]byte) (bool, error) {
 	var out []interface{}
-	err := _Mailbox.contract.Call(opts, &out, "delivered", arg0)
+	err := _Mailbox.contract.Call(opts, &out, "delivered", _id)
 
 	if err != nil {
 		return *new(bool), err
@@ -323,79 +292,78 @@ func (_Mailbox *MailboxCaller) Delivered(opts *bind.CallOpts, arg0 [32]byte) (bo
 
 // Delivered is a free data retrieval call binding the contract method 0xe495f1d4.
 //
-// Solidity: function delivered(bytes32 ) view returns(bool)
-func (_Mailbox *MailboxSession) Delivered(arg0 [32]byte) (bool, error) {
-	return _Mailbox.Contract.Delivered(&_Mailbox.CallOpts, arg0)
+// Solidity: function delivered(bytes32 _id) view returns(bool)
+func (_Mailbox *MailboxSession) Delivered(_id [32]byte) (bool, error) {
+	return _Mailbox.Contract.Delivered(&_Mailbox.CallOpts, _id)
 }
 
 // Delivered is a free data retrieval call binding the contract method 0xe495f1d4.
 //
-// Solidity: function delivered(bytes32 ) view returns(bool)
-func (_Mailbox *MailboxCallerSession) Delivered(arg0 [32]byte) (bool, error) {
-	return _Mailbox.Contract.Delivered(&_Mailbox.CallOpts, arg0)
+// Solidity: function delivered(bytes32 _id) view returns(bool)
+func (_Mailbox *MailboxCallerSession) Delivered(_id [32]byte) (bool, error) {
+	return _Mailbox.Contract.Delivered(&_Mailbox.CallOpts, _id)
 }
 
-// IsPaused is a free data retrieval call binding the contract method 0xb187bd26.
+// DeployedBlock is a free data retrieval call binding the contract method 0x82ea7bfe.
 //
-// Solidity: function isPaused() view returns(bool)
-func (_Mailbox *MailboxCaller) IsPaused(opts *bind.CallOpts) (bool, error) {
+// Solidity: function deployedBlock() view returns(uint256)
+func (_Mailbox *MailboxCaller) DeployedBlock(opts *bind.CallOpts) (*big.Int, error) {
 	var out []interface{}
-	err := _Mailbox.contract.Call(opts, &out, "isPaused")
+	err := _Mailbox.contract.Call(opts, &out, "deployedBlock")
 
 	if err != nil {
-		return *new(bool), err
+		return *new(*big.Int), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
 
 	return out0, err
 
 }
 
-// IsPaused is a free data retrieval call binding the contract method 0xb187bd26.
+// DeployedBlock is a free data retrieval call binding the contract method 0x82ea7bfe.
 //
-// Solidity: function isPaused() view returns(bool)
-func (_Mailbox *MailboxSession) IsPaused() (bool, error) {
-	return _Mailbox.Contract.IsPaused(&_Mailbox.CallOpts)
+// Solidity: function deployedBlock() view returns(uint256)
+func (_Mailbox *MailboxSession) DeployedBlock() (*big.Int, error) {
+	return _Mailbox.Contract.DeployedBlock(&_Mailbox.CallOpts)
 }
 
-// IsPaused is a free data retrieval call binding the contract method 0xb187bd26.
+// DeployedBlock is a free data retrieval call binding the contract method 0x82ea7bfe.
 //
-// Solidity: function isPaused() view returns(bool)
-func (_Mailbox *MailboxCallerSession) IsPaused() (bool, error) {
-	return _Mailbox.Contract.IsPaused(&_Mailbox.CallOpts)
+// Solidity: function deployedBlock() view returns(uint256)
+func (_Mailbox *MailboxCallerSession) DeployedBlock() (*big.Int, error) {
+	return _Mailbox.Contract.DeployedBlock(&_Mailbox.CallOpts)
 }
 
-// LatestCheckpoint is a free data retrieval call binding the contract method 0x907c0f92.
+// LatestDispatchedId is a free data retrieval call binding the contract method 0x134fbb4f.
 //
-// Solidity: function latestCheckpoint() view returns(bytes32, uint32)
-func (_Mailbox *MailboxCaller) LatestCheckpoint(opts *bind.CallOpts) ([32]byte, uint32, error) {
+// Solidity: function latestDispatchedId() view returns(bytes32)
+func (_Mailbox *MailboxCaller) LatestDispatchedId(opts *bind.CallOpts) ([32]byte, error) {
 	var out []interface{}
-	err := _Mailbox.contract.Call(opts, &out, "latestCheckpoint")
+	err := _Mailbox.contract.Call(opts, &out, "latestDispatchedId")
 
 	if err != nil {
-		return *new([32]byte), *new(uint32), err
+		return *new([32]byte), err
 	}
 
 	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
-	out1 := *abi.ConvertType(out[1], new(uint32)).(*uint32)
 
-	return out0, out1, err
+	return out0, err
 
 }
 
-// LatestCheckpoint is a free data retrieval call binding the contract method 0x907c0f92.
+// LatestDispatchedId is a free data retrieval call binding the contract method 0x134fbb4f.
 //
-// Solidity: function latestCheckpoint() view returns(bytes32, uint32)
-func (_Mailbox *MailboxSession) LatestCheckpoint() ([32]byte, uint32, error) {
-	return _Mailbox.Contract.LatestCheckpoint(&_Mailbox.CallOpts)
+// Solidity: function latestDispatchedId() view returns(bytes32)
+func (_Mailbox *MailboxSession) LatestDispatchedId() ([32]byte, error) {
+	return _Mailbox.Contract.LatestDispatchedId(&_Mailbox.CallOpts)
 }
 
-// LatestCheckpoint is a free data retrieval call binding the contract method 0x907c0f92.
+// LatestDispatchedId is a free data retrieval call binding the contract method 0x134fbb4f.
 //
-// Solidity: function latestCheckpoint() view returns(bytes32, uint32)
-func (_Mailbox *MailboxCallerSession) LatestCheckpoint() ([32]byte, uint32, error) {
-	return _Mailbox.Contract.LatestCheckpoint(&_Mailbox.CallOpts)
+// Solidity: function latestDispatchedId() view returns(bytes32)
+func (_Mailbox *MailboxCallerSession) LatestDispatchedId() ([32]byte, error) {
+	return _Mailbox.Contract.LatestDispatchedId(&_Mailbox.CallOpts)
 }
 
 // LocalDomain is a free data retrieval call binding the contract method 0x8d3638f4.
@@ -429,6 +397,37 @@ func (_Mailbox *MailboxCallerSession) LocalDomain() (uint32, error) {
 	return _Mailbox.Contract.LocalDomain(&_Mailbox.CallOpts)
 }
 
+// Nonce is a free data retrieval call binding the contract method 0xaffed0e0.
+//
+// Solidity: function nonce() view returns(uint32)
+func (_Mailbox *MailboxCaller) Nonce(opts *bind.CallOpts) (uint32, error) {
+	var out []interface{}
+	err := _Mailbox.contract.Call(opts, &out, "nonce")
+
+	if err != nil {
+		return *new(uint32), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
+
+	return out0, err
+
+}
+
+// Nonce is a free data retrieval call binding the contract method 0xaffed0e0.
+//
+// Solidity: function nonce() view returns(uint32)
+func (_Mailbox *MailboxSession) Nonce() (uint32, error) {
+	return _Mailbox.Contract.Nonce(&_Mailbox.CallOpts)
+}
+
+// Nonce is a free data retrieval call binding the contract method 0xaffed0e0.
+//
+// Solidity: function nonce() view returns(uint32)
+func (_Mailbox *MailboxCallerSession) Nonce() (uint32, error) {
+	return _Mailbox.Contract.Nonce(&_Mailbox.CallOpts)
+}
+
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
 //
 // Solidity: function owner() view returns(address)
@@ -458,6 +457,161 @@ func (_Mailbox *MailboxSession) Owner() (common.Address, error) {
 // Solidity: function owner() view returns(address)
 func (_Mailbox *MailboxCallerSession) Owner() (common.Address, error) {
 	return _Mailbox.Contract.Owner(&_Mailbox.CallOpts)
+}
+
+// ProcessedAt is a free data retrieval call binding the contract method 0x07a2fda1.
+//
+// Solidity: function processedAt(bytes32 _id) view returns(uint48)
+func (_Mailbox *MailboxCaller) ProcessedAt(opts *bind.CallOpts, _id [32]byte) (*big.Int, error) {
+	var out []interface{}
+	err := _Mailbox.contract.Call(opts, &out, "processedAt", _id)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// ProcessedAt is a free data retrieval call binding the contract method 0x07a2fda1.
+//
+// Solidity: function processedAt(bytes32 _id) view returns(uint48)
+func (_Mailbox *MailboxSession) ProcessedAt(_id [32]byte) (*big.Int, error) {
+	return _Mailbox.Contract.ProcessedAt(&_Mailbox.CallOpts, _id)
+}
+
+// ProcessedAt is a free data retrieval call binding the contract method 0x07a2fda1.
+//
+// Solidity: function processedAt(bytes32 _id) view returns(uint48)
+func (_Mailbox *MailboxCallerSession) ProcessedAt(_id [32]byte) (*big.Int, error) {
+	return _Mailbox.Contract.ProcessedAt(&_Mailbox.CallOpts, _id)
+}
+
+// Processor is a free data retrieval call binding the contract method 0x5d1fe5a9.
+//
+// Solidity: function processor(bytes32 _id) view returns(address)
+func (_Mailbox *MailboxCaller) Processor(opts *bind.CallOpts, _id [32]byte) (common.Address, error) {
+	var out []interface{}
+	err := _Mailbox.contract.Call(opts, &out, "processor", _id)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// Processor is a free data retrieval call binding the contract method 0x5d1fe5a9.
+//
+// Solidity: function processor(bytes32 _id) view returns(address)
+func (_Mailbox *MailboxSession) Processor(_id [32]byte) (common.Address, error) {
+	return _Mailbox.Contract.Processor(&_Mailbox.CallOpts, _id)
+}
+
+// Processor is a free data retrieval call binding the contract method 0x5d1fe5a9.
+//
+// Solidity: function processor(bytes32 _id) view returns(address)
+func (_Mailbox *MailboxCallerSession) Processor(_id [32]byte) (common.Address, error) {
+	return _Mailbox.Contract.Processor(&_Mailbox.CallOpts, _id)
+}
+
+// QuoteDispatch is a free data retrieval call binding the contract method 0x81d2ea95.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes metadata, address hook) view returns(uint256 fee)
+func (_Mailbox *MailboxCaller) QuoteDispatch(opts *bind.CallOpts, destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, metadata []byte, hook common.Address) (*big.Int, error) {
+	var out []interface{}
+	err := _Mailbox.contract.Call(opts, &out, "quoteDispatch", destinationDomain, recipientAddress, messageBody, metadata, hook)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// QuoteDispatch is a free data retrieval call binding the contract method 0x81d2ea95.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes metadata, address hook) view returns(uint256 fee)
+func (_Mailbox *MailboxSession) QuoteDispatch(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, metadata []byte, hook common.Address) (*big.Int, error) {
+	return _Mailbox.Contract.QuoteDispatch(&_Mailbox.CallOpts, destinationDomain, recipientAddress, messageBody, metadata, hook)
+}
+
+// QuoteDispatch is a free data retrieval call binding the contract method 0x81d2ea95.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes metadata, address hook) view returns(uint256 fee)
+func (_Mailbox *MailboxCallerSession) QuoteDispatch(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, metadata []byte, hook common.Address) (*big.Int, error) {
+	return _Mailbox.Contract.QuoteDispatch(&_Mailbox.CallOpts, destinationDomain, recipientAddress, messageBody, metadata, hook)
+}
+
+// QuoteDispatch0 is a free data retrieval call binding the contract method 0x9c42bd18.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody) view returns(uint256 fee)
+func (_Mailbox *MailboxCaller) QuoteDispatch0(opts *bind.CallOpts, destinationDomain uint32, recipientAddress [32]byte, messageBody []byte) (*big.Int, error) {
+	var out []interface{}
+	err := _Mailbox.contract.Call(opts, &out, "quoteDispatch0", destinationDomain, recipientAddress, messageBody)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// QuoteDispatch0 is a free data retrieval call binding the contract method 0x9c42bd18.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody) view returns(uint256 fee)
+func (_Mailbox *MailboxSession) QuoteDispatch0(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte) (*big.Int, error) {
+	return _Mailbox.Contract.QuoteDispatch0(&_Mailbox.CallOpts, destinationDomain, recipientAddress, messageBody)
+}
+
+// QuoteDispatch0 is a free data retrieval call binding the contract method 0x9c42bd18.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody) view returns(uint256 fee)
+func (_Mailbox *MailboxCallerSession) QuoteDispatch0(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte) (*big.Int, error) {
+	return _Mailbox.Contract.QuoteDispatch0(&_Mailbox.CallOpts, destinationDomain, recipientAddress, messageBody)
+}
+
+// QuoteDispatch1 is a free data retrieval call binding the contract method 0xf7ccd321.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes defaultHookMetadata) view returns(uint256 fee)
+func (_Mailbox *MailboxCaller) QuoteDispatch1(opts *bind.CallOpts, destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, defaultHookMetadata []byte) (*big.Int, error) {
+	var out []interface{}
+	err := _Mailbox.contract.Call(opts, &out, "quoteDispatch1", destinationDomain, recipientAddress, messageBody, defaultHookMetadata)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// QuoteDispatch1 is a free data retrieval call binding the contract method 0xf7ccd321.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes defaultHookMetadata) view returns(uint256 fee)
+func (_Mailbox *MailboxSession) QuoteDispatch1(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, defaultHookMetadata []byte) (*big.Int, error) {
+	return _Mailbox.Contract.QuoteDispatch1(&_Mailbox.CallOpts, destinationDomain, recipientAddress, messageBody, defaultHookMetadata)
+}
+
+// QuoteDispatch1 is a free data retrieval call binding the contract method 0xf7ccd321.
+//
+// Solidity: function quoteDispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes defaultHookMetadata) view returns(uint256 fee)
+func (_Mailbox *MailboxCallerSession) QuoteDispatch1(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, defaultHookMetadata []byte) (*big.Int, error) {
+	return _Mailbox.Contract.QuoteDispatch1(&_Mailbox.CallOpts, destinationDomain, recipientAddress, messageBody, defaultHookMetadata)
 }
 
 // RecipientIsm is a free data retrieval call binding the contract method 0xe70f48ac.
@@ -491,148 +645,138 @@ func (_Mailbox *MailboxCallerSession) RecipientIsm(_recipient common.Address) (c
 	return _Mailbox.Contract.RecipientIsm(&_Mailbox.CallOpts, _recipient)
 }
 
-// Root is a free data retrieval call binding the contract method 0xebf0c717.
+// RequiredHook is a free data retrieval call binding the contract method 0xd6d08a09.
 //
-// Solidity: function root() view returns(bytes32)
-func (_Mailbox *MailboxCaller) Root(opts *bind.CallOpts) ([32]byte, error) {
+// Solidity: function requiredHook() view returns(address)
+func (_Mailbox *MailboxCaller) RequiredHook(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _Mailbox.contract.Call(opts, &out, "root")
+	err := _Mailbox.contract.Call(opts, &out, "requiredHook")
 
 	if err != nil {
-		return *new([32]byte), err
+		return *new(common.Address), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
 
 	return out0, err
 
 }
 
-// Root is a free data retrieval call binding the contract method 0xebf0c717.
+// RequiredHook is a free data retrieval call binding the contract method 0xd6d08a09.
 //
-// Solidity: function root() view returns(bytes32)
-func (_Mailbox *MailboxSession) Root() ([32]byte, error) {
-	return _Mailbox.Contract.Root(&_Mailbox.CallOpts)
+// Solidity: function requiredHook() view returns(address)
+func (_Mailbox *MailboxSession) RequiredHook() (common.Address, error) {
+	return _Mailbox.Contract.RequiredHook(&_Mailbox.CallOpts)
 }
 
-// Root is a free data retrieval call binding the contract method 0xebf0c717.
+// RequiredHook is a free data retrieval call binding the contract method 0xd6d08a09.
 //
-// Solidity: function root() view returns(bytes32)
-func (_Mailbox *MailboxCallerSession) Root() ([32]byte, error) {
-	return _Mailbox.Contract.Root(&_Mailbox.CallOpts)
+// Solidity: function requiredHook() view returns(address)
+func (_Mailbox *MailboxCallerSession) RequiredHook() (common.Address, error) {
+	return _Mailbox.Contract.RequiredHook(&_Mailbox.CallOpts)
 }
 
-// Tree is a free data retrieval call binding the contract method 0xfd54b228.
+// Dispatch is a paid mutator transaction binding the contract method 0x10b83dc0.
 //
-// Solidity: function tree() view returns(uint256 count)
-func (_Mailbox *MailboxCaller) Tree(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _Mailbox.contract.Call(opts, &out, "tree")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
+// Solidity: function dispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes metadata, address hook) payable returns(bytes32)
+func (_Mailbox *MailboxTransactor) Dispatch(opts *bind.TransactOpts, destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, metadata []byte, hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.contract.Transact(opts, "dispatch", destinationDomain, recipientAddress, messageBody, metadata, hook)
 }
 
-// Tree is a free data retrieval call binding the contract method 0xfd54b228.
+// Dispatch is a paid mutator transaction binding the contract method 0x10b83dc0.
 //
-// Solidity: function tree() view returns(uint256 count)
-func (_Mailbox *MailboxSession) Tree() (*big.Int, error) {
-	return _Mailbox.Contract.Tree(&_Mailbox.CallOpts)
+// Solidity: function dispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes metadata, address hook) payable returns(bytes32)
+func (_Mailbox *MailboxSession) Dispatch(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, metadata []byte, hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.Dispatch(&_Mailbox.TransactOpts, destinationDomain, recipientAddress, messageBody, metadata, hook)
 }
 
-// Tree is a free data retrieval call binding the contract method 0xfd54b228.
+// Dispatch is a paid mutator transaction binding the contract method 0x10b83dc0.
 //
-// Solidity: function tree() view returns(uint256 count)
-func (_Mailbox *MailboxCallerSession) Tree() (*big.Int, error) {
-	return _Mailbox.Contract.Tree(&_Mailbox.CallOpts)
+// Solidity: function dispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes metadata, address hook) payable returns(bytes32)
+func (_Mailbox *MailboxTransactorSession) Dispatch(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, metadata []byte, hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.Dispatch(&_Mailbox.TransactOpts, destinationDomain, recipientAddress, messageBody, metadata, hook)
 }
 
-// Dispatch is a paid mutator transaction binding the contract method 0xfa31de01.
+// Dispatch0 is a paid mutator transaction binding the contract method 0x48aee8d4.
 //
-// Solidity: function dispatch(uint32 _destinationDomain, bytes32 _recipientAddress, bytes _messageBody) returns(bytes32)
-func (_Mailbox *MailboxTransactor) Dispatch(opts *bind.TransactOpts, _destinationDomain uint32, _recipientAddress [32]byte, _messageBody []byte) (*types.Transaction, error) {
-	return _Mailbox.contract.Transact(opts, "dispatch", _destinationDomain, _recipientAddress, _messageBody)
+// Solidity: function dispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes hookMetadata) payable returns(bytes32)
+func (_Mailbox *MailboxTransactor) Dispatch0(opts *bind.TransactOpts, destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, hookMetadata []byte) (*types.Transaction, error) {
+	return _Mailbox.contract.Transact(opts, "dispatch0", destinationDomain, recipientAddress, messageBody, hookMetadata)
 }
 
-// Dispatch is a paid mutator transaction binding the contract method 0xfa31de01.
+// Dispatch0 is a paid mutator transaction binding the contract method 0x48aee8d4.
 //
-// Solidity: function dispatch(uint32 _destinationDomain, bytes32 _recipientAddress, bytes _messageBody) returns(bytes32)
-func (_Mailbox *MailboxSession) Dispatch(_destinationDomain uint32, _recipientAddress [32]byte, _messageBody []byte) (*types.Transaction, error) {
-	return _Mailbox.Contract.Dispatch(&_Mailbox.TransactOpts, _destinationDomain, _recipientAddress, _messageBody)
+// Solidity: function dispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes hookMetadata) payable returns(bytes32)
+func (_Mailbox *MailboxSession) Dispatch0(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, hookMetadata []byte) (*types.Transaction, error) {
+	return _Mailbox.Contract.Dispatch0(&_Mailbox.TransactOpts, destinationDomain, recipientAddress, messageBody, hookMetadata)
 }
 
-// Dispatch is a paid mutator transaction binding the contract method 0xfa31de01.
+// Dispatch0 is a paid mutator transaction binding the contract method 0x48aee8d4.
 //
-// Solidity: function dispatch(uint32 _destinationDomain, bytes32 _recipientAddress, bytes _messageBody) returns(bytes32)
-func (_Mailbox *MailboxTransactorSession) Dispatch(_destinationDomain uint32, _recipientAddress [32]byte, _messageBody []byte) (*types.Transaction, error) {
-	return _Mailbox.Contract.Dispatch(&_Mailbox.TransactOpts, _destinationDomain, _recipientAddress, _messageBody)
+// Solidity: function dispatch(uint32 destinationDomain, bytes32 recipientAddress, bytes messageBody, bytes hookMetadata) payable returns(bytes32)
+func (_Mailbox *MailboxTransactorSession) Dispatch0(destinationDomain uint32, recipientAddress [32]byte, messageBody []byte, hookMetadata []byte) (*types.Transaction, error) {
+	return _Mailbox.Contract.Dispatch0(&_Mailbox.TransactOpts, destinationDomain, recipientAddress, messageBody, hookMetadata)
 }
 
-// Initialize is a paid mutator transaction binding the contract method 0x485cc955.
+// Dispatch1 is a paid mutator transaction binding the contract method 0xfa31de01.
 //
-// Solidity: function initialize(address _owner, address _defaultIsm) returns()
-func (_Mailbox *MailboxTransactor) Initialize(opts *bind.TransactOpts, _owner common.Address, _defaultIsm common.Address) (*types.Transaction, error) {
-	return _Mailbox.contract.Transact(opts, "initialize", _owner, _defaultIsm)
+// Solidity: function dispatch(uint32 _destinationDomain, bytes32 _recipientAddress, bytes _messageBody) payable returns(bytes32)
+func (_Mailbox *MailboxTransactor) Dispatch1(opts *bind.TransactOpts, _destinationDomain uint32, _recipientAddress [32]byte, _messageBody []byte) (*types.Transaction, error) {
+	return _Mailbox.contract.Transact(opts, "dispatch1", _destinationDomain, _recipientAddress, _messageBody)
 }
 
-// Initialize is a paid mutator transaction binding the contract method 0x485cc955.
+// Dispatch1 is a paid mutator transaction binding the contract method 0xfa31de01.
 //
-// Solidity: function initialize(address _owner, address _defaultIsm) returns()
-func (_Mailbox *MailboxSession) Initialize(_owner common.Address, _defaultIsm common.Address) (*types.Transaction, error) {
-	return _Mailbox.Contract.Initialize(&_Mailbox.TransactOpts, _owner, _defaultIsm)
+// Solidity: function dispatch(uint32 _destinationDomain, bytes32 _recipientAddress, bytes _messageBody) payable returns(bytes32)
+func (_Mailbox *MailboxSession) Dispatch1(_destinationDomain uint32, _recipientAddress [32]byte, _messageBody []byte) (*types.Transaction, error) {
+	return _Mailbox.Contract.Dispatch1(&_Mailbox.TransactOpts, _destinationDomain, _recipientAddress, _messageBody)
 }
 
-// Initialize is a paid mutator transaction binding the contract method 0x485cc955.
+// Dispatch1 is a paid mutator transaction binding the contract method 0xfa31de01.
 //
-// Solidity: function initialize(address _owner, address _defaultIsm) returns()
-func (_Mailbox *MailboxTransactorSession) Initialize(_owner common.Address, _defaultIsm common.Address) (*types.Transaction, error) {
-	return _Mailbox.Contract.Initialize(&_Mailbox.TransactOpts, _owner, _defaultIsm)
+// Solidity: function dispatch(uint32 _destinationDomain, bytes32 _recipientAddress, bytes _messageBody) payable returns(bytes32)
+func (_Mailbox *MailboxTransactorSession) Dispatch1(_destinationDomain uint32, _recipientAddress [32]byte, _messageBody []byte) (*types.Transaction, error) {
+	return _Mailbox.Contract.Dispatch1(&_Mailbox.TransactOpts, _destinationDomain, _recipientAddress, _messageBody)
 }
 
-// Pause is a paid mutator transaction binding the contract method 0x8456cb59.
+// Initialize is a paid mutator transaction binding the contract method 0xf8c8765e.
 //
-// Solidity: function pause() returns()
-func (_Mailbox *MailboxTransactor) Pause(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Mailbox.contract.Transact(opts, "pause")
+// Solidity: function initialize(address _owner, address _defaultIsm, address _defaultHook, address _requiredHook) returns()
+func (_Mailbox *MailboxTransactor) Initialize(opts *bind.TransactOpts, _owner common.Address, _defaultIsm common.Address, _defaultHook common.Address, _requiredHook common.Address) (*types.Transaction, error) {
+	return _Mailbox.contract.Transact(opts, "initialize", _owner, _defaultIsm, _defaultHook, _requiredHook)
 }
 
-// Pause is a paid mutator transaction binding the contract method 0x8456cb59.
+// Initialize is a paid mutator transaction binding the contract method 0xf8c8765e.
 //
-// Solidity: function pause() returns()
-func (_Mailbox *MailboxSession) Pause() (*types.Transaction, error) {
-	return _Mailbox.Contract.Pause(&_Mailbox.TransactOpts)
+// Solidity: function initialize(address _owner, address _defaultIsm, address _defaultHook, address _requiredHook) returns()
+func (_Mailbox *MailboxSession) Initialize(_owner common.Address, _defaultIsm common.Address, _defaultHook common.Address, _requiredHook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.Initialize(&_Mailbox.TransactOpts, _owner, _defaultIsm, _defaultHook, _requiredHook)
 }
 
-// Pause is a paid mutator transaction binding the contract method 0x8456cb59.
+// Initialize is a paid mutator transaction binding the contract method 0xf8c8765e.
 //
-// Solidity: function pause() returns()
-func (_Mailbox *MailboxTransactorSession) Pause() (*types.Transaction, error) {
-	return _Mailbox.Contract.Pause(&_Mailbox.TransactOpts)
+// Solidity: function initialize(address _owner, address _defaultIsm, address _defaultHook, address _requiredHook) returns()
+func (_Mailbox *MailboxTransactorSession) Initialize(_owner common.Address, _defaultIsm common.Address, _defaultHook common.Address, _requiredHook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.Initialize(&_Mailbox.TransactOpts, _owner, _defaultIsm, _defaultHook, _requiredHook)
 }
 
 // Process is a paid mutator transaction binding the contract method 0x7c39d130.
 //
-// Solidity: function process(bytes _metadata, bytes _message) returns()
+// Solidity: function process(bytes _metadata, bytes _message) payable returns()
 func (_Mailbox *MailboxTransactor) Process(opts *bind.TransactOpts, _metadata []byte, _message []byte) (*types.Transaction, error) {
 	return _Mailbox.contract.Transact(opts, "process", _metadata, _message)
 }
 
 // Process is a paid mutator transaction binding the contract method 0x7c39d130.
 //
-// Solidity: function process(bytes _metadata, bytes _message) returns()
+// Solidity: function process(bytes _metadata, bytes _message) payable returns()
 func (_Mailbox *MailboxSession) Process(_metadata []byte, _message []byte) (*types.Transaction, error) {
 	return _Mailbox.Contract.Process(&_Mailbox.TransactOpts, _metadata, _message)
 }
 
 // Process is a paid mutator transaction binding the contract method 0x7c39d130.
 //
-// Solidity: function process(bytes _metadata, bytes _message) returns()
+// Solidity: function process(bytes _metadata, bytes _message) payable returns()
 func (_Mailbox *MailboxTransactorSession) Process(_metadata []byte, _message []byte) (*types.Transaction, error) {
 	return _Mailbox.Contract.Process(&_Mailbox.TransactOpts, _metadata, _message)
 }
@@ -658,6 +802,27 @@ func (_Mailbox *MailboxTransactorSession) RenounceOwnership() (*types.Transactio
 	return _Mailbox.Contract.RenounceOwnership(&_Mailbox.TransactOpts)
 }
 
+// SetDefaultHook is a paid mutator transaction binding the contract method 0x99b04809.
+//
+// Solidity: function setDefaultHook(address _hook) returns()
+func (_Mailbox *MailboxTransactor) SetDefaultHook(opts *bind.TransactOpts, _hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.contract.Transact(opts, "setDefaultHook", _hook)
+}
+
+// SetDefaultHook is a paid mutator transaction binding the contract method 0x99b04809.
+//
+// Solidity: function setDefaultHook(address _hook) returns()
+func (_Mailbox *MailboxSession) SetDefaultHook(_hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.SetDefaultHook(&_Mailbox.TransactOpts, _hook)
+}
+
+// SetDefaultHook is a paid mutator transaction binding the contract method 0x99b04809.
+//
+// Solidity: function setDefaultHook(address _hook) returns()
+func (_Mailbox *MailboxTransactorSession) SetDefaultHook(_hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.SetDefaultHook(&_Mailbox.TransactOpts, _hook)
+}
+
 // SetDefaultIsm is a paid mutator transaction binding the contract method 0xf794687a.
 //
 // Solidity: function setDefaultIsm(address _module) returns()
@@ -677,6 +842,27 @@ func (_Mailbox *MailboxSession) SetDefaultIsm(_module common.Address) (*types.Tr
 // Solidity: function setDefaultIsm(address _module) returns()
 func (_Mailbox *MailboxTransactorSession) SetDefaultIsm(_module common.Address) (*types.Transaction, error) {
 	return _Mailbox.Contract.SetDefaultIsm(&_Mailbox.TransactOpts, _module)
+}
+
+// SetRequiredHook is a paid mutator transaction binding the contract method 0x1426b7f4.
+//
+// Solidity: function setRequiredHook(address _hook) returns()
+func (_Mailbox *MailboxTransactor) SetRequiredHook(opts *bind.TransactOpts, _hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.contract.Transact(opts, "setRequiredHook", _hook)
+}
+
+// SetRequiredHook is a paid mutator transaction binding the contract method 0x1426b7f4.
+//
+// Solidity: function setRequiredHook(address _hook) returns()
+func (_Mailbox *MailboxSession) SetRequiredHook(_hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.SetRequiredHook(&_Mailbox.TransactOpts, _hook)
+}
+
+// SetRequiredHook is a paid mutator transaction binding the contract method 0x1426b7f4.
+//
+// Solidity: function setRequiredHook(address _hook) returns()
+func (_Mailbox *MailboxTransactorSession) SetRequiredHook(_hook common.Address) (*types.Transaction, error) {
+	return _Mailbox.Contract.SetRequiredHook(&_Mailbox.TransactOpts, _hook)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
@@ -700,25 +886,148 @@ func (_Mailbox *MailboxTransactorSession) TransferOwnership(newOwner common.Addr
 	return _Mailbox.Contract.TransferOwnership(&_Mailbox.TransactOpts, newOwner)
 }
 
-// Unpause is a paid mutator transaction binding the contract method 0x3f4ba83a.
-//
-// Solidity: function unpause() returns()
-func (_Mailbox *MailboxTransactor) Unpause(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Mailbox.contract.Transact(opts, "unpause")
+// MailboxDefaultHookSetIterator is returned from FilterDefaultHookSet and is used to iterate over the raw logs and unpacked data for DefaultHookSet events raised by the Mailbox contract.
+type MailboxDefaultHookSetIterator struct {
+	Event *MailboxDefaultHookSet // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
 }
 
-// Unpause is a paid mutator transaction binding the contract method 0x3f4ba83a.
-//
-// Solidity: function unpause() returns()
-func (_Mailbox *MailboxSession) Unpause() (*types.Transaction, error) {
-	return _Mailbox.Contract.Unpause(&_Mailbox.TransactOpts)
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *MailboxDefaultHookSetIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(MailboxDefaultHookSet)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(MailboxDefaultHookSet)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
 }
 
-// Unpause is a paid mutator transaction binding the contract method 0x3f4ba83a.
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *MailboxDefaultHookSetIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *MailboxDefaultHookSetIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// MailboxDefaultHookSet represents a DefaultHookSet event raised by the Mailbox contract.
+type MailboxDefaultHookSet struct {
+	Hook common.Address
+	Raw  types.Log // Blockchain specific contextual infos
+}
+
+// FilterDefaultHookSet is a free log retrieval operation binding the contract event 0x65a63e5066ee2fcdf9d32a7f1bf7ce71c76066f19d0609dddccd334ab87237d7.
 //
-// Solidity: function unpause() returns()
-func (_Mailbox *MailboxTransactorSession) Unpause() (*types.Transaction, error) {
-	return _Mailbox.Contract.Unpause(&_Mailbox.TransactOpts)
+// Solidity: event DefaultHookSet(address indexed hook)
+func (_Mailbox *MailboxFilterer) FilterDefaultHookSet(opts *bind.FilterOpts, hook []common.Address) (*MailboxDefaultHookSetIterator, error) {
+
+	var hookRule []interface{}
+	for _, hookItem := range hook {
+		hookRule = append(hookRule, hookItem)
+	}
+
+	logs, sub, err := _Mailbox.contract.FilterLogs(opts, "DefaultHookSet", hookRule)
+	if err != nil {
+		return nil, err
+	}
+	return &MailboxDefaultHookSetIterator{contract: _Mailbox.contract, event: "DefaultHookSet", logs: logs, sub: sub}, nil
+}
+
+// WatchDefaultHookSet is a free log subscription operation binding the contract event 0x65a63e5066ee2fcdf9d32a7f1bf7ce71c76066f19d0609dddccd334ab87237d7.
+//
+// Solidity: event DefaultHookSet(address indexed hook)
+func (_Mailbox *MailboxFilterer) WatchDefaultHookSet(opts *bind.WatchOpts, sink chan<- *MailboxDefaultHookSet, hook []common.Address) (event.Subscription, error) {
+
+	var hookRule []interface{}
+	for _, hookItem := range hook {
+		hookRule = append(hookRule, hookItem)
+	}
+
+	logs, sub, err := _Mailbox.contract.WatchLogs(opts, "DefaultHookSet", hookRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(MailboxDefaultHookSet)
+				if err := _Mailbox.contract.UnpackLog(event, "DefaultHookSet", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseDefaultHookSet is a log parse operation binding the contract event 0x65a63e5066ee2fcdf9d32a7f1bf7ce71c76066f19d0609dddccd334ab87237d7.
+//
+// Solidity: event DefaultHookSet(address indexed hook)
+func (_Mailbox *MailboxFilterer) ParseDefaultHookSet(log types.Log) (*MailboxDefaultHookSet, error) {
+	event := new(MailboxDefaultHookSet)
+	if err := _Mailbox.contract.UnpackLog(event, "DefaultHookSet", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // MailboxDefaultIsmSetIterator is returned from FilterDefaultIsmSet and is used to iterate over the raw logs and unpacked data for DefaultIsmSet events raised by the Mailbox contract.
@@ -1241,13 +1550,13 @@ func (it *MailboxInitializedIterator) Close() error {
 
 // MailboxInitialized represents a Initialized event raised by the Mailbox contract.
 type MailboxInitialized struct {
-	Version uint64
+	Version uint8
 	Raw     types.Log // Blockchain specific contextual infos
 }
 
-// FilterInitialized is a free log retrieval operation binding the contract event 0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2.
+// FilterInitialized is a free log retrieval operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 //
-// Solidity: event Initialized(uint64 version)
+// Solidity: event Initialized(uint8 version)
 func (_Mailbox *MailboxFilterer) FilterInitialized(opts *bind.FilterOpts) (*MailboxInitializedIterator, error) {
 
 	logs, sub, err := _Mailbox.contract.FilterLogs(opts, "Initialized")
@@ -1257,9 +1566,9 @@ func (_Mailbox *MailboxFilterer) FilterInitialized(opts *bind.FilterOpts) (*Mail
 	return &MailboxInitializedIterator{contract: _Mailbox.contract, event: "Initialized", logs: logs, sub: sub}, nil
 }
 
-// WatchInitialized is a free log subscription operation binding the contract event 0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2.
+// WatchInitialized is a free log subscription operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 //
-// Solidity: event Initialized(uint64 version)
+// Solidity: event Initialized(uint8 version)
 func (_Mailbox *MailboxFilterer) WatchInitialized(opts *bind.WatchOpts, sink chan<- *MailboxInitialized) (event.Subscription, error) {
 
 	logs, sub, err := _Mailbox.contract.WatchLogs(opts, "Initialized")
@@ -1294,9 +1603,9 @@ func (_Mailbox *MailboxFilterer) WatchInitialized(opts *bind.WatchOpts, sink cha
 	}), nil
 }
 
-// ParseInitialized is a log parse operation binding the contract event 0xc7f505b2f371ae2175ee4913f4499e1f2633a7b5936321eed1cdaeb6115181d2.
+// ParseInitialized is a log parse operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 //
-// Solidity: event Initialized(uint64 version)
+// Solidity: event Initialized(uint8 version)
 func (_Mailbox *MailboxFilterer) ParseInitialized(log types.Log) (*MailboxInitialized, error) {
 	event := new(MailboxInitialized)
 	if err := _Mailbox.contract.UnpackLog(event, "Initialized", log); err != nil {
@@ -1453,139 +1762,6 @@ func (_Mailbox *MailboxFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts,
 func (_Mailbox *MailboxFilterer) ParseOwnershipTransferred(log types.Log) (*MailboxOwnershipTransferred, error) {
 	event := new(MailboxOwnershipTransferred)
 	if err := _Mailbox.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
-		return nil, err
-	}
-	event.Raw = log
-	return event, nil
-}
-
-// MailboxPausedIterator is returned from FilterPaused and is used to iterate over the raw logs and unpacked data for Paused events raised by the Mailbox contract.
-type MailboxPausedIterator struct {
-	Event *MailboxPaused // Event containing the contract specifics and raw log
-
-	contract *bind.BoundContract // Generic contract to use for unpacking event data
-	event    string              // Event name to use for unpacking event data
-
-	logs chan types.Log        // Log channel receiving the found contract events
-	sub  ethereum.Subscription // Subscription for errors, completion and termination
-	done bool                  // Whether the subscription completed delivering logs
-	fail error                 // Occurred error to stop iteration
-}
-
-// Next advances the iterator to the subsequent event, returning whether there
-// are any more events found. In case of a retrieval or parsing error, false is
-// returned and Error() can be queried for the exact failure.
-func (it *MailboxPausedIterator) Next() bool {
-	// If the iterator failed, stop iterating
-	if it.fail != nil {
-		return false
-	}
-	// If the iterator completed, deliver directly whatever's available
-	if it.done {
-		select {
-		case log := <-it.logs:
-			it.Event = new(MailboxPaused)
-			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-				it.fail = err
-				return false
-			}
-			it.Event.Raw = log
-			return true
-
-		default:
-			return false
-		}
-	}
-	// Iterator still in progress, wait for either a data or an error event
-	select {
-	case log := <-it.logs:
-		it.Event = new(MailboxPaused)
-		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
-			it.fail = err
-			return false
-		}
-		it.Event.Raw = log
-		return true
-
-	case err := <-it.sub.Err():
-		it.done = true
-		it.fail = err
-		return it.Next()
-	}
-}
-
-// Error returns any retrieval or parsing error occurred during filtering.
-func (it *MailboxPausedIterator) Error() error {
-	return it.fail
-}
-
-// Close terminates the iteration process, releasing any pending underlying
-// resources.
-func (it *MailboxPausedIterator) Close() error {
-	it.sub.Unsubscribe()
-	return nil
-}
-
-// MailboxPaused represents a Paused event raised by the Mailbox contract.
-type MailboxPaused struct {
-	Raw types.Log // Blockchain specific contextual infos
-}
-
-// FilterPaused is a free log retrieval operation binding the contract event 0x9e87fac88ff661f02d44f95383c817fece4bce600a3dab7a54406878b965e752.
-//
-// Solidity: event Paused()
-func (_Mailbox *MailboxFilterer) FilterPaused(opts *bind.FilterOpts) (*MailboxPausedIterator, error) {
-
-	logs, sub, err := _Mailbox.contract.FilterLogs(opts, "Paused")
-	if err != nil {
-		return nil, err
-	}
-	return &MailboxPausedIterator{contract: _Mailbox.contract, event: "Paused", logs: logs, sub: sub}, nil
-}
-
-// WatchPaused is a free log subscription operation binding the contract event 0x9e87fac88ff661f02d44f95383c817fece4bce600a3dab7a54406878b965e752.
-//
-// Solidity: event Paused()
-func (_Mailbox *MailboxFilterer) WatchPaused(opts *bind.WatchOpts, sink chan<- *MailboxPaused) (event.Subscription, error) {
-
-	logs, sub, err := _Mailbox.contract.WatchLogs(opts, "Paused")
-	if err != nil {
-		return nil, err
-	}
-	return event.NewSubscription(func(quit <-chan struct{}) error {
-		defer sub.Unsubscribe()
-		for {
-			select {
-			case log := <-logs:
-				// New log arrived, parse the event and forward to the user
-				event := new(MailboxPaused)
-				if err := _Mailbox.contract.UnpackLog(event, "Paused", log); err != nil {
-					return err
-				}
-				event.Raw = log
-
-				select {
-				case sink <- event:
-				case err := <-sub.Err():
-					return err
-				case <-quit:
-					return nil
-				}
-			case err := <-sub.Err():
-				return err
-			case <-quit:
-				return nil
-			}
-		}
-	}), nil
-}
-
-// ParsePaused is a log parse operation binding the contract event 0x9e87fac88ff661f02d44f95383c817fece4bce600a3dab7a54406878b965e752.
-//
-// Solidity: event Paused()
-func (_Mailbox *MailboxFilterer) ParsePaused(log types.Log) (*MailboxPaused, error) {
-	event := new(MailboxPaused)
-	if err := _Mailbox.contract.UnpackLog(event, "Paused", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -1898,9 +2074,9 @@ func (_Mailbox *MailboxFilterer) ParseProcessId(log types.Log) (*MailboxProcessI
 	return event, nil
 }
 
-// MailboxUnpausedIterator is returned from FilterUnpaused and is used to iterate over the raw logs and unpacked data for Unpaused events raised by the Mailbox contract.
-type MailboxUnpausedIterator struct {
-	Event *MailboxUnpaused // Event containing the contract specifics and raw log
+// MailboxRequiredHookSetIterator is returned from FilterRequiredHookSet and is used to iterate over the raw logs and unpacked data for RequiredHookSet events raised by the Mailbox contract.
+type MailboxRequiredHookSetIterator struct {
+	Event *MailboxRequiredHookSet // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1914,7 +2090,7 @@ type MailboxUnpausedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MailboxUnpausedIterator) Next() bool {
+func (it *MailboxRequiredHookSetIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1923,7 +2099,7 @@ func (it *MailboxUnpausedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MailboxUnpaused)
+			it.Event = new(MailboxRequiredHookSet)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1938,7 +2114,7 @@ func (it *MailboxUnpausedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MailboxUnpaused)
+		it.Event = new(MailboxRequiredHookSet)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1954,40 +2130,51 @@ func (it *MailboxUnpausedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MailboxUnpausedIterator) Error() error {
+func (it *MailboxRequiredHookSetIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MailboxUnpausedIterator) Close() error {
+func (it *MailboxRequiredHookSetIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MailboxUnpaused represents a Unpaused event raised by the Mailbox contract.
-type MailboxUnpaused struct {
-	Raw types.Log // Blockchain specific contextual infos
+// MailboxRequiredHookSet represents a RequiredHookSet event raised by the Mailbox contract.
+type MailboxRequiredHookSet struct {
+	Hook common.Address
+	Raw  types.Log // Blockchain specific contextual infos
 }
 
-// FilterUnpaused is a free log retrieval operation binding the contract event 0xa45f47fdea8a1efdd9029a5691c7f759c32b7c698632b563573e155625d16933.
+// FilterRequiredHookSet is a free log retrieval operation binding the contract event 0x329ec8e2438a73828ecf31a6568d7a91d7b1d79e342b0692914fd053d1a002b1.
 //
-// Solidity: event Unpaused()
-func (_Mailbox *MailboxFilterer) FilterUnpaused(opts *bind.FilterOpts) (*MailboxUnpausedIterator, error) {
+// Solidity: event RequiredHookSet(address indexed hook)
+func (_Mailbox *MailboxFilterer) FilterRequiredHookSet(opts *bind.FilterOpts, hook []common.Address) (*MailboxRequiredHookSetIterator, error) {
 
-	logs, sub, err := _Mailbox.contract.FilterLogs(opts, "Unpaused")
+	var hookRule []interface{}
+	for _, hookItem := range hook {
+		hookRule = append(hookRule, hookItem)
+	}
+
+	logs, sub, err := _Mailbox.contract.FilterLogs(opts, "RequiredHookSet", hookRule)
 	if err != nil {
 		return nil, err
 	}
-	return &MailboxUnpausedIterator{contract: _Mailbox.contract, event: "Unpaused", logs: logs, sub: sub}, nil
+	return &MailboxRequiredHookSetIterator{contract: _Mailbox.contract, event: "RequiredHookSet", logs: logs, sub: sub}, nil
 }
 
-// WatchUnpaused is a free log subscription operation binding the contract event 0xa45f47fdea8a1efdd9029a5691c7f759c32b7c698632b563573e155625d16933.
+// WatchRequiredHookSet is a free log subscription operation binding the contract event 0x329ec8e2438a73828ecf31a6568d7a91d7b1d79e342b0692914fd053d1a002b1.
 //
-// Solidity: event Unpaused()
-func (_Mailbox *MailboxFilterer) WatchUnpaused(opts *bind.WatchOpts, sink chan<- *MailboxUnpaused) (event.Subscription, error) {
+// Solidity: event RequiredHookSet(address indexed hook)
+func (_Mailbox *MailboxFilterer) WatchRequiredHookSet(opts *bind.WatchOpts, sink chan<- *MailboxRequiredHookSet, hook []common.Address) (event.Subscription, error) {
 
-	logs, sub, err := _Mailbox.contract.WatchLogs(opts, "Unpaused")
+	var hookRule []interface{}
+	for _, hookItem := range hook {
+		hookRule = append(hookRule, hookItem)
+	}
+
+	logs, sub, err := _Mailbox.contract.WatchLogs(opts, "RequiredHookSet", hookRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1997,8 +2184,8 @@ func (_Mailbox *MailboxFilterer) WatchUnpaused(opts *bind.WatchOpts, sink chan<-
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MailboxUnpaused)
-				if err := _Mailbox.contract.UnpackLog(event, "Unpaused", log); err != nil {
+				event := new(MailboxRequiredHookSet)
+				if err := _Mailbox.contract.UnpackLog(event, "RequiredHookSet", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -2019,12 +2206,12 @@ func (_Mailbox *MailboxFilterer) WatchUnpaused(opts *bind.WatchOpts, sink chan<-
 	}), nil
 }
 
-// ParseUnpaused is a log parse operation binding the contract event 0xa45f47fdea8a1efdd9029a5691c7f759c32b7c698632b563573e155625d16933.
+// ParseRequiredHookSet is a log parse operation binding the contract event 0x329ec8e2438a73828ecf31a6568d7a91d7b1d79e342b0692914fd053d1a002b1.
 //
-// Solidity: event Unpaused()
-func (_Mailbox *MailboxFilterer) ParseUnpaused(log types.Log) (*MailboxUnpaused, error) {
-	event := new(MailboxUnpaused)
-	if err := _Mailbox.contract.UnpackLog(event, "Unpaused", log); err != nil {
+// Solidity: event RequiredHookSet(address indexed hook)
+func (_Mailbox *MailboxFilterer) ParseRequiredHookSet(log types.Log) (*MailboxRequiredHookSet, error) {
+	event := new(MailboxRequiredHookSet)
+	if err := _Mailbox.contract.UnpackLog(event, "RequiredHookSet", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

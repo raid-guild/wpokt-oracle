@@ -8,13 +8,6 @@
   },
   {
     "type": "function",
-    "name": "MAX_MESSAGE_BODY_BYTES",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "VERSION",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }],
@@ -22,9 +15,15 @@
   },
   {
     "type": "function",
-    "name": "count",
+    "name": "defaultHook",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IPostDispatchHook"
+      }
+    ],
     "stateMutability": "view"
   },
   {
@@ -43,9 +42,61 @@
   {
     "type": "function",
     "name": "delivered",
-    "inputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "inputs": [{ "name": "_id", "type": "bytes32", "internalType": "bytes32" }],
     "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "deployedBlock",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "dispatch",
+    "inputs": [
+      {
+        "name": "destinationDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "recipientAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      { "name": "messageBody", "type": "bytes", "internalType": "bytes" },
+      { "name": "metadata", "type": "bytes", "internalType": "bytes" },
+      {
+        "name": "hook",
+        "type": "address",
+        "internalType": "contract IPostDispatchHook"
+      }
+    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "dispatch",
+    "inputs": [
+      {
+        "name": "destinationDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "recipientAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      { "name": "messageBody", "type": "bytes", "internalType": "bytes" },
+      { "name": "hookMetadata", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -64,38 +115,37 @@
       { "name": "_messageBody", "type": "bytes", "internalType": "bytes" }
     ],
     "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
   },
   {
     "type": "function",
     "name": "initialize",
     "inputs": [
       { "name": "_owner", "type": "address", "internalType": "address" },
-      { "name": "_defaultIsm", "type": "address", "internalType": "address" }
+      { "name": "_defaultIsm", "type": "address", "internalType": "address" },
+      { "name": "_defaultHook", "type": "address", "internalType": "address" },
+      { "name": "_requiredHook", "type": "address", "internalType": "address" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "isPaused",
+    "name": "latestDispatchedId",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "latestCheckpoint",
-    "inputs": [],
-    "outputs": [
-      { "name": "", "type": "bytes32", "internalType": "bytes32" },
-      { "name": "", "type": "uint32", "internalType": "uint32" }
-    ],
+    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "localDomain",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nonce",
     "inputs": [],
     "outputs": [{ "name": "", "type": "uint32", "internalType": "uint32" }],
     "stateMutability": "view"
@@ -109,20 +159,101 @@
   },
   {
     "type": "function",
-    "name": "pause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "process",
     "inputs": [
       { "name": "_metadata", "type": "bytes", "internalType": "bytes" },
       { "name": "_message", "type": "bytes", "internalType": "bytes" }
     ],
     "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "processedAt",
+    "inputs": [{ "name": "_id", "type": "bytes32", "internalType": "bytes32" }],
+    "outputs": [{ "name": "", "type": "uint48", "internalType": "uint48" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "processor",
+    "inputs": [{ "name": "_id", "type": "bytes32", "internalType": "bytes32" }],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteDispatch",
+    "inputs": [
+      {
+        "name": "destinationDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "recipientAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      { "name": "messageBody", "type": "bytes", "internalType": "bytes" },
+      { "name": "metadata", "type": "bytes", "internalType": "bytes" },
+      {
+        "name": "hook",
+        "type": "address",
+        "internalType": "contract IPostDispatchHook"
+      }
+    ],
+    "outputs": [
+      { "name": "fee", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteDispatch",
+    "inputs": [
+      {
+        "name": "destinationDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "recipientAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      { "name": "messageBody", "type": "bytes", "internalType": "bytes" }
+    ],
+    "outputs": [
+      { "name": "fee", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteDispatch",
+    "inputs": [
+      {
+        "name": "destinationDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "recipientAddress",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      { "name": "messageBody", "type": "bytes", "internalType": "bytes" },
+      {
+        "name": "defaultHookMetadata",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      { "name": "fee", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -148,16 +279,40 @@
   },
   {
     "type": "function",
-    "name": "root",
+    "name": "requiredHook",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IPostDispatchHook"
+      }
+    ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setDefaultHook",
+    "inputs": [
+      { "name": "_hook", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "setDefaultIsm",
     "inputs": [
       { "name": "_module", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setRequiredHook",
+    "inputs": [
+      { "name": "_hook", "type": "address", "internalType": "address" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -172,20 +327,17 @@
     "stateMutability": "nonpayable"
   },
   {
-    "type": "function",
-    "name": "tree",
-    "inputs": [],
-    "outputs": [
-      { "name": "count", "type": "uint256", "internalType": "uint256" }
+    "type": "event",
+    "name": "DefaultHookSet",
+    "inputs": [
+      {
+        "name": "hook",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
     ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "unpause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "anonymous": false
   },
   {
     "type": "event",
@@ -250,9 +402,9 @@
     "inputs": [
       {
         "name": "version",
-        "type": "uint64",
+        "type": "uint8",
         "indexed": false,
-        "internalType": "uint64"
+        "internalType": "uint8"
       }
     ],
     "anonymous": false
@@ -276,7 +428,6 @@
     ],
     "anonymous": false
   },
-  { "type": "event", "name": "Paused", "inputs": [], "anonymous": false },
   {
     "type": "event",
     "name": "Process",
@@ -315,21 +466,17 @@
     ],
     "anonymous": false
   },
-  { "type": "event", "name": "Unpaused", "inputs": [], "anonymous": false },
-  { "type": "error", "name": "InvalidInitialization", "inputs": [] },
-  { "type": "error", "name": "NotInitializing", "inputs": [] },
   {
-    "type": "error",
-    "name": "OwnableInvalidOwner",
+    "type": "event",
+    "name": "RequiredHookSet",
     "inputs": [
-      { "name": "owner", "type": "address", "internalType": "address" }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "OwnableUnauthorizedAccount",
-    "inputs": [
-      { "name": "account", "type": "address", "internalType": "address" }
-    ]
+      {
+        "name": "hook",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
   }
 ]

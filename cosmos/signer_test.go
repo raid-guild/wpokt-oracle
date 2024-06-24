@@ -115,6 +115,26 @@ func TestSignerUpdateMessage(t *testing.T) {
 	assert.True(t, result)
 }
 
+func TestSignerUpdateMessage_Error(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	logger := log.New().WithField("test", "signer")
+
+	message := &models.Message{ID: &primitive.ObjectID{}}
+	update := bson.M{"status": models.MessageStatusSigned}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:     mockDB,
+		logger: logger,
+	}
+
+	mockDB.EXPECT().UpdateMessage(message.ID, update).Return(assert.AnError)
+
+	result := signer.UpdateMessage(message, update)
+
+	mockDB.AssertExpectations(t)
+	assert.False(t, result)
+}
+
 func TestSignMessage(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
@@ -146,12 +166,6 @@ func TestSignMessage(t *testing.T) {
 			MultisigAddress: "multisigAddress",
 		},
 	}
-
-	// signerData := signing.SignerData{
-	// 	ChainID:       "chain-id",
-	// 	AccountNumber: 1,
-	// 	Sequence:      1,
-	// }
 
 	txBuilder := clientMocks.NewMockTxBuilder(t)
 	txConfig := clientMocks.NewMockTxConfig(t)
@@ -185,7 +199,6 @@ func TestSignMessage(t *testing.T) {
 	assert.True(t, isTxSigner(multisigPk.Address().Bytes(), signers))
 
 	tx.EXPECT().GetSigners().Return(signers, nil)
-	// tx.EXPECT().GetSignaturesV2().Return([]signingtypes.SignatureV2{})
 
 	txBuilder.EXPECT().SetSignatures(mock.Anything).Return(nil)
 	txBuilder.EXPECT().GetTx().Return(tx)
@@ -263,23 +276,35 @@ func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 	assert.Equal(t, models.TransactionStatusConfirmed, result.TxStatus)
 }
 
-/*
 func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
+	signerKey := secp256k1.GenPrivKey()
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+
 	ethClient := ethMocks.NewMockEthereumClient(t)
 	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	mailbox.EXPECT().Address().Return(ethcommon.BytesToAddress([]byte("mailbox")))
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
 
 	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
 	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
 
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
+
 	message := &models.Message{
 		ID:                    &primitive.ObjectID{},
 		OriginTransactionHash: "hash1",
-		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: recipientAddr.Hex(), Amount: "100"}},
 		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+		Sequence:              new(uint64),
 	}
 
 	signer := &CosmosMessageSignerRunnable{
@@ -288,18 +313,74 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 		logger:       logger,
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
+		multisigPk:   multisigPk,
+		signerKey:    signerKey,
+		config: models.CosmosNetworkConfig{
+			ChainID:         "chain-id",
+			CoinDenom:       "upokt",
+			Bech32Prefix:    "pokt",
+			MultisigAddress: "multisigAddress",
+		},
 	}
 
-	ethClient.EXPECT().GetTransactionReceipt( "hash1").Return(&types.Receipt{Status: types.ReceiptStatusSuccessful}, nil)
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusSuccessful,
+		Logs:        []*types.Log{{Address: mailbox.Address()}},
+	}, nil)
 	ethClient.EXPECT().GetBlockHeight().Return(uint64(100), nil)
 	ethClient.EXPECT().Confirmations().Return(uint64(10))
 
-	mailbox.EXPECT().ParseDispatchId( mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
+	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
 
-	mockDB.EXPECT().LockWriteMessage( message).Return("lock-id", nil)
-	mockDB.EXPECT().Unlock( "lock-id").Return(nil)
+	txBuilder := clientMocks.NewMockTxBuilder(t)
+	txConfig := clientMocks.NewMockTxConfig(t)
+	tx := clientMocks.NewMockTx(t)
 
-	mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
+	mockDB.EXPECT().LockWriteSequence().Return("lock-id", nil)
+	mockDB.EXPECT().Unlock("lock-id").Return(nil)
+
+	utilNewSendTx = func(string, []byte, []byte, sdk.Coin, string, sdk.Coin) (string, error) {
+		return "txBody", nil
+	}
+
+	utilWrapTxBuilder = func(prefix string, txBody string) (client.TxBuilder, client.TxConfig, error) {
+		assert.Equal(t, "pokt", prefix)
+		assert.Equal(t, "txBody", txBody)
+		return txBuilder, txConfig, nil
+	}
+
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+		return signingtypes.SignatureV2{
+			PubKey: signerKey.PubKey(),
+			Data: &signingtypes.SingleSignatureData{
+				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
+				Signature: []byte("signature"),
+			},
+		}, nil, nil
+	}
+
+	signers := [][]byte{multisigPk.Address().Bytes()}
+
+	assert.True(t, isTxSigner(multisigPk.Address().Bytes(), signers))
+
+	tx.EXPECT().GetSigners().Return(signers, nil)
+
+	txBuilder.EXPECT().SetSignatures(mock.Anything).Return(nil)
+	txBuilder.EXPECT().GetTx().Return(tx)
+
+	var encoder sdk.TxEncoder = func(tx sdk.Tx) ([]byte, error) {
+		return []byte("encoded tx"), nil
+	}
+
+	txConfig.EXPECT().TxJSONEncoder().Return(encoder)
+
+	mockDB.EXPECT().UpdateMessage(message.ID, mock.Anything).Return(nil)
+
+	mockClient.EXPECT().GetAccount("multisigAddress").Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
+
+	mockDB.EXPECT().LockWriteMessage(mock.Anything).Return("lock-id", nil)
+	mockDB.EXPECT().Unlock("lock-id").Return(nil)
 
 	result := signer.ValidateEthereumTxAndSignMessage(message)
 
@@ -314,222 +395,380 @@ func TestSignMessages(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
+	signerKey := secp256k1.GenPrivKey()
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	mailbox.EXPECT().Address().Return(ethcommon.BytesToAddress([]byte("mailbox")))
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
+
 	message := &models.Message{
 		ID:                    &primitive.ObjectID{},
 		OriginTransactionHash: "hash1",
-		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: recipientAddr.Hex(), Amount: "100"}},
 		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+		Sequence:              new(uint64),
 	}
 
 	signer := &CosmosMessageSignerRunnable{
-		db:     mockDB,
-		client: mockClient,
-		logger: logger,
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+		multisigPk:   multisigPk,
+		signerKey:    signerKey,
+		config: models.CosmosNetworkConfig{
+			ChainID:         "chain-id",
+			CoinDenom:       "upokt",
+			Bech32Prefix:    "pokt",
+			MultisigAddress: "multisigAddress",
+		},
 	}
 
-	mockDB.EXPECT().GetPendingMessages( mock.Anything, mock.Anything).Return([]models.Message{*message}, nil)
-	mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusSuccessful,
+		Logs:        []*types.Log{{Address: mailbox.Address()}},
+	}, nil)
+	ethClient.EXPECT().GetBlockHeight().Return(uint64(100), nil)
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
 
-	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
-		return &util.ValidateTxResult{
-			Confirmations: 2,
-			TxStatus:      models.TransactionStatusConfirmed,
-		}, nil
+	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
+
+	txBuilder := clientMocks.NewMockTxBuilder(t)
+	txConfig := clientMocks.NewMockTxConfig(t)
+	tx := clientMocks.NewMockTx(t)
+
+	mockDB.EXPECT().LockWriteSequence().Return("lock-id", nil)
+	mockDB.EXPECT().Unlock("lock-id").Return(nil)
+
+	utilNewSendTx = func(string, []byte, []byte, sdk.Coin, string, sdk.Coin) (string, error) {
+		return "txBody", nil
 	}
+
+	utilWrapTxBuilder = func(prefix string, txBody string) (client.TxBuilder, client.TxConfig, error) {
+		assert.Equal(t, "pokt", prefix)
+		assert.Equal(t, "txBody", txBody)
+		return txBuilder, txConfig, nil
+	}
+
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+		return signingtypes.SignatureV2{
+			PubKey: signerKey.PubKey(),
+			Data: &signingtypes.SingleSignatureData{
+				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
+				Signature: []byte("signature"),
+			},
+		}, nil, nil
+	}
+
+	signers := [][]byte{multisigPk.Address().Bytes()}
+
+	assert.True(t, isTxSigner(multisigPk.Address().Bytes(), signers))
+
+	tx.EXPECT().GetSigners().Return(signers, nil)
+
+	txBuilder.EXPECT().SetSignatures(mock.Anything).Return(nil)
+	txBuilder.EXPECT().GetTx().Return(tx)
+
+	var encoder sdk.TxEncoder = func(tx sdk.Tx) ([]byte, error) {
+		return []byte("encoded tx"), nil
+	}
+
+	txConfig.EXPECT().TxJSONEncoder().Return(encoder)
+
+	mockDB.EXPECT().UpdateMessage(message.ID, mock.Anything).Return(nil)
+
+	mockClient.EXPECT().GetAccount("multisigAddress").Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
+
+	mockDB.EXPECT().LockWriteMessage(mock.Anything).Return("lock-id", nil)
+	mockDB.EXPECT().Unlock("lock-id").Return(nil)
+
+	mockDB.EXPECT().GetPendingMessages(mock.Anything, mock.Anything).Return([]models.Message{*message}, nil)
 
 	result := signer.SignMessages()
 
 	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
 	assert.True(t, result)
 }
 
-func TestBroadcastMessage(t *testing.T) {
+func TestSignMessages_Error(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	message := &models.Message{
-		ID:                    &primitive.ObjectID{},
-		OriginTransactionHash: "hash1",
-		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
-		Signatures:            []models.Signature{},
-	}
-
+	signerKey := secp256k1.GenPrivKey()
 	signer := &CosmosMessageSignerRunnable{
-		db:     mockDB,
-		client: mockClient,
-		logger: logger,
+		db:        mockDB,
+		client:    mockClient,
+		logger:    logger,
+		signerKey: signerKey,
 	}
 
-	txBuilder := clientMocks.NewMockTxBuilder(t)
-	txConfig := clientMocks.NewMockTxConfig(t)
+	mockDB.EXPECT().GetPendingMessages(mock.Anything, mock.Anything).Return(nil, assert.AnError)
 
-	utilWrapTxBuilder = func(bech32Prefix, txBody string) (client.TxBuilder, client.TxConfig, error) {
-		return txBuilder, txConfig, nil
-	}
+	result := signer.SignMessages()
 
-	txBuilder.EXPECT().SetSignatures( mock.Anything).Return(nil)
-	txBuilder.EXPECT().GetTx().Return(mock.Anything)
-	txConfig.EXPECT().TxJSONEncoder().Return(func(tx sdk.Tx) ([]byte, error) {
-		return []byte("{}"), nil
-	})
-
-	mockClient.EXPECT().BroadcastTx", mock.Anything).Return("txHash( nil)
-	mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
-
-	result := signer.BroadcastMessage(message)
-
-	mockClient.AssertExpectations(t)
 	mockDB.AssertExpectations(t)
-	txBuilder.AssertExpectations(t)
-	txConfig.AssertExpectations(t)
-	assert.True(t, result)
+	assert.False(t, result)
 }
 
-func TestBroadcastMessages(t *testing.T) {
+func TestSignerUpdateRefund(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	message := &models.Message{
-		ID:                    &primitive.ObjectID{},
-		OriginTransactionHash: "hash1",
-		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
-		Signatures:            []models.Signature{},
-	}
+	refund := &models.Refund{ID: &primitive.ObjectID{}}
+	update := bson.M{"status": models.RefundStatusSigned}
 
 	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
-		client: mockClient,
 		logger: logger,
 	}
 
-	mockDB.EXPECT().GetSignedMessages( mock.Anything).Return([]models.Message{*message}, nil)
-	mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
+	mockDB.EXPECT().UpdateRefund(refund.ID, update).Return(nil)
 
-	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
-		return &util.ValidateTxResult{
-			Confirmations: 2,
-			TxStatus:      models.TransactionStatusConfirmed,
-		}, nil
-	}
-
-	result := signer.BroadcastMessages()
+	result := signer.UpdateRefund(refund, update)
 
 	mockDB.AssertExpectations(t)
 	assert.True(t, result)
 }
 
-func TestSignRefunds(t *testing.T) {
+func TestSignerUpdateRefund_Error(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	refund := &models.Refund{
-		ID:                    &primitive.ObjectID{},
-		OriginTransactionHash: "hash1",
-		Recipient:             "recipient",
-		Amount:                "100",
-	}
+	refund := &models.Refund{ID: &primitive.ObjectID{}}
+	update := bson.M{"status": models.RefundStatusSigned}
 
 	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
-		client: mockClient,
 		logger: logger,
 	}
 
-	mockDB.EXPECT().GetPendingRefunds( mock.Anything).Return([]models.Refund{*refund}, nil)
-	mockDB.EXPECT().UpdateRefund( refund.ID, mock.Anything).Return(nil)
+	mockDB.EXPECT().UpdateRefund(refund.ID, update).Return(assert.AnError)
 
-	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
-		return &util.ValidateTxResult{
-			Confirmations: 2,
-			TxStatus:      models.TransactionStatusConfirmed,
-		}, nil
-	}
-
-	result := signer.SignRefunds()
+	result := signer.UpdateRefund(refund, update)
 
 	mockDB.AssertExpectations(t)
-	assert.True(t, result)
+	assert.False(t, result)
 }
 
-func TestBroadcastRefund(t *testing.T) {
-	mockDB := dbMocks.NewMockDB(t)
-	mockClient := clientMocks.NewMockCosmosClient(t)
-	logger := log.New().WithField("test", "signer")
+func TestIsTxSigner(t *testing.T) {
+	signer := secp256k1.GenPrivKey()
+	signerPk := signer.PubKey()
 
-	refund := &models.Refund{
-		ID:                    &primitive.ObjectID{},
-		OriginTransactionHash: "hash1",
-		Recipient:             "recipient",
-		Amount:                "100",
-	}
+	signers := [][]byte{signerPk.Bytes()}
 
-	signer := &CosmosMessageSignerRunnable{
-		db:     mockDB,
-		client: mockClient,
-		logger: logger,
-	}
+	assert.True(t, isTxSigner(signerPk.Bytes(), signers))
 
-	txBuilder := clientMocks.NewMockTxBuilder(t)
-	txConfig := clientMocks.NewMockTxConfig(t)
+	otherSigner := secp256k1.GenPrivKey()
 
-	utilWrapTxBuilder = func(string, string) (client.TxBuilder, client.TxConfig, error) {
-		return txBuilder, txConfig, nil
-	}
-
-	txBuilder.EXPECT().SetSignatures( mock.Anything).Return(nil)
-	txBuilder.EXPECT().GetTx().Return(mock.Anything)
-	txConfig.EXPECT().TxJSONEncoder().Return(func(tx sdk.Tx) ([]byte, error) {
-		return []byte("{}"), nil
-	})
-
-	mockClient.EXPECT().BroadcastTx", mock.Anything).Return("txHash( nil)
-	mockDB.EXPECT().UpdateRefund( refund.ID, mock.Anything).Return(nil)
-
-	result := signer.BroadcastRefund(nil, refund, []byte("spender"), sdk.Coin{})
-
-	mockClient.AssertExpectations(t)
-	mockDB.AssertExpectations(t)
-	txBuilder.AssertExpectations(t)
-	txConfig.AssertExpectations(t)
-	assert.True(t, result)
+	assert.False(t, isTxSigner(otherSigner.PubKey().Bytes(), signers))
 }
 
-func TestBroadcastRefunds(t *testing.T) {
-	mockDB := dbMocks.NewMockDB(t)
-	mockClient := clientMocks.NewMockCosmosClient(t)
-	logger := log.New().WithField("test", "signer")
+/*
+	func TestBroadcastMessage(t *testing.T) {
+		mockDB := dbMocks.NewMockDB(t)
+		mockClient := clientMocks.NewMockCosmosClient(t)
+		logger := log.New().WithField("test", "signer")
 
-	refund := &models.Refund{
-		ID:                    &primitive.ObjectID{},
-		OriginTransactionHash: "hash1",
-		Recipient:             "recipient",
-		Amount:                "100",
+		message := &models.Message{
+			ID:                    &primitive.ObjectID{},
+			OriginTransactionHash: "hash1",
+			Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+			Signatures:            []models.Signature{},
+		}
+
+		signer := &CosmosMessageSignerRunnable{
+			db:     mockDB,
+			client: mockClient,
+			logger: logger,
+		}
+
+		txBuilder := clientMocks.NewMockTxBuilder(t)
+		txConfig := clientMocks.NewMockTxConfig(t)
+
+		utilWrapTxBuilder = func(bech32Prefix, txBody string) (client.TxBuilder, client.TxConfig, error) {
+			return txBuilder, txConfig, nil
+		}
+
+		txBuilder.EXPECT().SetSignatures( mock.Anything).Return(nil)
+		txBuilder.EXPECT().GetTx().Return(mock.Anything)
+		txConfig.EXPECT().TxJSONEncoder().Return(func(tx sdk.Tx) ([]byte, error) {
+			return []byte("{}"), nil
+		})
+
+		mockClient.EXPECT().BroadcastTx", mock.Anything).Return("txHash( nil)
+		mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
+
+		result := signer.BroadcastMessage(message)
+
+		mockClient.AssertExpectations(t)
+		mockDB.AssertExpectations(t)
+		txBuilder.AssertExpectations(t)
+		txConfig.AssertExpectations(t)
+		assert.True(t, result)
 	}
 
-	signer := &CosmosMessageSignerRunnable{
-		db:     mockDB,
-		client: mockClient,
-		logger: logger,
+	func TestBroadcastMessages(t *testing.T) {
+		mockDB := dbMocks.NewMockDB(t)
+		mockClient := clientMocks.NewMockCosmosClient(t)
+		logger := log.New().WithField("test", "signer")
+
+		message := &models.Message{
+			ID:                    &primitive.ObjectID{},
+			OriginTransactionHash: "hash1",
+			Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+			Signatures:            []models.Signature{},
+		}
+
+		signer := &CosmosMessageSignerRunnable{
+			db:     mockDB,
+			client: mockClient,
+			logger: logger,
+		}
+
+		mockDB.EXPECT().GetSignedMessages( mock.Anything).Return([]models.Message{*message}, nil)
+		mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
+
+		utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
+			return &util.ValidateTxResult{
+				Confirmations: 2,
+				TxStatus:      models.TransactionStatusConfirmed,
+			}, nil
+		}
+
+		result := signer.BroadcastMessages()
+
+		mockDB.AssertExpectations(t)
+		assert.True(t, result)
 	}
 
-	mockDB.EXPECT().GetSignedRefunds( mock.Anything).Return([]models.Refund{*refund}, nil)
-	mockDB.EXPECT().UpdateRefund( refund.ID, mock.Anything).Return(nil)
+	func TestSignRefunds(t *testing.T) {
+		mockDB := dbMocks.NewMockDB(t)
+		mockClient := clientMocks.NewMockCosmosClient(t)
+		logger := log.New().WithField("test", "signer")
 
-	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
-		return &util.ValidateTxResult{
-			Confirmations: 2,
-			TxStatus:      models.TransactionStatusConfirmed,
-		}, nil
+		refund := &models.Refund{
+			ID:                    &primitive.ObjectID{},
+			OriginTransactionHash: "hash1",
+			Recipient:             "recipient",
+			Amount:                "100",
+		}
+
+		signer := &CosmosMessageSignerRunnable{
+			db:     mockDB,
+			client: mockClient,
+			logger: logger,
+		}
+
+		mockDB.EXPECT().GetPendingRefunds( mock.Anything).Return([]models.Refund{*refund}, nil)
+		mockDB.EXPECT().UpdateRefund( refund.ID, mock.Anything).Return(nil)
+
+		utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
+			return &util.ValidateTxResult{
+				Confirmations: 2,
+				TxStatus:      models.TransactionStatusConfirmed,
+			}, nil
+		}
+
+		result := signer.SignRefunds()
+
+		mockDB.AssertExpectations(t)
+		assert.True(t, result)
 	}
 
-	result := signer.BroadcastRefunds()
+	func TestBroadcastRefund(t *testing.T) {
+		mockDB := dbMocks.NewMockDB(t)
+		mockClient := clientMocks.NewMockCosmosClient(t)
+		logger := log.New().WithField("test", "signer")
 
-	mockDB.AssertExpectations(t)
-	assert.True(t, result)
-}
+		refund := &models.Refund{
+			ID:                    &primitive.ObjectID{},
+			OriginTransactionHash: "hash1",
+			Recipient:             "recipient",
+			Amount:                "100",
+		}
+
+		signer := &CosmosMessageSignerRunnable{
+			db:     mockDB,
+			client: mockClient,
+			logger: logger,
+		}
+
+		txBuilder := clientMocks.NewMockTxBuilder(t)
+		txConfig := clientMocks.NewMockTxConfig(t)
+
+		utilWrapTxBuilder = func(string, string) (client.TxBuilder, client.TxConfig, error) {
+			return txBuilder, txConfig, nil
+		}
+
+		txBuilder.EXPECT().SetSignatures( mock.Anything).Return(nil)
+		txBuilder.EXPECT().GetTx().Return(mock.Anything)
+		txConfig.EXPECT().TxJSONEncoder().Return(func(tx sdk.Tx) ([]byte, error) {
+			return []byte("{}"), nil
+		})
+
+		mockClient.EXPECT().BroadcastTx", mock.Anything).Return("txHash( nil)
+		mockDB.EXPECT().UpdateRefund( refund.ID, mock.Anything).Return(nil)
+
+		result := signer.BroadcastRefund(nil, refund, []byte("spender"), sdk.Coin{})
+
+		mockClient.AssertExpectations(t)
+		mockDB.AssertExpectations(t)
+		txBuilder.AssertExpectations(t)
+		txConfig.AssertExpectations(t)
+		assert.True(t, result)
+	}
+
+	func TestBroadcastRefunds(t *testing.T) {
+		mockDB := dbMocks.NewMockDB(t)
+		mockClient := clientMocks.NewMockCosmosClient(t)
+		logger := log.New().WithField("test", "signer")
+
+		refund := &models.Refund{
+			ID:                    &primitive.ObjectID{},
+			OriginTransactionHash: "hash1",
+			Recipient:             "recipient",
+			Amount:                "100",
+		}
+
+		signer := &CosmosMessageSignerRunnable{
+			db:     mockDB,
+			client: mockClient,
+			logger: logger,
+		}
+
+		mockDB.EXPECT().GetSignedRefunds( mock.Anything).Return([]models.Refund{*refund}, nil)
+		mockDB.EXPECT().UpdateRefund( refund.ID, mock.Anything).Return(nil)
+
+		utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
+			return &util.ValidateTxResult{
+				Confirmations: 2,
+				TxStatus:      models.TransactionStatusConfirmed,
+			}, nil
+		}
+
+		result := signer.BroadcastRefunds()
+
+		mockDB.AssertExpectations(t)
+		assert.True(t, result)
+	}
+*/
 
 func TestValidateSignatures(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
@@ -538,7 +777,8 @@ func TestValidateSignatures(t *testing.T) {
 	txBuilder := clientMocks.NewMockTxBuilder(t)
 	txConfig := clientMocks.NewMockTxConfig(t)
 
-	multisigPk := &multisig.LegacyAminoPubKey{}
+	signerKey := secp256k1.GenPrivKey()
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
 
 	signer := &CosmosMessageSignerRunnable{
 		client:     mockClient,
@@ -546,13 +786,14 @@ func TestValidateSignatures(t *testing.T) {
 		multisigPk: multisigPk,
 	}
 
-	mockClient.EXPECT().GetAccount( mock.Anything).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
+	mockClient.EXPECT().GetAccount(mock.Anything).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
 
-	txBuilder.EXPECT().GetTx().Return(mock.Anything)
-	txBuilder.EXPECT().SetSignatures( mock.Anything).Return(nil)
-	txConfig.EXPECT().TxJSONEncoder().Return(func(tx sdk.Tx) ([]byte, error) {
-		return []byte("{}"), nil
-	})
+	tx := clientMocks.NewMockTx(t)
+
+	txBuilder.EXPECT().GetTx().Return(tx)
+	tx.EXPECT().GetSignaturesV2().Return([]signingtypes.SignatureV2{}, nil)
+
+	txBuilder.EXPECT().SetSignatures(mock.Anything).Return(nil)
 
 	result := signer.ValidateSignatures("hash1", 1, txConfig, txBuilder)
 
@@ -561,7 +802,6 @@ func TestValidateSignatures(t *testing.T) {
 	txConfig.AssertExpectations(t)
 	assert.True(t, result)
 }
-
 func TestFindMaxSequence(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
@@ -574,9 +814,9 @@ func TestFindMaxSequence(t *testing.T) {
 	}
 
 	mockDB.EXPECT().LockReadSequences().Return("lock-id", nil)
-	mockDB.EXPECT().Unlock( "lock-id").Return(nil)
-	mockDB.EXPECT().FindMaxSequence( mock.Anything).Return(nil, nil)
-	mockClient.EXPECT().GetAccount( mock.Anything).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
+	mockDB.EXPECT().Unlock("lock-id").Return(nil)
+	mockDB.EXPECT().FindMaxSequence(mock.Anything).Return(nil, nil)
+	mockClient.EXPECT().GetAccount(mock.Anything).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
 
 	sequence, err := signer.FindMaxSequence()
 
@@ -585,4 +825,3 @@ func TestFindMaxSequence(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), sequence)
 }
-*/

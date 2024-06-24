@@ -1,0 +1,67 @@
+name: CI
+
+on: [push, pull_request]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '^1.22.3'
+
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            /go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Dependencies
+        run: go clean && go mod download && go mod verify
+
+      - name: Check Formatting
+        run: |
+          output=$(gofmt -l .)
+          if [ -n "$output" ]; then
+            echo "The following files need formatting:"
+            echo "$output"
+            exit 1
+          else
+            echo "All files are properly formatted."
+          fi
+
+      - name: Run Static Code Analysis
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && golangci-lint run
+
+      - name: Run Unit Tests
+        run: bash coverage.sh
+
+      - name: Upload Test Coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.out
+
+      - name: Build
+        run: go build -o wpokt-oracle .
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: wpokt-oracle
+          path: wpokt-oracle

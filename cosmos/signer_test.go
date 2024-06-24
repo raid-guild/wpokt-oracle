@@ -14,7 +14,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 
-	cosmosMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
+	clientMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	dbMocks "github.com/dan13ram/wpokt-oracle/db/mocks"
 	"github.com/dan13ram/wpokt-oracle/models"
 
@@ -40,12 +40,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func TestSignerUpdateCurrentHeight(t *testing.T) {
+func TestSignerHeight(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
+		db:                 mockDB,
+		client:             mockClient,
+		logger:             logger,
+		currentBlockHeight: 100,
+	}
+
+	height := signer.Height()
+
+	assert.Equal(t, uint64(100), height)
+}
+
+func TestSignerUpdateCurrentHeight(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
@@ -53,10 +70,29 @@ func TestSignerUpdateCurrentHeight(t *testing.T) {
 
 	mockClient.EXPECT().GetLatestBlockHeight().Return(int64(100), nil)
 
-	monitor.UpdateCurrentHeight()
+	signer.UpdateCurrentHeight()
 
 	mockClient.AssertExpectations(t)
-	assert.Equal(t, uint64(100), monitor.currentBlockHeight)
+	assert.Equal(t, uint64(100), signer.currentBlockHeight)
+}
+
+func TestSignerUpdateCurrentHeight_Error(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	signer := &CosmosMessageSignerRunnable{
+		db:     mockDB,
+		client: mockClient,
+		logger: logger,
+	}
+
+	mockClient.EXPECT().GetLatestBlockHeight().Return(int64(100), assert.AnError)
+
+	signer.UpdateCurrentHeight()
+
+	mockClient.AssertExpectations(t)
+	assert.Equal(t, uint64(0), signer.currentBlockHeight)
 }
 
 func TestSignerUpdateMessage(t *testing.T) {
@@ -66,14 +102,14 @@ func TestSignerUpdateMessage(t *testing.T) {
 	message := &models.Message{ID: &primitive.ObjectID{}}
 	update := bson.M{"status": models.MessageStatusSigned}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		logger: logger,
 	}
 
 	mockDB.EXPECT().UpdateMessage(message.ID, update).Return(nil)
 
-	result := monitor.UpdateMessage(message, update)
+	result := signer.UpdateMessage(message, update)
 
 	mockDB.AssertExpectations(t)
 	assert.True(t, result)
@@ -81,7 +117,7 @@ func TestSignerUpdateMessage(t *testing.T) {
 
 func TestSignMessage(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	signerKey := secp256k1.GenPrivKey()
@@ -97,7 +133,7 @@ func TestSignMessage(t *testing.T) {
 		Sequence:              new(uint64),
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
@@ -117,9 +153,9 @@ func TestSignMessage(t *testing.T) {
 	// 	Sequence:      1,
 	// }
 
-	txBuilder := cosmosMocks.NewMockTxBuilder(t)
-	txConfig := cosmosMocks.NewMockTxConfig(t)
-	tx := cosmosMocks.NewMockTx(t)
+	txBuilder := clientMocks.NewMockTxBuilder(t)
+	txConfig := clientMocks.NewMockTxConfig(t)
+	tx := clientMocks.NewMockTx(t)
 
 	mockDB.EXPECT().LockWriteSequence().Return("lock-id", nil)
 	mockDB.EXPECT().Unlock("lock-id").Return(nil)
@@ -164,7 +200,7 @@ func TestSignMessage(t *testing.T) {
 
 	mockClient.EXPECT().GetAccount("multisigAddress").Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
 
-	result := monitor.SignMessage(message)
+	result := signer.SignMessage(message)
 
 	mockDB.AssertExpectations(t)
 	txBuilder.AssertExpectations(t)
@@ -174,7 +210,7 @@ func TestSignMessage(t *testing.T) {
 
 func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -197,7 +233,7 @@ func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 		MessageID:             messageID,
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:           mockDB,
 		client:       mockClient,
 		logger:       logger,
@@ -215,7 +251,7 @@ func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 
 	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
 
-	result, err := monitor.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -230,7 +266,7 @@ func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 /*
 func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -246,7 +282,7 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 		Signatures:            []models.Signature{},
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:           mockDB,
 		client:       mockClient,
 		logger:       logger,
@@ -265,7 +301,7 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 
 	mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
 
-	result := monitor.ValidateEthereumTxAndSignMessage(message)
+	result := signer.ValidateEthereumTxAndSignMessage(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -275,7 +311,7 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 
 func TestSignMessages(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	message := &models.Message{
@@ -285,7 +321,7 @@ func TestSignMessages(t *testing.T) {
 		Signatures:            []models.Signature{},
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
@@ -301,7 +337,7 @@ func TestSignMessages(t *testing.T) {
 		}, nil
 	}
 
-	result := monitor.SignMessages()
+	result := signer.SignMessages()
 
 	mockDB.AssertExpectations(t)
 	assert.True(t, result)
@@ -309,7 +345,7 @@ func TestSignMessages(t *testing.T) {
 
 func TestBroadcastMessage(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	message := &models.Message{
@@ -319,14 +355,14 @@ func TestBroadcastMessage(t *testing.T) {
 		Signatures:            []models.Signature{},
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
 	}
 
-	txBuilder := cosmosMocks.NewMockTxBuilder(t)
-	txConfig := cosmosMocks.NewMockTxConfig(t)
+	txBuilder := clientMocks.NewMockTxBuilder(t)
+	txConfig := clientMocks.NewMockTxConfig(t)
 
 	utilWrapTxBuilder = func(bech32Prefix, txBody string) (client.TxBuilder, client.TxConfig, error) {
 		return txBuilder, txConfig, nil
@@ -341,7 +377,7 @@ func TestBroadcastMessage(t *testing.T) {
 	mockClient.EXPECT().BroadcastTx", mock.Anything).Return("txHash( nil)
 	mockDB.EXPECT().UpdateMessage( message.ID, mock.Anything).Return(nil)
 
-	result := monitor.BroadcastMessage(message)
+	result := signer.BroadcastMessage(message)
 
 	mockClient.AssertExpectations(t)
 	mockDB.AssertExpectations(t)
@@ -352,7 +388,7 @@ func TestBroadcastMessage(t *testing.T) {
 
 func TestBroadcastMessages(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	message := &models.Message{
@@ -362,7 +398,7 @@ func TestBroadcastMessages(t *testing.T) {
 		Signatures:            []models.Signature{},
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
@@ -378,7 +414,7 @@ func TestBroadcastMessages(t *testing.T) {
 		}, nil
 	}
 
-	result := monitor.BroadcastMessages()
+	result := signer.BroadcastMessages()
 
 	mockDB.AssertExpectations(t)
 	assert.True(t, result)
@@ -386,7 +422,7 @@ func TestBroadcastMessages(t *testing.T) {
 
 func TestSignRefunds(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	refund := &models.Refund{
@@ -396,7 +432,7 @@ func TestSignRefunds(t *testing.T) {
 		Amount:                "100",
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
@@ -412,7 +448,7 @@ func TestSignRefunds(t *testing.T) {
 		}, nil
 	}
 
-	result := monitor.SignRefunds()
+	result := signer.SignRefunds()
 
 	mockDB.AssertExpectations(t)
 	assert.True(t, result)
@@ -420,7 +456,7 @@ func TestSignRefunds(t *testing.T) {
 
 func TestBroadcastRefund(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	refund := &models.Refund{
@@ -430,14 +466,14 @@ func TestBroadcastRefund(t *testing.T) {
 		Amount:                "100",
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
 	}
 
-	txBuilder := cosmosMocks.NewMockTxBuilder(t)
-	txConfig := cosmosMocks.NewMockTxConfig(t)
+	txBuilder := clientMocks.NewMockTxBuilder(t)
+	txConfig := clientMocks.NewMockTxConfig(t)
 
 	utilWrapTxBuilder = func(string, string) (client.TxBuilder, client.TxConfig, error) {
 		return txBuilder, txConfig, nil
@@ -452,7 +488,7 @@ func TestBroadcastRefund(t *testing.T) {
 	mockClient.EXPECT().BroadcastTx", mock.Anything).Return("txHash( nil)
 	mockDB.EXPECT().UpdateRefund( refund.ID, mock.Anything).Return(nil)
 
-	result := monitor.BroadcastRefund(nil, refund, []byte("spender"), sdk.Coin{})
+	result := signer.BroadcastRefund(nil, refund, []byte("spender"), sdk.Coin{})
 
 	mockClient.AssertExpectations(t)
 	mockDB.AssertExpectations(t)
@@ -463,7 +499,7 @@ func TestBroadcastRefund(t *testing.T) {
 
 func TestBroadcastRefunds(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
 	refund := &models.Refund{
@@ -473,7 +509,7 @@ func TestBroadcastRefunds(t *testing.T) {
 		Amount:                "100",
 	}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
@@ -489,22 +525,22 @@ func TestBroadcastRefunds(t *testing.T) {
 		}, nil
 	}
 
-	result := monitor.BroadcastRefunds()
+	result := signer.BroadcastRefunds()
 
 	mockDB.AssertExpectations(t)
 	assert.True(t, result)
 }
 
 func TestValidateSignatures(t *testing.T) {
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	txBuilder := cosmosMocks.NewMockTxBuilder(t)
-	txConfig := cosmosMocks.NewMockTxConfig(t)
+	txBuilder := clientMocks.NewMockTxBuilder(t)
+	txConfig := clientMocks.NewMockTxConfig(t)
 
 	multisigPk := &multisig.LegacyAminoPubKey{}
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
@@ -518,7 +554,7 @@ func TestValidateSignatures(t *testing.T) {
 		return []byte("{}"), nil
 	})
 
-	result := monitor.ValidateSignatures("hash1", 1, txConfig, txBuilder)
+	result := signer.ValidateSignatures("hash1", 1, txConfig, txBuilder)
 
 	mockClient.AssertExpectations(t)
 	txBuilder.AssertExpectations(t)
@@ -528,10 +564,10 @@ func TestValidateSignatures(t *testing.T) {
 
 func TestFindMaxSequence(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
-	mockClient := cosmosMocks.NewMockCosmosClient(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	monitor := &CosmosMessageSignerRunnable{
+	signer := &CosmosMessageSignerRunnable{
 		db:     mockDB,
 		client: mockClient,
 		logger: logger,
@@ -542,7 +578,7 @@ func TestFindMaxSequence(t *testing.T) {
 	mockDB.EXPECT().FindMaxSequence( mock.Anything).Return(nil, nil)
 	mockClient.EXPECT().GetAccount( mock.Anything).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
 
-	sequence, err := monitor.FindMaxSequence()
+	sequence, err := signer.FindMaxSequence()
 
 	mockDB.AssertExpectations(t)
 	mockClient.AssertExpectations(t)

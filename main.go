@@ -23,7 +23,7 @@ import (
 func NewMintControllerMap(config models.Config) map[uint32][]byte {
 	mintControllerMap := make(map[uint32][]byte)
 
-	for _, ethNetwork := range config.EthereumNetworks {
+	for _, ethNetwork := range      config.EthereumNetworks {
 		mintController, err := common.BytesFromAddressHex(ethNetwork.MintControllerAddress)
 		if err != nil {
 			logger.
@@ -31,7 +31,7 @@ func NewMintControllerMap(config models.Config) map[uint32][]byte {
 				Fatalf("Error parsing mint controller address")
 			return nil
 		}
-		ethChain := ethUtil.ParseChain(ethNetwork)
+		ethChain := ethUtil.ParseChain(   ethNetwork)
 
 		mintControllerMap[ethChain.ChainDomain] = mintController
 	}

@@ -21,7 +21,22 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
-func TestUpdateCurrentHeight(t *testing.T) {
+func TestRelayerHeight(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+
+	relayer := &CosmosMessageRelayerRunnable{
+		db:                 mockDB,
+		client:             mockClient,
+		currentBlockHeight: 100,
+	}
+
+	height := relayer.Height()
+
+	assert.Equal(t, uint64(100), height)
+}
+
+func TestRelayerUpdateCurrentHeight(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := logrus.New().WithField("test", "relayer")
@@ -38,6 +53,25 @@ func TestUpdateCurrentHeight(t *testing.T) {
 
 	mockClient.AssertExpectations(t)
 	assert.Equal(t, uint64(100), relayer.currentBlockHeight)
+}
+
+func TestRelayerUpdateCurrentHeight_Error(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := logrus.New().WithField("test", "relayer")
+
+	relayer := &CosmosMessageRelayerRunnable{
+		db:     mockDB,
+		client: mockClient,
+		logger: logger,
+	}
+
+	mockClient.EXPECT().GetLatestBlockHeight().Return(int64(100), assert.AnError)
+
+	relayer.UpdateCurrentHeight()
+
+	mockClient.AssertExpectations(t)
+	assert.Equal(t, uint64(0), relayer.currentBlockHeight)
 }
 
 func TestUpdateRefund(t *testing.T) {

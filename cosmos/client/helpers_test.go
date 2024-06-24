@@ -15,12 +15,13 @@ import (
 
 	"github.com/cometbft/cometbft/types"
 
+	clientMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/client_mocks"
 	"github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 )
 
 func TestGetBlocksForTxResults(t *testing.T) {
-	mockClient := NewMockCosmosHTTPClient(t)
+	mockClient := clientMocks.NewMockCosmosHTTPClient(t)
 	resTxs := []*rpctypes.ResultTx{
 		{Height: 1},
 		{Height: 2},
@@ -42,7 +43,7 @@ func TestGetBlocksForTxResults(t *testing.T) {
 }
 
 func TestGetBlocksForTxResults_Error(t *testing.T) {
-	mockClient := NewMockCosmosHTTPClient(t)
+	mockClient := clientMocks.NewMockCosmosHTTPClient(t)
 	resTxs := []*rpctypes.ResultTx{
 		{Height: 1},
 		{Height: 2},
@@ -77,7 +78,7 @@ func TestFormatTxResults(t *testing.T) {
 		1: resBlock,
 	}
 
-	mockTx := NewMockAnyTx(t)
+	mockTx := clientMocks.NewMockAnyTx(t)
 	txDecoder := func(txBytes []byte) (sdk.Tx, error) {
 		return mockTx, nil
 	}
@@ -114,7 +115,7 @@ func TestFormatTxResults_Error(t *testing.T) {
 		1: resBlock,
 	}
 
-	mockTx := NewMockAnyTx(t)
+	mockTx := clientMocks.NewMockAnyTx(t)
 	txDecoder := func(txBytes []byte) (sdk.Tx, error) {
 		return mockTx, errors.New("error")
 	}
@@ -142,7 +143,7 @@ func TestMkTxResult(t *testing.T) {
 		},
 	}
 
-	mockTx := NewMockAnyTx(t)
+	mockTx := clientMocks.NewMockAnyTx(t)
 	txDecoder := func(txBytes []byte) (sdk.Tx, error) {
 		return mockTx, nil
 	}
@@ -171,7 +172,7 @@ func TestMkTxResult_ErrorDecoding(t *testing.T) {
 		},
 	}
 
-	mockTx := NewMockAnyTx(t)
+	mockTx := clientMocks.NewMockAnyTx(t)
 	txDecoder := func(txBytes []byte) (sdk.Tx, error) {
 		return mockTx, errors.New("error")
 	}

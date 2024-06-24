@@ -84,10 +84,6 @@ func (c *cosmosClient) Confirmations() uint64 {
 }
 
 func (c *cosmosClient) getLatestBlockGRPC() (*cmtservice.Block, error) {
-	if !c.grpcEnabled {
-		return nil, fmt.Errorf("grpc disabled")
-	}
-
 	client := cmtserviceNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
@@ -104,9 +100,6 @@ func (c *cosmosClient) getLatestBlockGRPC() (*cmtservice.Block, error) {
 }
 
 func (c *cosmosClient) getStatusRPC() (*rpctypes.ResultStatus, error) {
-	if c.grpcEnabled {
-		return nil, fmt.Errorf("grpc enabled")
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
@@ -157,9 +150,6 @@ func (c *cosmosClient) GetTxsSentFromAddressAfterHeight(address string, height u
 }
 
 func (c *cosmosClient) getTxsByEventsPerPageGRPC(query string, page uint64) ([]*sdk.TxResponse, uint64, error) {
-	if !c.grpcEnabled {
-		return nil, 0, fmt.Errorf("grpc disabled")
-	}
 	client := txNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
@@ -180,9 +170,6 @@ func (c *cosmosClient) getTxsByEventsPerPageGRPC(query string, page uint64) ([]*
 }
 
 func (c *cosmosClient) getTxsByEventsPerPageRPC(query string, page uint64) ([]*sdk.TxResponse, uint64, error) {
-	if c.grpcEnabled {
-		return nil, 0, fmt.Errorf("grpc enabled")
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
@@ -209,7 +196,7 @@ func (c *cosmosClient) getTxsByEventsPerPageRPC(query string, page uint64) ([]*s
 
 func (c *cosmosClient) getTxsByEvents(query string) ([]*sdk.TxResponse, error) {
 	var page uint64 = 1
-	var txs []*sdk.TxResponse
+	var txs []*sdk.TxResponse = make([]*sdk.TxResponse, 0)
 	for {
 
 		var respTxs []*sdk.TxResponse
@@ -238,9 +225,6 @@ func (c *cosmosClient) getTxsByEvents(query string) ([]*sdk.TxResponse, error) {
 }
 
 func (c *cosmosClient) getTxGRPC(hash string) (*sdk.TxResponse, error) {
-	if !c.grpcEnabled {
-		return nil, fmt.Errorf("grpc disabled")
-	}
 	client := txNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
@@ -259,9 +243,6 @@ func (c *cosmosClient) getTxGRPC(hash string) (*sdk.TxResponse, error) {
 }
 
 func (c *cosmosClient) getTxRPC(hash string) (*sdk.TxResponse, error) {
-	if c.grpcEnabled {
-		return nil, fmt.Errorf("grpc enabled")
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
@@ -297,9 +278,6 @@ func (c *cosmosClient) GetTx(hash string) (*sdk.TxResponse, error) {
 }
 
 func (c *cosmosClient) getAccountGRPC(address string) (*auth.BaseAccount, error) {
-	if !c.grpcEnabled {
-		return nil, fmt.Errorf("grpc disabled")
-	}
 	client := authNewQueryClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
@@ -323,16 +301,10 @@ func (c *cosmosClient) getAccountGRPC(address string) (*auth.BaseAccount, error)
 }
 
 func (c *cosmosClient) getAccountRPC(address string) (*auth.BaseAccount, error) {
-	if c.grpcEnabled {
-		return nil, fmt.Errorf("grpc enabled")
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	reqBz, err := util.NewProtoCodec(c.bech32Prefix).Marshal(&auth.QueryAccountRequest{Address: address})
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal account request: %s", err)
-	}
+	reqBz, _ := util.NewProtoCodec(c.bech32Prefix).Marshal(&auth.QueryAccountRequest{Address: address}) // no reason to fail since account address is validated
 
 	res, err := c.rpcClient.ABCIQuery(ctx, "/cosmos.auth.v1beta1.Query/Account", reqBz)
 
@@ -368,10 +340,6 @@ func (c *cosmosClient) GetAccount(address string) (*auth.BaseAccount, error) {
 }
 
 func (c *cosmosClient) broadcastTxGRPC(txBytes []byte) (string, error) {
-	if !c.grpcEnabled {
-		return "", fmt.Errorf("grpc disabled")
-	}
-
 	client := txNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
@@ -395,10 +363,6 @@ func (c *cosmosClient) broadcastTxGRPC(txBytes []byte) (string, error) {
 }
 
 func (c *cosmosClient) broadcastTxRPC(txBytes []byte) (string, error) {
-	if c.grpcEnabled {
-		return "", fmt.Errorf("grpc enabled")
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
@@ -444,18 +408,23 @@ func (c *cosmosClient) ValidateNetwork() error {
 	c.logger.Debugf("Validating network")
 	chainID, err := c.GetChainID()
 	if err != nil {
-		return fmt.Errorf("failed to validate network: %s", err)
+		return err
 	}
 	if chainID != c.chain.ChainID {
-		return fmt.Errorf("failed to validate network: expected chain id %s, got %s", c.chain.ChainID, chainID)
+		return fmt.Errorf("expected chain id %s, got %s", c.chain.ChainID, chainID)
 	}
 	c.logger.Debugf("Validated network")
 	return nil
 }
 
+var grpcDial = grpc.Dial
+var rpchttpNew = func(url, endpoint string) (CosmosHTTPClient, error) {
+	return rpchttp.New(url, endpoint)
+}
+
 func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 	var connection *grpc.ClientConn
-	var client *rpchttp.HTTP
+	var client CosmosHTTPClient
 
 	logger := log.
 		WithField("module", "cosmos").
@@ -465,7 +434,7 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 
 	if config.GRPCEnabled {
 		grpcURL := fmt.Sprintf("%s:%d", config.GRPCHost, config.GRPCPort)
-		conn, err := grpc.Dial(grpcURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpcDial(grpcURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			logger.WithError(err).Error("failed to connect to grpc")
 			return nil, fmt.Errorf("failed to connect to grpc")
@@ -473,7 +442,7 @@ func NewClient(config models.CosmosNetworkConfig) (CosmosClient, error) {
 		connection = conn
 		client = nil
 	} else {
-		c, err := rpchttp.New(config.RPCURL, "/websocket")
+		c, err := rpchttpNew(config.RPCURL, "/websocket")
 		if err != nil {
 			logger.WithError(err).Error("failed to connect to rpc")
 			return nil, fmt.Errorf("failed to connect to rpc")

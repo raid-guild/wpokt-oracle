@@ -14,13 +14,11 @@ packages:
       CosmosClient:
       CosmosHTTPClient:
         config:
-          outpkg: "client"
-          dir: "{{.InterfaceDir}}"
-          filename: "mock_{{ .InterfaceName | snakecase }}.go"
+          dir: "{{.InterfaceDir}}/client_mocks"
+          filename: "{{ .InterfaceName | snakecase }}.go"
       AnyTx:
         config:
-          outpkg: "client"
-          dir: "{{.InterfaceDir}}"
+          dir: "{{.InterfaceDir}}/client_mocks"
           filename: "mock_{{ .InterfaceName | snakecase }}.go"
   github.com/dan13ram/wpokt-oracle/ethereum/client:
     interfaces:
@@ -32,9 +30,8 @@ packages:
       WarpISMContract:
       EthHTTPClient:
         config:
-          outpkg: "client"
-          dir: "{{.InterfaceDir}}"
-          filename: "mock_{{ .InterfaceName | snakecase }}.go"
+          dir: "{{.InterfaceDir}}/client_mocks"
+          filename: "{{ .InterfaceName | snakecase }}.go"
   github.com/cosmos/cosmos-sdk/client:
     config: 
       dir: "cosmos/client/mocks"
@@ -47,25 +44,28 @@ packages:
     interfaces:
       Tx:
   github.com/cosmos/cosmos-sdk/client/grpc/cmtservice:
-      config:
-        dir: "cosmos/client/mocks"
-        mockname: "MockCMT{{.InterfaceName}}"
-      interfaces:
-        ServiceClient:
+    config:
+      dir: "cosmos/client/client_mocks"
+      mockname: "MockCMT{{.InterfaceName}}"
+      filename: "cmt_{{ .InterfaceName | snakecase }}.go"
+    interfaces:
+      ServiceClient:
   github.com/cosmos/cosmos-sdk/x/auth/types:
-      config:
-        dir: "cosmos/client/mocks"
-        mockname: "MockAuth{{.InterfaceName}}"
-      interfaces:
-        QueryClient:
+    config:
+      dir: "cosmos/client/client_mocks"
+      mockname: "MockAuth{{.InterfaceName}}"
+      filename: "auth_{{ .InterfaceName | snakecase }}.go"
+    interfaces:
+      QueryClient:
   github.com/cosmos/cosmos-sdk/types/tx:
     config:
-      dir: "cosmos/client/mocks"
+      dir: "cosmos/client/client_mocks"
       mockname: "MockTx{{.InterfaceName}}"
+      filename: "tx_{{ .InterfaceName | snakecase }}.go"
     interfaces:
       ServiceClient:
   github.com/cosmos/cosmos-sdk/crypto/types:
-     config:
-      dir: "cosmos/util/mocks"
-     interfaces:
-      PrivKey:
+    config:
+     dir: "cosmos/util/mocks"
+    interfaces:
+     PrivKey:

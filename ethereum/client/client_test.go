@@ -11,12 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	mocks "github.com/dan13ram/wpokt-oracle/ethereum/client/client_mocks"
 	"github.com/dan13ram/wpokt-oracle/models"
 	log "github.com/sirupsen/logrus"
 )
 
 func TestEthereumClient_GetBlockHeight(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -38,7 +39,7 @@ func TestEthereumClient_Chain(t *testing.T) {
 }
 
 func TestEthereumClient_GetClient(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -49,7 +50,7 @@ func TestEthereumClient_GetClient(t *testing.T) {
 }
 
 func TestEthereumClient_GetBlockHeight_Error(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -67,7 +68,7 @@ func TestEthereumClient_GetBlockHeight_Error(t *testing.T) {
 }
 
 func TestEthereumClient_GetChainID(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -84,7 +85,7 @@ func TestEthereumClient_GetChainID(t *testing.T) {
 }
 
 func TestEthereumClient_ValidateNetwork(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -102,7 +103,7 @@ func TestEthereumClient_ValidateNetwork(t *testing.T) {
 }
 
 func TestEthereumClient_ValidateNetwork_ErrorChainID(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -121,7 +122,7 @@ func TestEthereumClient_ValidateNetwork_ErrorChainID(t *testing.T) {
 }
 
 func TestEthereumClient_ValidateNetwork_InvalidChainID(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -140,7 +141,7 @@ func TestEthereumClient_ValidateNetwork_InvalidChainID(t *testing.T) {
 }
 
 func TestEthereumClient_GetTransactionByHash(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -159,7 +160,7 @@ func TestEthereumClient_GetTransactionByHash(t *testing.T) {
 }
 
 func TestEthereumClient_GetTransactionReceipt(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -185,7 +186,7 @@ func TestNewClient(t *testing.T) {
 		Confirmations: 12,
 	}
 
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 
 	mockClient.On("ChainID", mock.Anything).Return(big.NewInt(int64(config.ChainID)), nil)
 
@@ -236,7 +237,7 @@ func TestNewClient_ConnectionFailed(t *testing.T) {
 }
 
 func TestNewClient_ValidationFailed(t *testing.T) {
-	mockClient := NewMockEthHTTPClient(t)
+	mockClient := mocks.NewMockEthHTTPClient(t)
 
 	wrongChainID := big.NewInt(2)
 	mockClient.On("ChainID", mock.Anything).Return(wrongChainID, nil)

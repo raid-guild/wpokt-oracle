@@ -29,12 +29,12 @@ type EthereumClient interface {
 	ValidateNetwork() error
 	GetBlockHeight() (uint64, error)
 	GetChainID() (*big.Int, error)
-	GetClient() EthclientClient
+	GetClient() EthHTTPClient
 	GetTransactionByHash(txHash string) (*types.Transaction, bool, error)
 	GetTransactionReceipt(txHash string) (*types.Receipt, error)
 }
 
-type EthclientClient interface {
+type EthHTTPClient interface {
 	bind.ContractBackend
 	BlockNumber(ctx context.Context) (uint64, error)
 	ChainID(ctx context.Context) (*big.Int, error)
@@ -50,7 +50,7 @@ type ethereumClient struct {
 	chainID   uint64
 	chainName string
 
-	client EthclientClient
+	client EthHTTPClient
 
 	logger *log.Entry
 }
@@ -63,7 +63,7 @@ func (c *ethereumClient) Confirmations() uint64 {
 	return c.confirmations
 }
 
-func (c *ethereumClient) GetClient() EthclientClient {
+func (c *ethereumClient) GetClient() EthHTTPClient {
 	return c.client
 }
 
@@ -122,9 +122,9 @@ func (c *ethereumClient) GetTransactionReceipt(txHash string) (*types.Receipt, e
 	return receipt, err
 }
 
-type EthclientDial func(url string) (EthclientClient, error)
+type EthclientDial func(url string) (EthHTTPClient, error)
 
-var ethclientDial EthclientDial = func(url string) (EthclientClient, error) {
+var ethclientDial EthclientDial = func(url string) (EthHTTPClient, error) {
 	return ethclient.Dial(url)
 }
 

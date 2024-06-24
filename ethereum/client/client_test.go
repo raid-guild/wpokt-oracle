@@ -16,7 +16,7 @@ import (
 )
 
 func TestEthereumClient_GetBlockHeight(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -38,7 +38,7 @@ func TestEthereumClient_Chain(t *testing.T) {
 }
 
 func TestEthereumClient_GetClient(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -49,7 +49,7 @@ func TestEthereumClient_GetClient(t *testing.T) {
 }
 
 func TestEthereumClient_GetBlockHeight_Error(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -67,7 +67,7 @@ func TestEthereumClient_GetBlockHeight_Error(t *testing.T) {
 }
 
 func TestEthereumClient_GetChainID(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -84,7 +84,7 @@ func TestEthereumClient_GetChainID(t *testing.T) {
 }
 
 func TestEthereumClient_ValidateNetwork(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -102,7 +102,7 @@ func TestEthereumClient_ValidateNetwork(t *testing.T) {
 }
 
 func TestEthereumClient_ValidateNetwork_ErrorChainID(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -121,7 +121,7 @@ func TestEthereumClient_ValidateNetwork_ErrorChainID(t *testing.T) {
 }
 
 func TestEthereumClient_ValidateNetwork_InvalidChainID(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -140,7 +140,7 @@ func TestEthereumClient_ValidateNetwork_InvalidChainID(t *testing.T) {
 }
 
 func TestEthereumClient_GetTransactionByHash(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -159,7 +159,7 @@ func TestEthereumClient_GetTransactionByHash(t *testing.T) {
 }
 
 func TestEthereumClient_GetTransactionReceipt(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 	ethClient := &ethereumClient{
 		client:  mockClient,
 		timeout: 5 * time.Second,
@@ -185,12 +185,12 @@ func TestNewClient(t *testing.T) {
 		Confirmations: 12,
 	}
 
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 
 	mockClient.On("ChainID", mock.Anything).Return(big.NewInt(int64(config.ChainID)), nil)
 
 	oldEthclientDial := ethclientDial
-	ethclientDial = func(url string) (EthclientClient, error) {
+	ethclientDial = func(url string) (EthHTTPClient, error) {
 		return mockClient, nil
 	}
 	defer func() { ethclientDial = oldEthclientDial }()
@@ -225,7 +225,7 @@ func TestNewClient_ConnectionFailed(t *testing.T) {
 	}
 
 	oldEthclientDial := ethclientDial
-	ethclientDial = func(url string) (EthclientClient, error) {
+	ethclientDial = func(url string) (EthHTTPClient, error) {
 		return nil, fmt.Errorf("failed to connect to rpc")
 	}
 	defer func() { ethclientDial = oldEthclientDial }()
@@ -236,7 +236,7 @@ func TestNewClient_ConnectionFailed(t *testing.T) {
 }
 
 func TestNewClient_ValidationFailed(t *testing.T) {
-	mockClient := NewMockEthclientClient(t)
+	mockClient := NewMockEthHTTPClient(t)
 
 	wrongChainID := big.NewInt(2)
 	mockClient.On("ChainID", mock.Anything).Return(wrongChainID, nil)
@@ -250,7 +250,7 @@ func TestNewClient_ValidationFailed(t *testing.T) {
 	}
 
 	oldEthclientDial := ethclientDial
-	ethclientDial = func(url string) (EthclientClient, error) {
+	ethclientDial = func(url string) (EthHTTPClient, error) {
 		return mockClient, nil
 	}
 	defer func() { ethclientDial = oldEthclientDial }()

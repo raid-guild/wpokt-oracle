@@ -229,19 +229,19 @@ func (_c *MockEthereumClient_GetChainID_Call) RunAndReturn(run func() (*big.Int,
 }
 
 // GetClient provides a mock function with given fields:
-func (_m *MockEthereumClient) GetClient() client.EthclientClient {
+func (_m *MockEthereumClient) GetClient() client.EthHTTPClient {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetClient")
 	}
 
-	var r0 client.EthclientClient
-	if rf, ok := ret.Get(0).(func() client.EthclientClient); ok {
+	var r0 client.EthHTTPClient
+	if rf, ok := ret.Get(0).(func() client.EthHTTPClient); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(client.EthclientClient)
+			r0 = ret.Get(0).(client.EthHTTPClient)
 		}
 	}
 
@@ -265,12 +265,12 @@ func (_c *MockEthereumClient_GetClient_Call) Run(run func()) *MockEthereumClient
 	return _c
 }
 
-func (_c *MockEthereumClient_GetClient_Call) Return(_a0 client.EthclientClient) *MockEthereumClient_GetClient_Call {
+func (_c *MockEthereumClient_GetClient_Call) Return(_a0 client.EthHTTPClient) *MockEthereumClient_GetClient_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockEthereumClient_GetClient_Call) RunAndReturn(run func() client.EthclientClient) *MockEthereumClient_GetClient_Call {
+func (_c *MockEthereumClient_GetClient_Call) RunAndReturn(run func() client.EthHTTPClient) *MockEthereumClient_GetClient_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -7,8 +7,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/cometbft/cometbft/libs/bytes"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	rpctypes "github.com/cometbft/cometbft/rpc/core/types"
+	ctypes "github.com/cometbft/cometbft/types"
 
 	"github.com/cosmos/cosmos-sdk/types/tx"
 
@@ -45,6 +47,15 @@ type CosmosClient interface {
 	ValidateNetwork() error
 }
 
+type CosmosHTTPClient interface {
+	Block(ctx context.Context, height *int64) (*rpctypes.ResultBlock, error)
+	Status(ctx context.Context) (*rpctypes.ResultStatus, error)
+	Tx(ctx context.Context, hash []byte, prove bool) (*rpctypes.ResultTx, error)
+	TxSearch(ctx context.Context, query string, prove bool, page *int, limit *int, orderBy string) (*rpctypes.ResultTxSearch, error)
+	ABCIQuery(ctx context.Context, path string, data bytes.HexBytes) (*rpctypes.ResultABCIQuery, error)
+	BroadcastTxSync(ctx context.Context, tx ctypes.Tx) (*rpctypes.ResultBroadcastTx, error)
+}
+
 type cosmosClient struct {
 	grpcEnabled   bool
 	confirmations uint64
@@ -55,10 +66,14 @@ type cosmosClient struct {
 	coinDenom    string
 
 	grpcConn  *grpc.ClientConn
-	rpcClient *rpchttp.HTTP
+	rpcClient CosmosHTTPClient
 
 	logger *log.Entry
 }
+
+var cmtserviceNewServiceClient = cmtservice.NewServiceClient
+var authNewQueryClient = auth.NewQueryClient
+var txNewServiceClient = tx.NewServiceClient
 
 func (c *cosmosClient) Chain() models.Chain {
 	return c.chain
@@ -73,7 +88,7 @@ func (c *cosmosClient) getLatestBlockGRPC() (*cmtservice.Block, error) {
 		return nil, fmt.Errorf("grpc disabled")
 	}
 
-	client := cmtservice.NewServiceClient(c.grpcConn)
+	client := cmtserviceNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
@@ -145,7 +160,7 @@ func (c *cosmosClient) getTxsByEventsPerPageGRPC(query string, page uint64) ([]*
 	if !c.grpcEnabled {
 		return nil, 0, fmt.Errorf("grpc disabled")
 	}
-	client := tx.NewServiceClient(c.grpcConn)
+	client := txNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
@@ -226,7 +241,7 @@ func (c *cosmosClient) getTxGRPC(hash string) (*sdk.TxResponse, error) {
 	if !c.grpcEnabled {
 		return nil, fmt.Errorf("grpc disabled")
 	}
-	client := tx.NewServiceClient(c.grpcConn)
+	client := txNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
@@ -285,7 +300,7 @@ func (c *cosmosClient) getAccountGRPC(address string) (*auth.BaseAccount, error)
 	if !c.grpcEnabled {
 		return nil, fmt.Errorf("grpc disabled")
 	}
-	client := auth.NewQueryClient(c.grpcConn)
+	client := authNewQueryClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
@@ -357,7 +372,7 @@ func (c *cosmosClient) broadcastTxGRPC(txBytes []byte) (string, error) {
 		return "", fmt.Errorf("grpc disabled")
 	}
 
-	client := tx.NewServiceClient(c.grpcConn)
+	client := txNewServiceClient(c.grpcConn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()

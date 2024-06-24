@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	rpctypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 
@@ -15,7 +14,7 @@ import (
 	"context"
 )
 
-func getBlocksForTxResults(node *rpchttp.HTTP, resTxs []*rpctypes.ResultTx) (map[int64]*rpctypes.ResultBlock, error) {
+func getBlocksForTxResults(node CosmosHTTPClient, resTxs []*rpctypes.ResultTx) (map[int64]*rpctypes.ResultBlock, error) {
 	resBlocks := make(map[int64]*rpctypes.ResultBlock)
 
 	for _, resTx := range resTxs {
@@ -47,13 +46,15 @@ func formatTxResults(bech32Prefix string, resTxs []*rpctypes.ResultTx, resBlocks
 	return out, nil
 }
 
+var utilNewTxDecoder = util.NewTxDecoder
+
 func mkTxResult(bech32Prefix string, resTx *rpctypes.ResultTx, resBlock *rpctypes.ResultBlock) (*sdk.TxResponse, error) {
-	txDecoder := util.NewTxDecoder(bech32Prefix)
+	txDecoder := utilNewTxDecoder(bech32Prefix)
 	txb, err := txDecoder(resTx.Tx)
 	if err != nil {
 		return nil, fmt.Errorf("decoding tx: %w", err)
 	}
-	p, ok := txb.(intoAny)
+	p, ok := txb.(AnyTx)
 	if !ok {
 		return nil, fmt.Errorf("expecting a type implementing intoAny, got: %T", txb)
 	}
@@ -65,6 +66,7 @@ func mkTxResult(bech32Prefix string, resTx *rpctypes.ResultTx, resBlock *rpctype
 
 // Deprecated: this interface is used only internally for scenario we are
 // deprecating (StdTxConfig support)
-type intoAny interface {
+type AnyTx interface {
+	sdk.Tx
 	AsAny() *codectypes.Any
 }

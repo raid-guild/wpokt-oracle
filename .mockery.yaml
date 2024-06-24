@@ -12,15 +12,29 @@ packages:
   github.com/dan13ram/wpokt-oracle/cosmos/client:
     interfaces:
       CosmosClient:
+      CosmosHTTPClient:
+        config:
+          outpkg: "client"
+          dir: "{{.InterfaceDir}}"
+          filename: "mock_{{ .InterfaceName | snakecase }}.go"
+      AnyTx:
+        config:
+          outpkg: "client"
+          dir: "{{.InterfaceDir}}"
+          filename: "mock_{{ .InterfaceName | snakecase }}.go"
   github.com/dan13ram/wpokt-oracle/ethereum/client:
     interfaces:
-      EthclientClient:
       EthereumClient:
       MailboxContract:
       MailboxDispatchIterator:
       MintControllerContract:
       MintControllerFulfillmentIterator:
       WarpISMContract:
+      EthHTTPClient:
+        config:
+          outpkg: "client"
+          dir: "{{.InterfaceDir}}"
+          filename: "mock_{{ .InterfaceName | snakecase }}.go"
   github.com/cosmos/cosmos-sdk/client:
     config: 
       dir: "cosmos/client/mocks"
@@ -32,6 +46,24 @@ packages:
       dir: "cosmos/client/mocks"
     interfaces:
       Tx:
+  github.com/cosmos/cosmos-sdk/client/grpc/cmtservice:
+      config:
+        dir: "cosmos/client/mocks"
+        mockname: "MockCMT{{.InterfaceName}}"
+      interfaces:
+        ServiceClient:
+  github.com/cosmos/cosmos-sdk/x/auth/types:
+      config:
+        dir: "cosmos/client/mocks"
+        mockname: "MockAuth{{.InterfaceName}}"
+      interfaces:
+        QueryClient:
+  github.com/cosmos/cosmos-sdk/types/tx:
+    config:
+      dir: "cosmos/client/mocks"
+      mockname: "MockTx{{.InterfaceName}}"
+    interfaces:
+      ServiceClient:
   github.com/cosmos/cosmos-sdk/crypto/types:
      config:
       dir: "cosmos/util/mocks"

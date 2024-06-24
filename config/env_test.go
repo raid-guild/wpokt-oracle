@@ -155,6 +155,7 @@ NUM_ETHEREUM_NETWORKS=2
 		defer os.Remove(".test.env")
 
 		assert.Panics(t, func() {
+			//nolint:errcheck
 			loadConfigFromEnv(".test.env")
 		})
 

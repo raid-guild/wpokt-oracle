@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -33,8 +32,6 @@ type EthMessageMonitorRunnable struct {
 	confirmations uint64
 
 	chain models.Chain
-
-	minimumAmount *big.Int
 
 	logger *log.Entry
 
@@ -262,6 +259,7 @@ func (x *EthMessageMonitorRunnable) CreateMessagesForTx(txDoc *models.Transactio
 		logger.WithError(err).Error("Error locking transaction")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 
@@ -270,6 +268,7 @@ func (x *EthMessageMonitorRunnable) CreateMessagesForTx(txDoc *models.Transactio
 	for _, event := range result.Events {
 		var messageContent models.MessageContent
 
+		//nolint:errcheck
 		messageContent.DecodeFromBytes(event.Message) // event was validated already
 
 		message, err := x.db.NewMessage(txDoc, messageContent, models.MessageStatusPending)

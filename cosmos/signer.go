@@ -259,6 +259,7 @@ func (x *CosmosMessageSignerRunnable) SignMessage(
 		logger.WithError(err).Error("Error locking sequence")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 
@@ -361,6 +362,7 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDo
 		logger.WithError(err).Error("Error locking message")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 
@@ -499,6 +501,7 @@ func (x *CosmosMessageSignerRunnable) FindMaxSequence() (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("could not lock sequences: %w", err)
 	}
+	//nolint:errcheck
 	defer x.db.Unlock(lockID)
 
 	maxSequence, err := x.db.FindMaxSequence(x.chain)
@@ -669,13 +672,13 @@ func (x *CosmosMessageSignerRunnable) SignRefund(
 		update["status"] = models.RefundStatusSigned
 	}
 
-	lockID, err := x.db.LockWriteSequence()
-	if err != nil {
+	if lockID, err := x.db.LockWriteSequence(); err != nil {
 		logger.WithError(err).Error("Error locking sequence")
 		return false
+	} else {
+		//nolint:errcheck
+		defer x.db.Unlock(lockID)
 	}
-
-	defer x.db.Unlock(lockID)
 
 	err = x.db.UpdateRefund(refundDoc.ID, update)
 	if err != nil {
@@ -829,14 +832,14 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndBroadcastMessage(mess
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
-	lockID, err := x.db.LockWriteMessage(messageDoc)
-	// lock before signing so that no other validator adds a signature at the same time
-	if err != nil {
+	if lockID, err := x.db.LockWriteMessage(messageDoc); err != nil {
 		logger.WithError(err).Error("Error locking message")
 		return false
-	}
+	} else {
 
-	defer x.db.Unlock(lockID)
+		//nolint:errcheck
+		defer x.db.Unlock(lockID)
+	}
 
 	return x.BroadcastMessage(messageDoc)
 
@@ -1144,10 +1147,8 @@ func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 
 		success = x.SignRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
 
-		if err = x.db.Unlock(lockID); err != nil {
-			logger.WithError(err).Error("Error unlocking refund")
-			success = false
-		}
+		//nolint:errcheck
+		x.db.Unlock(lockID)
 	}
 
 	return success

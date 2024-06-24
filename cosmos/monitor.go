@@ -286,6 +286,7 @@ func (x *CosmosMessageMonitorRunnable) ValidateTxAndCreate(txDoc *models.Transac
 		logger.WithError(err).Errorf("Error locking transaction")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 

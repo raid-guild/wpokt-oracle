@@ -190,6 +190,7 @@ func (x *EthMessageRelayerRunnable) ConfirmMessagesForTx(txDoc *models.Transacti
 		logger.WithError(err).Error("Error locking transaction")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 

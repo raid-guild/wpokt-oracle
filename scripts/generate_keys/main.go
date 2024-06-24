@@ -121,6 +121,10 @@ func main() {
 	{
 		// ethereum
 		wallet, err := hdwallet.NewFromMnemonic(mnemonic)
+		if err != nil {
+			fmt.Printf("Error creating wallet: %v\n", err)
+			return
+		}
 
 		path := hdwallet.MustParseDerivationPath(common.DefaultETHHDPath)
 		account, err := wallet.Derive(path, false)

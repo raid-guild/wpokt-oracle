@@ -422,6 +422,7 @@ func InitDB(config models.MongoConfig) {
 
 func DisconnectDB() {
 	if mongoDB != nil {
+		//nolint:errcheck
 		mongoDB.Disconnect()
 	}
 }

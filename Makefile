@@ -24,6 +24,9 @@ clean_tmp_data :; if [ -d "/tmp/data" ]; then sudo rm -rf /tmp/data; fi
 .PHONY: install
 install :; go mod download && go mod verify
 
+.PHONY: lint
+lint :; golangci-lint run
+
 .PHONY: test
 test :; go test -v ./...
 

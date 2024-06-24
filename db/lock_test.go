@@ -18,8 +18,6 @@ type LockTestSuite struct {
 	db         LockDB
 }
 
-var oldMongoDB Database
-
 func (suite *LockTestSuite) SetupTest() {
 	suite.mockDB = mocks.NewMockDatabase(suite.T())
 	suite.oldMongoDB = mongoDB

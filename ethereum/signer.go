@@ -120,6 +120,7 @@ func (x *EthMessageSignerRunnable) SignMessage(messageDoc *models.Message) bool 
 		logger.WithError(err).Errorf("Error locking message")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 

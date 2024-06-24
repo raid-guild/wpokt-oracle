@@ -330,6 +330,9 @@ func (x *CosmosMessageMonitorRunnable) InitStartBlockHeight(lastHealth *models.R
 	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
+var dbNewDB = db.NewDB
+var cosmosNewClient = cosmos.NewClient
+
 func NewMessageMonitor(
 	config models.CosmosNetworkConfig,
 	mintControllerMap map[uint32][]byte,
@@ -358,16 +361,13 @@ func NewMessageMonitor(
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := common.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
-	if err != nil {
-		logger.Fatalf("Error creating multisig address: %s", err)
-	}
+	multisigAddress, _ := common.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 
 	if !strings.EqualFold(multisigAddress, config.MultisigAddress) {
 		logger.Fatalf("Multisig address does not match config")
 	}
 
-	client, err := cosmos.NewClient(config)
+	client, err := cosmosNewClient(config)
 	if err != nil {
 		logger.Fatalf("Error creating cosmos client: %s", err)
 	}
@@ -394,7 +394,7 @@ func NewMessageMonitor(
 
 		logger: logger,
 
-		db: db.NewDB(),
+		db: dbNewDB(),
 	}
 
 	x.UpdateCurrentHeight()

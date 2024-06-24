@@ -5,8 +5,7 @@ package mocks
 import (
 	big "math/big"
 
-	ethclient "github.com/ethereum/go-ethereum/ethclient"
-
+	client "github.com/dan13ram/wpokt-oracle/ethereum/client"
 	mock "github.com/stretchr/testify/mock"
 
 	models "github.com/dan13ram/wpokt-oracle/models"
@@ -230,19 +229,19 @@ func (_c *MockEthereumClient_GetChainID_Call) RunAndReturn(run func() (*big.Int,
 }
 
 // GetClient provides a mock function with given fields:
-func (_m *MockEthereumClient) GetClient() *ethclient.Client {
+func (_m *MockEthereumClient) GetClient() client.EthclientClient {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetClient")
 	}
 
-	var r0 *ethclient.Client
-	if rf, ok := ret.Get(0).(func() *ethclient.Client); ok {
+	var r0 client.EthclientClient
+	if rf, ok := ret.Get(0).(func() client.EthclientClient); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*ethclient.Client)
+			r0 = ret.Get(0).(client.EthclientClient)
 		}
 	}
 
@@ -266,12 +265,12 @@ func (_c *MockEthereumClient_GetClient_Call) Run(run func()) *MockEthereumClient
 	return _c
 }
 
-func (_c *MockEthereumClient_GetClient_Call) Return(_a0 *ethclient.Client) *MockEthereumClient_GetClient_Call {
+func (_c *MockEthereumClient_GetClient_Call) Return(_a0 client.EthclientClient) *MockEthereumClient_GetClient_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockEthereumClient_GetClient_Call) RunAndReturn(run func() *ethclient.Client) *MockEthereumClient_GetClient_Call {
+func (_c *MockEthereumClient_GetClient_Call) RunAndReturn(run func() client.EthclientClient) *MockEthereumClient_GetClient_Call {
 	_c.Call.Return(run)
 	return _c
 }

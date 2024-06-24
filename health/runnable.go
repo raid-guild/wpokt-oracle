@@ -96,6 +96,8 @@ func (x *healthCheckRunnable) PostHealth() bool {
 	return true
 }
 
+var osHostname = os.Hostname
+
 func newHealthCheck(config models.Config) *healthCheckRunnable {
 	logger := log.WithFields(log.Fields{
 		"module": "health",
@@ -134,7 +136,7 @@ func newHealthCheck(config models.Config) *healthCheckRunnable {
 
 	oracleID := "oracle-" + fmt.Sprintf("%02d", signerIndex)
 
-	hostname, err := os.Hostname()
+	hostname, err := osHostname()
 	if err != nil {
 		logger.Fatal("Error getting hostname: ", err)
 	}

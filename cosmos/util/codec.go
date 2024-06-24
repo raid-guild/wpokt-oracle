@@ -38,10 +38,12 @@ func NewTxDecoder(bech32Prefix string) sdk.TxDecoder {
 	return authtx.DefaultTxDecoder(codec)
 }
 
-func NewTxConfig(bech32Prefix string) client.TxConfig {
+func newTxConfig(bech32Prefix string) client.TxConfig {
 
 	codec := NewProtoCodec(bech32Prefix)
 	txConfig := authtx.NewTxConfig(codec, authtx.DefaultSignModes)
 
 	return txConfig
 }
+
+var NewTxConfig = newTxConfig

@@ -1,13 +1,17 @@
 package util
 
 import (
+	"fmt"
 	"testing"
 
 	"cosmossdk.io/math"
 	"github.com/dan13ram/wpokt-oracle/common"
+	"github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
@@ -53,7 +57,6 @@ func TestNewSendTx_ErrorToAddress(t *testing.T) {
 	assert.Empty(t, txBody)
 }
 
-/*
 func TestNewSendTx_ErrorSettingMsg(t *testing.T) {
 	fromAddr := ethcommon.BytesToAddress([]byte{1, 2, 3})
 	toAddr := ethcommon.BytesToAddress([]byte{4, 5, 6})
@@ -61,14 +64,89 @@ func TestNewSendTx_ErrorSettingMsg(t *testing.T) {
 	feeAmount := sdk.NewCoin("upokt", math.NewInt(100))
 	memo := "Test Memo"
 
-	// Use invalid prefix to force an error
-	invalidBech32Prefix := ""
-	txBody, err := NewSendTx(invalidBech32Prefix, fromAddr[:], toAddr[:], amountIncludingFees, memo, feeAmount)
+	bech32Prefix := "pokt"
+
+	mockTxConfig := mocks.NewMockTxConfig(t)
+	mockTxBuilder := mocks.NewMockTxBuilder(t)
+	NewTxConfig = func(bech32Prefix string) client.TxConfig {
+		return mockTxConfig
+	}
+	defer func() {
+		NewTxConfig = newTxConfig
+	}()
+	mockTxConfig.EXPECT().NewTxBuilder().Return(mockTxBuilder)
+	mockTxBuilder.EXPECT().SetMsgs(mock.Anything).Return(fmt.Errorf("error setting msg"))
+
+	txBody, err := NewSendTx(bech32Prefix, fromAddr[:], toAddr[:], amountIncludingFees, memo, feeAmount)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error setting msg")
 	assert.Empty(t, txBody)
 }
-*/
+
+func TestNewSendTx_InvalidTxEncoder(t *testing.T) {
+	fromAddr := ethcommon.BytesToAddress([]byte{1, 2, 3})
+	toAddr := ethcommon.BytesToAddress([]byte{4, 5, 6})
+	amountIncludingFees := sdk.NewCoin("upokt", math.NewInt(1000))
+	feeAmount := sdk.NewCoin("upokt", math.NewInt(100))
+	memo := "Test Memo"
+
+	bech32Prefix := "pokt"
+
+	mockTxConfig := mocks.NewMockTxConfig(t)
+	mockTxBuilder := mocks.NewMockTxBuilder(t)
+	NewTxConfig = func(bech32Prefix string) client.TxConfig {
+		return mockTxConfig
+	}
+	defer func() {
+		NewTxConfig = newTxConfig
+	}()
+	mockTxConfig.EXPECT().NewTxBuilder().Return(mockTxBuilder)
+	mockTxBuilder.EXPECT().SetMsgs(mock.Anything).Return(nil)
+	mockTxBuilder.EXPECT().SetMemo(memo)
+	mockTxBuilder.EXPECT().SetFeeAmount(sdk.NewCoins(feeAmount))
+	mockTxBuilder.EXPECT().SetGasLimit(SendGasLimit)
+	mockTxConfig.EXPECT().TxJSONEncoder().Return(nil)
+
+	txBody, err := NewSendTx(bech32Prefix, fromAddr[:], toAddr[:], amountIncludingFees, memo, feeAmount)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error getting tx encoder")
+	assert.Empty(t, txBody)
+}
+
+func TestNewSendTx_ErrorEncoding(t *testing.T) {
+	fromAddr := ethcommon.BytesToAddress([]byte{1, 2, 3})
+	toAddr := ethcommon.BytesToAddress([]byte{4, 5, 6})
+	amountIncludingFees := sdk.NewCoin("upokt", math.NewInt(1000))
+	feeAmount := sdk.NewCoin("upokt", math.NewInt(100))
+	memo := "Test Memo"
+
+	bech32Prefix := "pokt"
+
+	mockTxConfig := mocks.NewMockTxConfig(t)
+	mockTxBuilder := mocks.NewMockTxBuilder(t)
+	NewTxConfig = func(bech32Prefix string) client.TxConfig {
+		return mockTxConfig
+	}
+	defer func() {
+		NewTxConfig = newTxConfig
+	}()
+	mockTxConfig.EXPECT().NewTxBuilder().Return(mockTxBuilder)
+	mockTxBuilder.EXPECT().SetMsgs(mock.Anything).Return(nil)
+	mockTxBuilder.EXPECT().SetMemo(memo)
+	mockTxBuilder.EXPECT().SetFeeAmount(sdk.NewCoins(feeAmount))
+	mockTxBuilder.EXPECT().SetGasLimit(SendGasLimit)
+	mockTxBuilder.EXPECT().GetTx().Return(nil)
+
+	var txJSONEncoder sdk.TxEncoder = func(tx sdk.Tx) ([]byte, error) {
+		return nil, fmt.Errorf("error encoding tx")
+	}
+	mockTxConfig.EXPECT().TxJSONEncoder().Return(txJSONEncoder)
+
+	txBody, err := NewSendTx(bech32Prefix, fromAddr[:], toAddr[:], amountIncludingFees, memo, feeAmount)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error encoding tx")
+	assert.Empty(t, txBody)
+}
 
 func TestParseTxBody(t *testing.T) {
 	bech32Prefix := "pokt"
@@ -98,6 +176,25 @@ func TestParseTxBody_Error(t *testing.T) {
 	tx, err := ParseTxBody(bech32Prefix, invalidTxBody)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error decoding tx")
+	assert.Nil(t, tx)
+}
+
+func TestParseTxBody_InvalidTxDecoder(t *testing.T) {
+	bech32Prefix := "pokt"
+	invalidTxBody := "valid_tx_body"
+
+	mockTxConfig := mocks.NewMockTxConfig(t)
+	NewTxConfig = func(bech32Prefix string) client.TxConfig {
+		return mockTxConfig
+	}
+	defer func() {
+		NewTxConfig = newTxConfig
+	}()
+	mockTxConfig.EXPECT().TxJSONDecoder().Return(nil)
+
+	tx, err := ParseTxBody(bech32Prefix, invalidTxBody)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error getting tx decoder")
 	assert.Nil(t, tx)
 }
 

@@ -1,6 +1,8 @@
 package health
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"testing"
 
@@ -140,6 +142,57 @@ func Test_HealthCheckRunnable_PostHealth(t *testing.T) {
 	mockDB.AssertExpectations(t)
 }
 
+func Test_HealthCheckRunnable_PostHealth_Error(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	healthCheck := &healthCheckRunnable{
+		cosmosAddress: "cosmosAddress",
+		ethAddress:    "ethAddress",
+		hostname:      "hostname",
+		oracleID:      "oracleID",
+		logger:        log.NewEntry(log.New()),
+		db:            mockDB,
+	}
+
+	expectedFilter := bson.M{
+		"cosmos_address": "cosmosAddress",
+		"eth_address":    "ethAddress",
+		"hostname":       "hostname",
+		"oracle_id":      "oracleID",
+	}
+
+	expectedOnInsert := bson.M{
+		"cosmos_address": "cosmosAddress",
+		"eth_address":    "ethAddress",
+		"hostname":       "hostname",
+		"oracle_id":      "oracleID",
+		"created_at":     nil,
+	}
+
+	expectedOnUpdate := bson.M{
+		"healthy":         true,
+		"service_healths": nil,
+		"updated_at":      nil,
+	}
+
+	mockDB.EXPECT().UpsertNode(expectedFilter, mock.Anything, mock.Anything).Return(errors.New("error")).Once().Run(func(args mock.Arguments) {
+		onUpdate := args.Get(1).(bson.M)
+		onInsert := args.Get(2).(bson.M)
+		assert.NotNil(t, onUpdate)
+		assert.NotNil(t, onInsert)
+
+		onInsert["created_at"] = nil
+		onUpdate["service_healths"] = nil
+		onUpdate["updated_at"] = nil
+
+		assert.Equal(t, expectedOnUpdate, onUpdate)
+		assert.Equal(t, expectedOnInsert, onInsert)
+	})
+
+	success := healthCheck.PostHealth()
+	assert.False(t, success)
+	mockDB.AssertExpectations(t)
+}
+
 func TestNewHealthCheck(t *testing.T) {
 	config := models.Config{
 		Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
@@ -161,24 +214,34 @@ func TestNewHealthCheck(t *testing.T) {
 	hostname, err := os.Hostname()
 	assert.NoError(t, err)
 	assert.Equal(t, hostname, healthCheck.hostname)
+
+	defer func() { log.StandardLogger().ExitFunc = nil }()
+	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
+
+	osHostname = func() (string, error) {
+		return "", errors.New("error")
+	}
+	defer func() { osHostname = os.Hostname }()
+
+	assert.Panics(t, func() {
+		newHealthCheck(config)
+	})
 }
 
-// func TestNewHealthCheck_MissingSigner(t *testing.T) {
-// 	defer func() {
-// 		if r := recover(); r != nil {
-// 			assert.Equal(t, "Multisig public keys do not contain signer", r)
-// 		}
-// 	}()
-//
-// 	config := models.Config{
-// 		Mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-// 		CosmosNetwork: models.CosmosNetworkConfig{
-// 			MultisigPublicKeys: []string{
-// 				"cosmos1nxyyrxs69w4qf9cwt8r0w9pw4z5uzhrx38p2s5",
-// 			},
-// 		},
-// 	}
-//
-// 	newHealthCheck(config)
-// 	t.Fail() // Should not reach here
-// }
+func TestNewHealthCheck_MissingSigner(t *testing.T) {
+	defer func() { log.StandardLogger().ExitFunc = nil }()
+	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
+
+	config := models.Config{
+		Mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+		CosmosNetwork: models.CosmosNetworkConfig{
+			MultisigPublicKeys: []string{
+				"cosmos1nxyyrxs69w4qf9cwt8r0w9pw4z5uzhrx38p2s5",
+			},
+		},
+	}
+
+	assert.Panics(t, func() {
+		newHealthCheck(config)
+	})
+}

@@ -3,6 +3,7 @@ package util
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"sort"
 	"strings"
@@ -85,11 +86,17 @@ func HexToBytes32(hexString string) string {
 	return "0x" + hex.EncodeToString(bytes)
 }
 
+var apitypesTypedDataAndHash = apitypes.TypedDataAndHash
+
 func signTypedData(
 	content models.MessageContent,
 	domainData DomainData,
 	key *ecdsa.PrivateKey,
 ) ([]byte, error) {
+
+	if key == nil {
+		return nil, errors.New("invalid key")
+	}
 
 	messageBodyBytes, err := content.MessageBody.EncodeToBytes()
 	if err != nil {
@@ -120,7 +127,7 @@ func signTypedData(
 		Message:     message,
 	}
 
-	sighash, _, err := apitypes.TypedDataAndHash(typedData)
+	sighash, _, err := apitypesTypedDataAndHash(typedData)
 	if err != nil {
 		return nil, err
 	}

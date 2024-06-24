@@ -28,7 +28,10 @@ install :; go mod download && go mod verify
 test :; go test -v ./...
 
 .PHONY: test_coverage
-test_coverage :; bash ./coverage.sh
+test_coverage :; bash ./coverage.sh 
+
+.PHONY: test_coverage_html
+open_test_coverage :; bash ./coverage.sh && open ./coverage.html
 
 .PHONY: build
 build :; go build -o wpokt-oracle .

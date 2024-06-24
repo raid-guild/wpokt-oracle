@@ -14,6 +14,7 @@ packages:
       CosmosClient:
   github.com/dan13ram/wpokt-oracle/ethereum/client:
     interfaces:
+      EthclientClient:
       EthereumClient:
       MailboxContract:
       MailboxDispatchIterator:
@@ -31,3 +32,8 @@ packages:
       dir: "cosmos/client/mocks"
     interfaces:
       Tx:
+  github.com/cosmos/cosmos-sdk/crypto/types:
+     config:
+      dir: "cosmos/util/mocks"
+     interfaces:
+      PrivKey:

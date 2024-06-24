@@ -4,7 +4,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 )
@@ -68,7 +67,7 @@ func (x *mailboxContract) FilterDispatch(opts *bind.FilterOpts, sender []common.
 	return &mailboxDispatchIterator{iterator: iterator}, nil
 }
 
-func NewMailboxContract(address common.Address, client *ethclient.Client) (MailboxContract, error) {
+func NewMailboxContract(address common.Address, client bind.ContractBackend) (MailboxContract, error) {
 	contract, err := autogen.NewMailbox(address, client)
 	if err != nil {
 		return nil, err

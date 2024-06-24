@@ -11,7 +11,7 @@ import (
 
 var logger *log.Entry
 
-func init() {
+func loggerInit() {
 	logFormat := strings.ToLower(os.Getenv("LOGGER_FORMAT"))
 	if logFormat == "text" {
 		log.SetFormatter(&log.TextFormatter{})
@@ -27,6 +27,10 @@ func init() {
 	}
 
 	logger = log.WithFields(log.Fields{"module": "main"})
+}
+
+func init() {
+	loggerInit()
 }
 
 func initLogger(config models.LoggerConfig) {

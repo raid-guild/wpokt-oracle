@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SendGasLimit = 200000
+	SendGasLimit uint64 = 200000
 )
 
 func NewSendTx(

@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 )
@@ -70,7 +69,7 @@ func (x *mintControllerContract) MaxMintLimit(opts *bind.CallOpts) (*big.Int, er
 	return x.contract.MaxMintLimit(opts)
 }
 
-func NewMintControllerContract(address common.Address, client *ethclient.Client) (MintControllerContract, error) {
+func NewMintControllerContract(address common.Address, client bind.ContractBackend) (MintControllerContract, error) {
 	contract, err := autogen.NewMintController(address, client)
 	if err != nil {
 		return nil, err

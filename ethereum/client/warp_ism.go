@@ -5,7 +5,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	"github.com/dan13ram/wpokt-oracle/ethereum/util"
@@ -38,7 +37,7 @@ func (x *warpISMContract) Eip712Domain(opts *bind.CallOpts) (util.DomainData, er
 	return x.contract.Eip712Domain(opts)
 }
 
-func NewWarpISMContract(address common.Address, client *ethclient.Client) (WarpISMContract, error) {
+func NewWarpISMContract(address common.Address, client bind.ContractBackend) (WarpISMContract, error) {
 	contract, err := autogen.NewWarpISM(address, client)
 	if err != nil {
 		return nil, err

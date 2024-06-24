@@ -8,6 +8,7 @@ import (
 
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -28,9 +29,17 @@ type EthereumClient interface {
 	ValidateNetwork() error
 	GetBlockHeight() (uint64, error)
 	GetChainID() (*big.Int, error)
-	GetClient() *ethclient.Client
+	GetClient() EthclientClient
 	GetTransactionByHash(txHash string) (*types.Transaction, bool, error)
 	GetTransactionReceipt(txHash string) (*types.Receipt, error)
+}
+
+type EthclientClient interface {
+	bind.ContractBackend
+	BlockNumber(ctx context.Context) (uint64, error)
+	ChainID(ctx context.Context) (*big.Int, error)
+	TransactionByHash(ctx context.Context, hash common.Hash) (*types.Transaction, bool, error)
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
 type ethereumClient struct {
@@ -41,7 +50,7 @@ type ethereumClient struct {
 	chainID   uint64
 	chainName string
 
-	client *ethclient.Client
+	client EthclientClient
 
 	logger *log.Entry
 }
@@ -54,7 +63,7 @@ func (c *ethereumClient) Confirmations() uint64 {
 	return c.confirmations
 }
 
-func (c *ethereumClient) GetClient() *ethclient.Client {
+func (c *ethereumClient) GetClient() EthclientClient {
 	return c.client
 }
 
@@ -74,12 +83,12 @@ func (c *ethereumClient) GetChainID() (*big.Int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	chainId, err := c.client.ChainID(ctx)
+	chainID, err := c.client.ChainID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return chainId, nil
+	return chainID, nil
 }
 
 func (c *ethereumClient) ValidateNetwork() error {
@@ -87,10 +96,10 @@ func (c *ethereumClient) ValidateNetwork() error {
 
 	chainID, err := c.GetChainID()
 	if err != nil {
-		return fmt.Errorf("failed to validate network: %s", err)
+		return err
 	}
 	if chainID.Cmp(big.NewInt(int64(c.chainID))) != 0 {
-		return fmt.Errorf("failed to validate network: expected chain id %d, got %s", c.chainID, chainID)
+		return fmt.Errorf("expected chain id %d, got %s", c.chainID, chainID)
 	}
 
 	c.logger.Debugf("Validated network")
@@ -113,13 +122,19 @@ func (c *ethereumClient) GetTransactionReceipt(txHash string) (*types.Receipt, e
 	return receipt, err
 }
 
+type EthclientDial func(url string) (EthclientClient, error)
+
+var ethclientDial EthclientDial = func(url string) (EthclientClient, error) {
+	return ethclient.Dial(url)
+}
+
 func NewClient(config models.EthereumNetworkConfig) (EthereumClient, error) {
 	logger := log.
 		WithField("module", "ethereum").
 		WithField("package", "client").
 		WithField("chain_name", strings.ToLower(config.ChainName)).
 		WithField("chain_id", config.ChainID)
-	client, err := ethclient.Dial(config.RPCURL)
+	client, err := ethclientDial(config.RPCURL)
 	if err != nil {
 		logger.WithError(err).Error("failed to connect to rpc")
 		return nil, fmt.Errorf("failed to connect to rpc")

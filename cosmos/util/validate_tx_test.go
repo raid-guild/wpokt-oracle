@@ -164,41 +164,6 @@ func TestValidateTxToCosmosMultisig_TxWithNonZeroCode(t *testing.T) {
 	assert.Equal(t, models.TransactionStatusFailed, result.TxStatus)
 }
 
-func TestValidateTxToCosmosMultisig_ErrorUnmarshallingTx(t *testing.T) {
-	bech32Prefix := "pokt"
-	senderAddress := ethcommon.BytesToAddress([]byte("pokt1sender"))
-	senderBech32, err := common.Bech32FromBytes(bech32Prefix, senderAddress.Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	txResponse := &sdk.TxResponse{
-		TxHash: "0x123",
-		Height: 90,
-		Code:   0,
-		Events: []abci.Event{
-			{
-				Type: "message",
-				Attributes: []abci.EventAttribute{
-					{Key: "sender", Value: senderBech32},
-				},
-			},
-		},
-		Tx: &codectypes.Any{Value: []byte("invalid")},
-	}
-	config := models.CosmosNetworkConfig{
-		Bech32Prefix: "pokt",
-		CoinDenom:    "upokt",
-	}
-	supportedChainIDsEthereum := map[uint32]bool{}
-	currentCosmosBlockHeight := uint64(100)
-
-	result, err := ValidateTxToCosmosMultisig(txResponse, config, supportedChainIDsEthereum, currentCosmosBlockHeight)
-	assert.NoError(t, err)
-	assert.Nil(t, result.Tx)
-	assert.Equal(t, models.TransactionStatusInvalid, result.TxStatus)
-}
-
 func TestValidateTxToCosmosMultisig_ErrorParsingCoinsReceived(t *testing.T) {
 	bech32Prefix := "pokt"
 	multisigAddress := ethcommon.BytesToAddress([]byte("pokt1multisig"))
@@ -221,6 +186,20 @@ func TestValidateTxToCosmosMultisig_ErrorParsingCoinsReceived(t *testing.T) {
 				Type: "message",
 				Attributes: []abci.EventAttribute{
 					{Key: "sender", Value: senderBech32},
+				},
+			},
+			{
+				Type: "coin_received",
+				Attributes: []abci.EventAttribute{
+					{Key: "receiver", Value: multisigBech32},
+					{Key: "amount", Value: "1000invalid-anmount1"},
+				},
+			},
+			{
+				Type: "coin_spent",
+				Attributes: []abci.EventAttribute{
+					{Key: "spender", Value: senderBech32},
+					{Key: "amount", Value: "1000upokt"},
 				},
 			},
 		},
@@ -267,6 +246,13 @@ func TestValidateTxToCosmosMultisig_ErrorParsingCoinsSpent(t *testing.T) {
 				Attributes: []abci.EventAttribute{
 					{Key: "receiver", Value: multisigBech32},
 					{Key: "amount", Value: "1000upokt"},
+				},
+			},
+			{
+				Type: "coin_spent",
+				Attributes: []abci.EventAttribute{
+					{Key: "spender", Value: senderBech32},
+					{Key: "amount", Value: "1000invalid"},
 				},
 			},
 		},
@@ -391,6 +377,60 @@ func TestValidateTxToCosmosMultisig_AmountTooLow(t *testing.T) {
 	assert.Equal(t, models.TransactionStatusInvalid, result.TxStatus)
 }
 
+func TestValidateTxToCosmosMultisig_InvalidSpender(t *testing.T) {
+	bech32Prefix := "pokt"
+	multisigAddress := ethcommon.BytesToAddress([]byte("pokt1multisig"))
+	multisigBech32, err := common.Bech32FromBytes(bech32Prefix, multisigAddress.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	senderAddress := ethcommon.BytesToAddress([]byte("pokt1sender"))
+	senderBech32, err := common.Bech32FromBytes(bech32Prefix, senderAddress.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	txResponse := &sdk.TxResponse{
+		TxHash: "0x123",
+		Height: 90,
+		Code:   0,
+		Events: []abci.Event{
+			{
+				Type: "message",
+				Attributes: []abci.EventAttribute{
+					{Key: "sender", Value: senderBech32},
+				},
+			},
+			{
+				Type: "coin_received",
+				Attributes: []abci.EventAttribute{
+					{Key: "receiver", Value: multisigBech32},
+					{Key: "amount", Value: "1000upokt"},
+				},
+			},
+			{
+				Type: "coin_spent",
+				Attributes: []abci.EventAttribute{
+					{Key: "spender", Value: "invalid_sender"},
+					{Key: "amount", Value: "1000upokt"},
+				},
+			},
+		},
+	}
+	config := models.CosmosNetworkConfig{
+		Bech32Prefix:    "pokt",
+		CoinDenom:       "upokt",
+		MultisigAddress: multisigBech32,
+	}
+	supportedChainIDsEthereum := map[uint32]bool{}
+	currentCosmosBlockHeight := uint64(100)
+
+	result, err := ValidateTxToCosmosMultisig(txResponse, config, supportedChainIDsEthereum, currentCosmosBlockHeight)
+	assert.NoError(t, err)
+	assert.Equal(t, models.TransactionStatusInvalid, result.TxStatus)
+}
+
 func TestValidateTxToCosmosMultisig_SenderMismatch(t *testing.T) {
 	bech32Prefix := "pokt"
 	multisigAddress := ethcommon.BytesToAddress([]byte("pokt1multisig"))
@@ -401,6 +441,12 @@ func TestValidateTxToCosmosMultisig_SenderMismatch(t *testing.T) {
 
 	senderAddress := ethcommon.BytesToAddress([]byte("pokt1sender"))
 	senderBech32, err := common.Bech32FromBytes(bech32Prefix, senderAddress.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	spenderAddress := ethcommon.BytesToAddress([]byte("pokt1another"))
+	spenderBech32, err := common.Bech32FromBytes(bech32Prefix, spenderAddress.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -425,7 +471,7 @@ func TestValidateTxToCosmosMultisig_SenderMismatch(t *testing.T) {
 			{
 				Type: "coin_spent",
 				Attributes: []abci.EventAttribute{
-					{Key: "spender", Value: "pokt1another"},
+					{Key: "spender", Value: spenderBech32},
 					{Key: "amount", Value: "1000upokt"},
 				},
 			},
@@ -562,4 +608,65 @@ func TestValidateTxToCosmosMultisig_InvalidMemo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, models.TransactionStatusConfirmed, result.TxStatus)
 	assert.True(t, result.NeedsRefund)
+}
+
+func TestValidateTxToCosmosMultisig_ErrorUnmarshallingTx(t *testing.T) {
+	bech32Prefix := "pokt"
+	supportedChainIDsEthereum := map[uint32]bool{
+		1: true,
+	}
+	multisigAddress := ethcommon.BytesToAddress([]byte("pokt1multisig"))
+	multisigBech32, err := common.Bech32FromBytes(bech32Prefix, multisigAddress.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	senderAddress := ethcommon.BytesToAddress([]byte("pokt1sender"))
+	senderBech32, err := common.Bech32FromBytes(bech32Prefix, senderAddress.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	config := models.CosmosNetworkConfig{
+		Bech32Prefix:    bech32Prefix,
+		CoinDenom:       "upokt",
+		MultisigAddress: multisigBech32,
+		TxFee:           100,
+		Confirmations:   10,
+	}
+	currentCosmosBlockHeight := uint64(100)
+
+	txResponse := &sdk.TxResponse{
+		TxHash: "0x123",
+		Height: 90,
+		Code:   0,
+		Events: []abci.Event{
+			{
+				Type: "message",
+				Attributes: []abci.EventAttribute{
+					{Key: "sender", Value: senderBech32},
+				},
+			},
+			{
+				Type: "coin_received",
+				Attributes: []abci.EventAttribute{
+					{Key: "receiver", Value: multisigBech32},
+					{Key: "amount", Value: "1000upokt"},
+				},
+			},
+			{
+				Type: "coin_spent",
+				Attributes: []abci.EventAttribute{
+					{Key: "spender", Value: senderBech32},
+					{Key: "amount", Value: "1000upokt"},
+				},
+			},
+		},
+	}
+
+	txResponse.Tx = &codectypes.Any{Value: []byte("invalid")}
+
+	result, err := ValidateTxToCosmosMultisig(txResponse, config, supportedChainIDsEthereum, currentCosmosBlockHeight)
+	assert.NoError(t, err)
+	assert.Equal(t, models.TransactionStatusInvalid, result.TxStatus)
 }

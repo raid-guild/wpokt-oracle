@@ -142,6 +142,7 @@ func TestSignMessage(t *testing.T) {
 
 	signerKey := secp256k1.GenPrivKey()
 	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
 
@@ -163,7 +164,7 @@ func TestSignMessage(t *testing.T) {
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
 			Bech32Prefix:    "pokt",
-			MultisigAddress: "multisigAddress",
+			MultisigAddress: multisigAddr,
 		},
 	}
 
@@ -211,7 +212,7 @@ func TestSignMessage(t *testing.T) {
 
 	mockDB.EXPECT().UpdateMessage(message.ID, mock.Anything).Return(nil)
 
-	mockClient.EXPECT().GetAccount("multisigAddress").Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
+	mockClient.EXPECT().GetAccount(multisigAddr).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
 
 	result := signer.SignMessage(message)
 
@@ -221,7 +222,7 @@ func TestSignMessage(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestValidateAndFindDispatchIdEvent_InvalidMessageID(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent_InvalidMessageID(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -248,7 +249,7 @@ func TestValidateAndFindDispatchIdEvent_InvalidMessageID(t *testing.T) {
 		mailboxMap:   mailboxMap,
 	}
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	assert.Nil(t, result)
 	assert.Error(t, err)
@@ -257,7 +258,7 @@ func TestValidateAndFindDispatchIdEvent_InvalidMessageID(t *testing.T) {
 	mailbox.AssertExpectations(t)
 }
 
-func TestValidateAndFindDispatchIdEvent_EthClientError(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent_EthClientError(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -287,7 +288,7 @@ func TestValidateAndFindDispatchIdEvent_EthClientError(t *testing.T) {
 		mailboxMap:   mailboxMap,
 	}
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -296,7 +297,7 @@ func TestValidateAndFindDispatchIdEvent_EthClientError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestValidateAndFindDispatchIdEvent_MailboxError(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent_MailboxError(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -326,7 +327,7 @@ func TestValidateAndFindDispatchIdEvent_MailboxError(t *testing.T) {
 		mailboxMap:   mailboxMap,
 	}
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -335,7 +336,7 @@ func TestValidateAndFindDispatchIdEvent_MailboxError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestValidateAndFindDispatchIdEvent_ReceiptError(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent_ReceiptError(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -367,7 +368,7 @@ func TestValidateAndFindDispatchIdEvent_ReceiptError(t *testing.T) {
 
 	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(nil, assert.AnError)
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -376,7 +377,7 @@ func TestValidateAndFindDispatchIdEvent_ReceiptError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestValidateAndFindDispatchIdEvent_UnsuccessfulReceipt(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent_UnsuccessfulReceipt(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -412,7 +413,7 @@ func TestValidateAndFindDispatchIdEvent_UnsuccessfulReceipt(t *testing.T) {
 		Logs:        []*types.Log{},
 	}, nil).Once()
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, models.TransactionStatusFailed, result.TxStatus)
@@ -420,7 +421,7 @@ func TestValidateAndFindDispatchIdEvent_UnsuccessfulReceipt(t *testing.T) {
 
 	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(nil, nil).Once()
 
-	result, err = signer.ValidateAndFindDispatchIdEvent(message)
+	result, err = signer.ValidateAndFindDispatchIDEvent(message)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, models.TransactionStatusFailed, result.TxStatus)
@@ -431,7 +432,7 @@ func TestValidateAndFindDispatchIdEvent_UnsuccessfulReceipt(t *testing.T) {
 	mailbox.AssertExpectations(t)
 }
 
-func TestValidateAndFindDispatchIdEvent_BlockHeightError(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent_BlockHeightError(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -471,7 +472,7 @@ func TestValidateAndFindDispatchIdEvent_BlockHeightError(t *testing.T) {
 	ethClient.EXPECT().GetBlockHeight().Return(uint64(100), assert.AnError)
 	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -480,7 +481,7 @@ func TestValidateAndFindDispatchIdEvent_BlockHeightError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestValidateAndFindDispatchIdEvent_NoEvent(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent_NoEvent(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -522,7 +523,7 @@ func TestValidateAndFindDispatchIdEvent_NoEvent(t *testing.T) {
 
 	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(nil, assert.AnError)
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -533,7 +534,7 @@ func TestValidateAndFindDispatchIdEvent_NoEvent(t *testing.T) {
 	assert.Equal(t, models.TransactionStatusInvalid, result.TxStatus)
 }
 
-func TestValidateAndFindDispatchIdEvent(t *testing.T) {
+func TestValidateAndFindDispatchIDEvent(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
@@ -575,7 +576,7 @@ func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 
 	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
 
-	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+	result, err := signer.ValidateAndFindDispatchIDEvent(message)
 
 	mockDB.AssertExpectations(t)
 	ethClient.AssertExpectations(t)
@@ -594,6 +595,7 @@ func TestValidateEthereumTxAndSignMessage_ValidateError(t *testing.T) {
 
 	signerKey := secp256k1.GenPrivKey()
 	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
 	mailbox := ethMocks.NewMockMailboxContract(t)
@@ -624,7 +626,7 @@ func TestValidateEthereumTxAndSignMessage_ValidateError(t *testing.T) {
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
 			Bech32Prefix:    "pokt",
-			MultisigAddress: "multisigAddress",
+			MultisigAddress: multisigAddr,
 		},
 	}
 
@@ -643,6 +645,7 @@ func TestValidateEthereumTxAndSignMessage_Pending(t *testing.T) {
 
 	signerKey := secp256k1.GenPrivKey()
 	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
 	mailbox := ethMocks.NewMockMailboxContract(t)
@@ -679,7 +682,7 @@ func TestValidateEthereumTxAndSignMessage_Pending(t *testing.T) {
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
 			Bech32Prefix:    "pokt",
-			MultisigAddress: "multisigAddress",
+			MultisigAddress: multisigAddr,
 		},
 	}
 
@@ -708,6 +711,7 @@ func TestValidateEthereumTxAndSignMessage_FailedTx(t *testing.T) {
 
 	signerKey := secp256k1.GenPrivKey()
 	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
 	mailbox := ethMocks.NewMockMailboxContract(t)
@@ -743,7 +747,7 @@ func TestValidateEthereumTxAndSignMessage_FailedTx(t *testing.T) {
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
 			Bech32Prefix:    "pokt",
-			MultisigAddress: "multisigAddress",
+			MultisigAddress: multisigAddr,
 		},
 	}
 
@@ -770,6 +774,7 @@ func TestValidateEthereumTxAndSignMessage_LockError(t *testing.T) {
 
 	signerKey := secp256k1.GenPrivKey()
 	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
 	mailbox := ethMocks.NewMockMailboxContract(t)
@@ -806,7 +811,7 @@ func TestValidateEthereumTxAndSignMessage_LockError(t *testing.T) {
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
 			Bech32Prefix:    "pokt",
-			MultisigAddress: "multisigAddress",
+			MultisigAddress: multisigAddr,
 		},
 	}
 
@@ -837,6 +842,7 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 
 	signerKey := secp256k1.GenPrivKey()
 	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
 	mailbox := ethMocks.NewMockMailboxContract(t)
@@ -873,7 +879,7 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
 			Bech32Prefix:    "pokt",
-			MultisigAddress: "multisigAddress",
+			MultisigAddress: multisigAddr,
 		},
 	}
 
@@ -931,7 +937,7 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 
 	mockDB.EXPECT().UpdateMessage(message.ID, mock.Anything).Return(nil)
 
-	mockClient.EXPECT().GetAccount("multisigAddress").Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
+	mockClient.EXPECT().GetAccount(multisigAddr).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
 
 	mockDB.EXPECT().LockWriteMessage(mock.Anything).Return("lock-id", nil)
 	mockDB.EXPECT().Unlock("lock-id").Return(nil)
@@ -951,6 +957,7 @@ func TestSignMessages(t *testing.T) {
 
 	signerKey := secp256k1.GenPrivKey()
 	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
 	mailbox := ethMocks.NewMockMailboxContract(t)
@@ -987,7 +994,7 @@ func TestSignMessages(t *testing.T) {
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
 			Bech32Prefix:    "pokt",
-			MultisigAddress: "multisigAddress",
+			MultisigAddress: multisigAddr,
 		},
 	}
 
@@ -1045,7 +1052,7 @@ func TestSignMessages(t *testing.T) {
 
 	mockDB.EXPECT().UpdateMessage(message.ID, mock.Anything).Return(nil)
 
-	mockClient.EXPECT().GetAccount("multisigAddress").Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
+	mockClient.EXPECT().GetAccount(multisigAddr).Return(&authtypes.BaseAccount{AccountNumber: 1, Sequence: 1}, nil)
 
 	mockDB.EXPECT().LockWriteMessage(mock.Anything).Return("lock-id", nil)
 	mockDB.EXPECT().Unlock("lock-id").Return(nil)

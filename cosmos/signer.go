@@ -95,6 +95,52 @@ func (x *CosmosMessageSignerRunnable) UpdateMessage(
 	}
 	return true
 }
+func (x *CosmosMessageSignerRunnable) Sign(
+	sequence *uint64,
+	signatures []models.Signature,
+	transactionBody string,
+	toAddress []byte,
+	amount sdk.Coin,
+	memo string,
+) (bson.M, error) {
+
+	if sequence == nil {
+		gotSequence, err := x.FindMaxSequence()
+		if err != nil {
+			return nil, fmt.Errorf("error getting sequence: %w", err)
+		}
+		sequence = &gotSequence
+	}
+
+	txBody, finalSignatures, err := CosmosSignTx(
+		x.signerKey,
+		x.config,
+		x.client,
+		*sequence,
+		signatures,
+		transactionBody,
+		toAddress,
+		amount,
+		memo,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	update := bson.M{
+		"status":           models.MessageStatusPending,
+		"transaction_body": string(txBody),
+		"signatures":       finalSignatures,
+		"sequence":         sequence,
+	}
+
+	if len(signatures) >= int(x.config.MultisigThreshold) {
+		update["status"] = models.MessageStatusSigned
+	}
+
+	return update, nil
+}
 
 func (x *CosmosMessageSignerRunnable) SignMessage(
 	messageDoc *models.Message,
@@ -104,155 +150,34 @@ func (x *CosmosMessageSignerRunnable) SignMessage(
 		WithField("tx_hash", messageDoc.OriginTransactionHash).
 		WithField("section", "sign-message")
 
-	var sequence uint64
-
-	if messageDoc.Sequence != nil {
-		sequence = *messageDoc.Sequence
-	} else {
-		var err error
-		sequence, err = x.FindMaxSequence()
-		if err != nil {
-			logger.WithError(err).Error("Error getting sequence")
-			return false
-		}
-	}
-
-	for _, sig := range messageDoc.Signatures {
-		signer, err := common.BytesFromAddressHex(sig.Signer)
-		if err != nil {
-			logger.WithError(err).Errorf("Error parsing signer")
-			return false
-		}
-		if bytes.Equal(signer, x.signerKey.PubKey().Address().Bytes()) {
-			logger.Infof("Already signed")
-			return true
-		}
-	}
-
-	if messageDoc.TransactionBody == "" {
-		toAddr, err := common.BytesFromAddressHex(messageDoc.Content.MessageBody.RecipientAddress)
-		if err != nil {
-			logger.WithError(err).Errorf("Error parsing to address")
-			return false
-		}
-
-		coinAmount, ok := math.NewIntFromString(messageDoc.Content.MessageBody.Amount)
-		if !ok {
-			logger.Errorf("Error parsing amount")
-			return false
-		}
-
-		txBody, err := utilNewSendTx(
-			x.config.Bech32Prefix,
-			x.multisigPk.Address().Bytes(),
-			toAddr,
-			sdk.NewCoin(x.config.CoinDenom, coinAmount),
-			"Message from "+messageDoc.OriginTransactionHash+" on "+x.chain.ChainID,
-			sdk.NewCoin(x.config.CoinDenom, math.NewIntFromUint64(x.config.TxFee)),
-		)
-		if err != nil {
-			logger.WithError(err).Errorf("Error creating tx body")
-			return false
-		}
-
-		messageDoc.TransactionBody = txBody
-	}
-
-	txBuilder, txConfig, err := utilWrapTxBuilder(x.config.Bech32Prefix, messageDoc.TransactionBody)
+	toAddr, err := common.BytesFromAddressHex(messageDoc.Content.MessageBody.RecipientAddress)
 	if err != nil {
-		logger.WithError(err).Error("Error wrapping tx builder")
+		logger.WithError(err).Errorf("Error parsing to address")
 		return false
 	}
 
-	// check whether the address is a signer
-	signers, err := txBuilder.GetTx().GetSigners()
-	if err != nil {
-		logger.WithError(err).Error("Error getting signers")
+	coinAmount, ok := math.NewIntFromString(messageDoc.Content.MessageBody.Amount)
+	if !ok {
+		logger.Errorf("Error parsing amount")
 		return false
 	}
 
-	if !isTxSigner(x.multisigPk.Address().Bytes(), signers) {
-		logger.Errorf("Address is not a signer")
-		return false
-	}
-
-	account, err := x.client.GetAccount(x.config.MultisigAddress)
-
-	if err != nil {
-		logger.WithError(err).Error("Error getting account")
-		return false
-	}
-
-	pubKey := x.signerKey.PubKey()
-
-	signerData := authsigning.SignerData{
-		ChainID:       x.chain.ChainID,
-		AccountNumber: account.AccountNumber,
-		Sequence:      sequence,
-		PubKey:        pubKey,
-		Address:       sdk.AccAddress(pubKey.Address()).String(),
-	}
-
-	sigV2, _, err := utilSignWithPrivKey(
-		context.Background(),
-		signerData,
-		txBuilder,
-		x.signerKey,
-		txConfig,
-		sequence,
+	update, err := x.Sign(
+		messageDoc.Sequence,
+		messageDoc.Signatures,
+		messageDoc.TransactionBody,
+		toAddr,
+		sdk.NewCoin(x.config.CoinDenom, coinAmount),
+		"Message from "+messageDoc.OriginTransactionHash+" on "+x.chain.ChainID,
 	)
+
+	if err == ErrAlreadySigned {
+		return true
+	}
+
 	if err != nil {
 		logger.WithError(err).Error("Error signing")
 		return false
-	}
-
-	var sigV2s []signingtypes.SignatureV2
-
-	if len(messageDoc.Signatures) > 0 {
-		sigV2s, err = txBuilder.GetTx().GetSignaturesV2()
-		if err != nil {
-			logger.WithError(err).Error("Error getting signatures")
-			return false
-		}
-	}
-
-	sigV2s = append(sigV2s, sigV2)
-	err = txBuilder.SetSignatures(sigV2s...)
-
-	if err != nil {
-		logger.WithError(err).Errorf("unable to set signatures on payload")
-		return false
-	}
-
-	txBody, err := txConfig.TxJSONEncoder()(txBuilder.GetTx())
-	if err != nil {
-		logger.WithError(err).Errorf("unable to encode tx")
-		return false
-	}
-
-	signatures := []models.Signature{}
-	for _, sig := range sigV2s {
-		signer, _ := common.AddressHexFromBytes(sig.PubKey.Address().Bytes())
-
-		signature := common.HexFromBytes(sig.Data.(*signingtypes.SingleSignatureData).Signature)
-
-		signatures = append(signatures, models.Signature{
-			Signer:    signer,
-			Signature: signature,
-		})
-	}
-
-	seq := uint64(sequence)
-
-	update := bson.M{
-		"status":           models.MessageStatusPending,
-		"transaction_body": string(txBody),
-		"signatures":       signatures,
-		"sequence":         &seq,
-	}
-
-	if len(signatures) >= int(x.config.MultisigThreshold) {
-		update["status"] = models.MessageStatusSigned
 	}
 
 	if lockID, err := x.db.LockWriteSequence(); err != nil {
@@ -272,13 +197,13 @@ func (x *CosmosMessageSignerRunnable) SignMessage(
 	return true
 }
 
-type ValidateTransactionAndParseDispatchIdEventsResult struct {
+type ValidateTransactionAndParseDispatchIDEventsResult struct {
 	Event         *autogen.MailboxDispatchId
 	Confirmations uint64
 	TxStatus      models.TransactionStatus
 }
 
-func (x *CosmosMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
+func (x *CosmosMessageSignerRunnable) ValidateAndFindDispatchIDEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIDEventsResult, error) {
 	chainDomain := messageDoc.Content.OriginDomain
 	txHash := messageDoc.OriginTransactionHash
 	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
@@ -300,7 +225,7 @@ func (x *CosmosMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc 
 		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
 	}
 	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		return &ValidateTransactionAndParseDispatchIdEventsResult{
+		return &ValidateTransactionAndParseDispatchIDEventsResult{
 			TxStatus: models.TransactionStatusFailed,
 		}, nil
 	}
@@ -323,7 +248,7 @@ func (x *CosmosMessageSignerRunnable) ValidateAndFindDispatchIdEvent(messageDoc 
 		return nil, fmt.Errorf("error getting current block height: %w", err)
 	}
 
-	result := &ValidateTransactionAndParseDispatchIdEventsResult{
+	result := &ValidateTransactionAndParseDispatchIDEventsResult{
 		Event:         dispatchEvent,
 		Confirmations: currentBlockHeight - receipt.BlockNumber.Uint64(),
 		TxStatus:      models.TransactionStatusPending,
@@ -342,7 +267,7 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDo
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "sign-ethereum-message")
 	logger.Debugf("Signing ethereum message")
 
-	result, err := x.ValidateAndFindDispatchIdEvent(messageDoc)
+	result, err := x.ValidateAndFindDispatchIDEvent(messageDoc)
 	if err != nil {
 		x.logger.WithError(err).Error("Error validating transaction and parsing DispatchId events")
 		return false
@@ -531,142 +456,22 @@ func (x *CosmosMessageSignerRunnable) SignRefund(
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "sign-refund")
 
-	var sequence uint64
-
-	if refundDoc.Sequence != nil {
-		sequence = *refundDoc.Sequence
-	} else {
-		var err error
-		sequence, err = x.FindMaxSequence()
-		if err != nil {
-			logger.WithError(err).Error("Error getting sequence")
-			return false
-		}
-	}
-
-	for _, sig := range refundDoc.Signatures {
-		signer, err := common.BytesFromAddressHex(sig.Signer)
-		if err != nil {
-			logger.WithError(err).Errorf("Error parsing signer")
-			return false
-		}
-		if bytes.Equal(signer, x.signerKey.PubKey().Address().Bytes()) {
-			logger.Infof("Already signed")
-			return true
-		}
-	}
-
-	if refundDoc.TransactionBody == "" {
-		txBody, err := utilNewSendTx(
-			x.config.Bech32Prefix,
-			x.multisigPk.Address().Bytes(),
-			spender,
-			amount,
-			"Refund for "+refundDoc.OriginTransactionHash,
-			sdk.NewCoin(x.config.CoinDenom, math.NewIntFromUint64(x.config.TxFee)),
-		)
-		if err != nil {
-			logger.WithError(err).Errorf("Error creating tx body")
-			return false
-		}
-		refundDoc.TransactionBody = txBody
-	}
-
-	txBuilder, txConfig, err := utilWrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
-	if err != nil {
-		logger.WithError(err).Error("Error wrapping tx builder")
-		return false
-	}
-
-	// check whether the address is a signer
-	signers, err := txBuilder.GetTx().GetSigners()
-	if err != nil {
-		logger.WithError(err).Error("Error getting signers")
-		return false
-	}
-
-	if !isTxSigner(x.multisigPk.Address().Bytes(), signers) {
-		logger.Errorf("Address is not a signer")
-		return false
-	}
-
-	account, err := x.client.GetAccount(x.config.MultisigAddress)
-
-	if err != nil {
-		logger.WithError(err).Error("Error getting account")
-		return false
-	}
-
-	pubKey := x.signerKey.PubKey()
-
-	signerData := authsigning.SignerData{
-		ChainID:       x.chain.ChainID,
-		AccountNumber: account.AccountNumber,
-		Sequence:      sequence,
-		PubKey:        pubKey,
-		Address:       sdk.AccAddress(pubKey.Address()).String(),
-	}
-
-	sigV2, _, err := utilSignWithPrivKey(
-		context.Background(),
-		signerData,
-		txBuilder,
-		x.signerKey,
-		txConfig,
-		sequence,
+	update, err := x.Sign(
+		refundDoc.Sequence,
+		refundDoc.Signatures,
+		refundDoc.TransactionBody,
+		spender,
+		amount,
+		"Refund for "+refundDoc.OriginTransactionHash,
 	)
+
+	if err == ErrAlreadySigned {
+		return true
+	}
+
 	if err != nil {
 		logger.WithError(err).Error("Error signing")
 		return false
-	}
-
-	var sigV2s []signingtypes.SignatureV2
-
-	if len(refundDoc.Signatures) > 0 {
-		sigV2s, err = txBuilder.GetTx().GetSignaturesV2()
-		if err != nil {
-			logger.WithError(err).Error("Error getting signatures")
-			return false
-		}
-	}
-
-	sigV2s = append(sigV2s, sigV2)
-	err = txBuilder.SetSignatures(sigV2s...)
-
-	if err != nil {
-		logger.WithError(err).Errorf("unable to set signatures on payload")
-		return false
-	}
-
-	txBody, err := txConfig.TxJSONEncoder()(txBuilder.GetTx())
-	if err != nil {
-		logger.WithError(err).Errorf("unable to encode tx")
-		return false
-	}
-
-	signatures := []models.Signature{}
-	for _, sig := range sigV2s {
-		signer, _ := common.AddressHexFromBytes(sig.PubKey.Address().Bytes())
-
-		signature := common.HexFromBytes(sig.Data.(*signingtypes.SingleSignatureData).Signature)
-
-		signatures = append(signatures, models.Signature{
-			Signer:    signer,
-			Signature: signature,
-		})
-	}
-
-	seq := uint64(sequence)
-
-	update := bson.M{
-		"status":           models.RefundStatusPending,
-		"transaction_body": string(txBody),
-		"signatures":       signatures,
-		"sequence":         &seq,
-	}
-
-	if len(signatures) >= int(x.config.MultisigThreshold) {
-		update["status"] = models.RefundStatusSigned
 	}
 
 	if lockID, err := x.db.LockWriteSequence(); err != nil {

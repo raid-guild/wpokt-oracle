@@ -362,18 +362,15 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 	}
 
 	multisigPk := multisig.NewLegacyAminoPubKey(int(config.MultisigThreshold), pks)
-	multisigAddress, err := common.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
-	if err != nil {
-		logger.WithError(err).Fatalf("Error creating multisig address")
-	}
+	multisigAddress, _ := common.Bech32FromBytes(config.Bech32Prefix, multisigPk.Address().Bytes())
 
 	if !strings.EqualFold(multisigAddress, config.MultisigAddress) {
 		logger.Fatalf("Multisig address does not match config")
 	}
 
-	client, err := cosmos.NewClient(config)
+	client, err := cosmosNewClient(config)
 	if err != nil {
-		logger.WithError(err).Errorf("Error creating cosmos client")
+		logger.WithError(err).Fatalf("Error creating cosmos client")
 	}
 
 	x := &CosmosMessageRelayerRunnable{
@@ -388,7 +385,7 @@ func NewMessageRelayer(config models.CosmosNetworkConfig, lastHealth *models.Run
 
 		logger: logger,
 
-		db: db.NewDB(),
+		db: dbNewDB(),
 	}
 
 	x.UpdateCurrentHeight()

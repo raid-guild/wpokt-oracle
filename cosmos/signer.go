@@ -371,10 +371,7 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDo
 
 func (x *CosmosMessageSignerRunnable) SignMessages() bool {
 	x.logger.Infof("Signing messages")
-	addressHex, err := common.AddressHexFromBytes(x.signerKey.PubKey().Address().Bytes())
-	if err != nil {
-		x.logger.WithError(err).Errorf("Error getting address hex")
-	}
+	addressHex, _ := common.AddressHexFromBytes(x.signerKey.PubKey().Address().Bytes())
 	messages, err := x.db.GetPendingMessages(addressHex, x.chain)
 
 	if err != nil {
@@ -1193,7 +1190,7 @@ func NewMessageSigner(
 
 	client, err := cosmos.NewClient(config)
 	if err != nil {
-		logger.WithError(err).Errorf("Error creating cosmos client")
+		logger.WithError(err).Fatalf("Error creating cosmos client")
 	}
 
 	privKey, err := common.CosmosPrivateKeyFromMnemonic(mnemonic)

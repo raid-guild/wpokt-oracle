@@ -221,6 +221,318 @@ func TestSignMessage(t *testing.T) {
 	assert.True(t, result)
 }
 
+func TestValidateAndFindDispatchIdEvent_InvalidMessageID(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Signatures:            []models.Signature{},
+		MessageID:             "invalid",
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+	}
+
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+
+	assert.Nil(t, result)
+	assert.Error(t, err)
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+}
+
+func TestValidateAndFindDispatchIdEvent_EthClientError(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	ethClientMap := map[uint32]eth.EthereumClient{}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+	}
+
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.Nil(t, result)
+	assert.Error(t, err)
+}
+
+func TestValidateAndFindDispatchIdEvent_MailboxError(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+	}
+
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.Nil(t, result)
+	assert.Error(t, err)
+}
+
+func TestValidateAndFindDispatchIdEvent_ReceiptError(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+	}
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(nil, assert.AnError)
+
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.Nil(t, result)
+	assert.Error(t, err)
+}
+
+func TestValidateAndFindDispatchIdEvent_UnsuccessfulReceipt(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+	}
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusFailed,
+		Logs:        []*types.Log{},
+	}, nil).Once()
+
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+
+	assert.NotNil(t, result)
+	assert.Equal(t, models.TransactionStatusFailed, result.TxStatus)
+	assert.NoError(t, err)
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(nil, nil).Once()
+
+	result, err = signer.ValidateAndFindDispatchIdEvent(message)
+
+	assert.NotNil(t, result)
+	assert.Equal(t, models.TransactionStatusFailed, result.TxStatus)
+	assert.NoError(t, err)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+}
+
+func TestValidateAndFindDispatchIdEvent_BlockHeightError(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	mailbox.EXPECT().Address().Return(ethcommon.BytesToAddress([]byte("mailbox")))
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+	}
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusSuccessful,
+		Logs:        []*types.Log{{Address: mailbox.Address()}},
+	}, nil)
+	ethClient.EXPECT().GetBlockHeight().Return(uint64(100), assert.AnError)
+	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
+
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.Nil(t, result)
+	assert.Error(t, err)
+}
+
+func TestValidateAndFindDispatchIdEvent_NoEvent(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	mailbox.EXPECT().Address().Return(ethcommon.BytesToAddress([]byte("mailbox")))
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: "recipient"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+	}
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusSuccessful,
+		Logs:        []*types.Log{{Address: mailbox.Address()}},
+	}, nil)
+	ethClient.EXPECT().GetBlockHeight().Return(uint64(100), nil)
+
+	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(nil, assert.AnError)
+
+	result, err := signer.ValidateAndFindDispatchIdEvent(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.NotNil(t, result)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(10), result.Confirmations)
+	assert.Equal(t, models.TransactionStatusInvalid, result.TxStatus)
+}
+
 func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
@@ -260,7 +572,6 @@ func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 		Logs:        []*types.Log{{Address: mailbox.Address()}},
 	}, nil)
 	ethClient.EXPECT().GetBlockHeight().Return(uint64(100), nil)
-	ethClient.EXPECT().Confirmations().Return(uint64(10))
 
 	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
 
@@ -274,6 +585,249 @@ func TestValidateAndFindDispatchIdEvent(t *testing.T) {
 	assert.Equal(t, messageIDBytes, result.Event.MessageId)
 	assert.Equal(t, uint64(10), result.Confirmations)
 	assert.Equal(t, models.TransactionStatusConfirmed, result.TxStatus)
+}
+
+func TestValidateEthereumTxAndSignMessage_ValidateError(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	signerKey := secp256k1.GenPrivKey()
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: recipientAddr.Hex(), Amount: "100"}},
+		Signatures:            []models.Signature{},
+		MessageID:             "0xinvalid",
+		Sequence:              new(uint64),
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+		multisigPk:   multisigPk,
+		signerKey:    signerKey,
+		config: models.CosmosNetworkConfig{
+			ChainID:         "chain-id",
+			CoinDenom:       "upokt",
+			Bech32Prefix:    "pokt",
+			MultisigAddress: "multisigAddress",
+		},
+	}
+
+	result := signer.ValidateEthereumTxAndSignMessage(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.False(t, result)
+}
+
+func TestValidateEthereumTxAndSignMessage_Pending(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	signerKey := secp256k1.GenPrivKey()
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	mailbox.EXPECT().Address().Return(ethcommon.BytesToAddress([]byte("mailbox")))
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: recipientAddr.Hex(), Amount: "100"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+		Sequence:              new(uint64),
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+		multisigPk:   multisigPk,
+		signerKey:    signerKey,
+		config: models.CosmosNetworkConfig{
+			ChainID:         "chain-id",
+			CoinDenom:       "upokt",
+			Bech32Prefix:    "pokt",
+			MultisigAddress: "multisigAddress",
+		},
+	}
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusSuccessful,
+		Logs:        []*types.Log{{Address: mailbox.Address()}},
+	}, nil)
+	ethClient.EXPECT().GetBlockHeight().Return(uint64(91), nil)
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
+
+	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
+
+	result := signer.ValidateEthereumTxAndSignMessage(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.False(t, result)
+}
+
+func TestValidateEthereumTxAndSignMessage_FailedTx(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	signerKey := secp256k1.GenPrivKey()
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	mailbox.EXPECT().Address().Return(ethcommon.BytesToAddress([]byte("mailbox")))
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: recipientAddr.Hex(), Amount: "100"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+		Sequence:              new(uint64),
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+		multisigPk:   multisigPk,
+		signerKey:    signerKey,
+		config: models.CosmosNetworkConfig{
+			ChainID:         "chain-id",
+			CoinDenom:       "upokt",
+			Bech32Prefix:    "pokt",
+			MultisigAddress: "multisigAddress",
+		},
+	}
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusFailed,
+		Logs:        []*types.Log{{Address: mailbox.Address()}},
+	}, nil)
+
+	mockDB.EXPECT().UpdateMessage(message.ID, bson.M{"status": models.MessageStatusInvalid}).Return(nil)
+
+	result := signer.ValidateEthereumTxAndSignMessage(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.True(t, result)
+}
+
+func TestValidateEthereumTxAndSignMessage_LockError(t *testing.T) {
+	mockDB := dbMocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	signerKey := secp256k1.GenPrivKey()
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+
+	ethClient := ethMocks.NewMockEthereumClient(t)
+	mailbox := ethMocks.NewMockMailboxContract(t)
+
+	mailbox.EXPECT().Address().Return(ethcommon.BytesToAddress([]byte("mailbox")))
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
+
+	ethClientMap := map[uint32]eth.EthereumClient{1: ethClient}
+	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
+
+	messageIDBytes := [32]byte{}
+	messageID := common.HexFromBytes(messageIDBytes[:])
+
+	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
+
+	message := &models.Message{
+		ID:                    &primitive.ObjectID{},
+		OriginTransactionHash: "hash1",
+		Content:               models.MessageContent{OriginDomain: 1, MessageBody: models.MessageBody{RecipientAddress: recipientAddr.Hex(), Amount: "100"}},
+		Signatures:            []models.Signature{},
+		MessageID:             messageID,
+		Sequence:              new(uint64),
+	}
+
+	signer := &CosmosMessageSignerRunnable{
+		db:           mockDB,
+		client:       mockClient,
+		logger:       logger,
+		ethClientMap: ethClientMap,
+		mailboxMap:   mailboxMap,
+		multisigPk:   multisigPk,
+		signerKey:    signerKey,
+		config: models.CosmosNetworkConfig{
+			ChainID:         "chain-id",
+			CoinDenom:       "upokt",
+			Bech32Prefix:    "pokt",
+			MultisigAddress: "multisigAddress",
+		},
+	}
+
+	ethClient.EXPECT().GetTransactionReceipt("hash1").Return(&types.Receipt{
+		BlockNumber: big.NewInt(90),
+		Status:      types.ReceiptStatusSuccessful,
+		Logs:        []*types.Log{{Address: mailbox.Address()}},
+	}, nil)
+	ethClient.EXPECT().GetBlockHeight().Return(uint64(100), nil)
+	ethClient.EXPECT().Confirmations().Return(uint64(10))
+
+	mailbox.EXPECT().ParseDispatchId(mock.Anything).Return(&autogen.MailboxDispatchId{MessageId: [32]byte{}}, nil)
+
+	mockDB.EXPECT().LockWriteMessage(mock.Anything).Return("lock-id", assert.AnError)
+
+	result := signer.ValidateEthereumTxAndSignMessage(message)
+
+	mockDB.AssertExpectations(t)
+	ethClient.AssertExpectations(t)
+	mailbox.AssertExpectations(t)
+	assert.False(t, result)
 }
 
 func TestValidateEthereumTxAndSignMessage(t *testing.T) {
@@ -506,7 +1060,7 @@ func TestSignMessages(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestSignMessages_Error(t *testing.T) {
+func TestSignMessages_DBError(t *testing.T) {
 	mockDB := dbMocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")

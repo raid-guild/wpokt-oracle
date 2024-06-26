@@ -25,48 +25,28 @@ type MintControllerFulfillmentIterator interface {
 }
 
 type mintControllerFulfillmentIterator struct {
-	iterator *autogen.MintControllerFulfillmentIterator
-}
-
-func (x *mintControllerFulfillmentIterator) Next() bool {
-	return x.iterator.Next()
+	*autogen.MintControllerFulfillmentIterator
 }
 
 func (x *mintControllerFulfillmentIterator) Event() *autogen.MintControllerFulfillment {
-	return x.iterator.Event
-}
-
-func (x *mintControllerFulfillmentIterator) Close() error {
-	return x.iterator.Close()
-}
-
-func (x *mintControllerFulfillmentIterator) Error() error {
-	return x.iterator.Error()
+	return x.MintControllerFulfillmentIterator.Event
 }
 
 type mintControllerContract struct {
-	contract *autogen.MintController
-	address  common.Address
+	*autogen.MintController
+	address common.Address
 }
 
 func (x *mintControllerContract) Address() common.Address {
 	return x.address
 }
 
-func (x *mintControllerContract) ParseFulfillment(log types.Log) (*autogen.MintControllerFulfillment, error) {
-	return x.contract.ParseFulfillment(log)
-}
-
 func (x *mintControllerContract) FilterFulfillment(opts *bind.FilterOpts, orderID [][32]byte) (MintControllerFulfillmentIterator, error) {
-	iterator, err := x.contract.FilterFulfillment(opts, orderID)
+	iterator, err := x.MintController.FilterFulfillment(opts, orderID)
 	if err != nil {
 		return nil, err
 	}
-	return &mintControllerFulfillmentIterator{iterator: iterator}, nil
-}
-
-func (x *mintControllerContract) MaxMintLimit(opts *bind.CallOpts) (*big.Int, error) {
-	return x.contract.MaxMintLimit(opts)
+	return &mintControllerFulfillmentIterator{iterator}, nil
 }
 
 func NewMintControllerContract(address common.Address, client bind.ContractBackend) (MintControllerContract, error) {
@@ -75,5 +55,5 @@ func NewMintControllerContract(address common.Address, client bind.ContractBacke
 		return nil, err
 	}
 
-	return &mintControllerContract{contract: contract, address: address}, nil
+	return &mintControllerContract{MintController: contract, address: address}, nil
 }

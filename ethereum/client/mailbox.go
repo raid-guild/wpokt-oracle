@@ -23,48 +23,28 @@ type MailboxDispatchIterator interface {
 }
 
 type mailboxDispatchIterator struct {
-	iterator *autogen.MailboxDispatchIterator
+	*autogen.MailboxDispatchIterator
 }
 
-func (x *mailboxDispatchIterator) Next() bool {
-	return x.iterator.Next()
-}
-
-func (x *mailboxDispatchIterator) Event() *autogen.MailboxDispatch {
-	return x.iterator.Event
-}
-
-func (x *mailboxDispatchIterator) Close() error {
-	return x.iterator.Close()
-}
-
-func (x *mailboxDispatchIterator) Error() error {
-	return x.iterator.Error()
+func (m *mailboxDispatchIterator) Event() *autogen.MailboxDispatch {
+	return m.MailboxDispatchIterator.Event
 }
 
 type mailboxContract struct {
-	contract *autogen.Mailbox
-	address  common.Address
+	*autogen.Mailbox
+	address common.Address
 }
 
-func (x *mailboxContract) ParseDispatch(log types.Log) (*autogen.MailboxDispatch, error) {
-	return x.contract.ParseDispatch(log)
+func (m *mailboxContract) Address() common.Address {
+	return m.address
 }
 
-func (x *mailboxContract) ParseDispatchId(log types.Log) (*autogen.MailboxDispatchId, error) {
-	return x.contract.ParseDispatchId(log)
-}
-
-func (x *mailboxContract) Address() common.Address {
-	return x.address
-}
-
-func (x *mailboxContract) FilterDispatch(opts *bind.FilterOpts, sender []common.Address, destination []uint32, recipient [][32]byte) (MailboxDispatchIterator, error) {
-	iterator, err := x.contract.FilterDispatch(opts, sender, destination, recipient)
+func (m *mailboxContract) FilterDispatch(opts *bind.FilterOpts, sender []common.Address, destination []uint32, recipient [][32]byte) (MailboxDispatchIterator, error) {
+	iterator, err := m.Mailbox.FilterDispatch(opts, sender, destination, recipient)
 	if err != nil {
 		return nil, err
 	}
-	return &mailboxDispatchIterator{iterator: iterator}, nil
+	return &mailboxDispatchIterator{iterator}, nil
 }
 
 func NewMailboxContract(address common.Address, client bind.ContractBackend) (MailboxContract, error) {
@@ -72,6 +52,5 @@ func NewMailboxContract(address common.Address, client bind.ContractBackend) (Ma
 	if err != nil {
 		return nil, err
 	}
-
-	return &mailboxContract{contract: contract, address: address}, nil
+	return &mailboxContract{Mailbox: contract, address: address}, nil
 }

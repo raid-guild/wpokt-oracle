@@ -17,24 +17,16 @@ type WarpISMContract interface {
 }
 
 type warpISMContract struct {
-	contract *autogen.WarpISM
-	address  common.Address
+	*autogen.WarpISM
+	address common.Address
 }
 
 func (x *warpISMContract) Address() common.Address {
 	return x.address
 }
 
-func (x *warpISMContract) ValidatorCount(opts *bind.CallOpts) (*big.Int, error) {
-	return x.contract.ValidatorCount(opts)
-}
-
-func (x *warpISMContract) SignerThreshold(opts *bind.CallOpts) (*big.Int, error) {
-	return x.contract.SignerThreshold(opts)
-}
-
 func (x *warpISMContract) Eip712Domain(opts *bind.CallOpts) (util.DomainData, error) {
-	return x.contract.Eip712Domain(opts)
+	return x.WarpISM.Eip712Domain(opts)
 }
 
 func NewWarpISMContract(address common.Address, client bind.ContractBackend) (WarpISMContract, error) {
@@ -43,5 +35,5 @@ func NewWarpISMContract(address common.Address, client bind.ContractBackend) (Wa
 		return nil, err
 	}
 
-	return &warpISMContract{contract: contract, address: address}, nil
+	return &warpISMContract{WarpISM: contract, address: address}, nil
 }

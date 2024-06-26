@@ -135,7 +135,7 @@ func (x *CosmosMessageSignerRunnable) Sign(
 		"sequence":         sequence,
 	}
 
-	if len(signatures) >= int(x.config.MultisigThreshold) {
+	if len(finalSignatures) >= int(x.config.MultisigThreshold) {
 		update["status"] = models.MessageStatusSigned
 	}
 
@@ -369,7 +369,12 @@ func (x *CosmosMessageSignerRunnable) ValidateRefund(
 
 	msgs := tx.GetMsgs()
 
-	msg := msgs[0].(*banktypes.MsgSend)
+	msg, ok := msgs[0].(*banktypes.MsgSend)
+
+	if !ok {
+		logger.Errorf("Invalid message type")
+		return false
+	}
 
 	if len(msg.Amount) != 1 {
 		logger.Errorf("Invalid amount")
@@ -446,7 +451,6 @@ func (x *CosmosMessageSignerRunnable) FindMaxSequence() (uint64, error) {
 }
 
 func (x *CosmosMessageSignerRunnable) SignRefund(
-	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
 	spender []byte,
 	amount sdk.Coin,
@@ -503,29 +507,15 @@ func (x *CosmosMessageSignerRunnable) BroadcastMessage(messageDoc *models.Messag
 		return false
 	}
 
-	valid := x.ValidateSignatures(messageDoc.OriginTransactionHash, *messageDoc.Sequence, txCfg, txBuilder)
+	valid := x.ValidateSignaturesAndAddMultiSignatureToTxConfig(messageDoc.OriginTransactionHash, *messageDoc.Sequence, txCfg, txBuilder)
 	if !valid {
-		err = txBuilder.SetSignatures()
-		if err != nil {
-			logger.WithError(err).Errorf("Error setting signatures")
-			return false
-		}
-		txBody, err := txCfg.TxJSONEncoder()(txBuilder.GetTx())
-		if err != nil {
-			logger.WithError(err).Errorf("Error encoding tx")
-			return false
-		}
-		update := bson.M{
-			"status":           models.MessageStatusPending,
-			"transaction_body": string(txBody),
-			"signatures":       []models.Signature{},
-		}
-		return x.UpdateMessage(messageDoc, update)
+		return x.ResetMessage(messageDoc)
 	}
 
 	txJSON, err := txCfg.TxJSONEncoder()(txBuilder.GetTx())
 	if err != nil {
 		logger.WithError(err).Errorf("Error encoding tx")
+		return false
 	}
 
 	txBytes, err := txCfg.TxEncoder()(txBuilder.GetTx())
@@ -548,89 +538,26 @@ func (x *CosmosMessageSignerRunnable) BroadcastMessage(messageDoc *models.Messag
 		"transaction_hash": txHash0x,
 	}
 
-	success := x.UpdateMessage(messageDoc, update)
-
-	if success {
-		messageDoc.TransactionHash = txHash0x
-		messageDoc.TransactionBody = string(txJSON)
-		messageDoc.Status = models.MessageStatusBroadcasted
-	}
-
-	return true
+	return x.UpdateMessage(messageDoc, update)
 }
 
 func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndBroadcastMessage(messageDoc *models.Message) bool {
 	logger := x.logger.WithField("tx_hash", messageDoc.OriginTransactionHash).WithField("section", "broadcast-ethereum-message")
 	logger.Debugf("Broadcasting ethereum message")
 
-	originDomain := messageDoc.Content.OriginDomain
-
-	client, ok := x.ethClientMap[originDomain]
-	if !ok {
-		logger.Infof("Ethereum client not found")
-		return false
-	}
-
-	mailbox, ok := x.mailboxMap[originDomain]
-	if !ok {
-		logger.Infof("Mailbox not found")
-		return false
-	}
-
-	receipt, err := client.GetTransactionReceipt(messageDoc.OriginTransactionHash)
+	result, err := x.ValidateAndFindDispatchIDEvent(messageDoc)
 	if err != nil {
-		logger.WithError(err).Errorf("Error getting tx receipt")
+		x.logger.WithError(err).Error("Error validating transaction and parsing DispatchId events")
 		return false
 	}
 
-	if receipt == nil {
-		logger.Infof("Tx receipt not found")
+	if result.TxStatus == models.TransactionStatusPending {
+		logger.Debugf("Found pending tx")
 		return false
 	}
 
-	if receipt.Status != types.ReceiptStatusSuccessful {
-		logger.Infof("Tx receipt failed")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	messageBytes, err := messageDoc.Content.EncodeToBytes()
-	if err != nil {
-		logger.WithError(err).Errorf("Error encoding message to bytes")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
-	}
-
-	mintController, ok := x.mintControllerMap[x.chain.ChainDomain]
-	if !ok {
-		logger.Infof("Mint controller not found")
-		return false
-	}
-
-	var dispatchEvent *autogen.MailboxDispatch
-	for _, log := range receipt.Logs {
-		if log.Address == mailbox.Address() {
-			event, err := mailbox.ParseDispatch(*log)
-			if err != nil {
-				logger.WithError(err).Errorf("Error parsing dispatch event")
-				continue
-			}
-			if event.Destination != x.chain.ChainDomain {
-				logger.Infof("Event destination is not this chain")
-				continue
-			}
-			if !bytes.Equal(event.Recipient[12:32], mintController) {
-				logger.Infof("Event recipient is not mint controller")
-				continue
-			}
-			if !bytes.Equal(event.Message, messageBytes) {
-				logger.Infof("Message does not match")
-				continue
-			}
-			dispatchEvent = event
-			break
-		}
-	}
-	if dispatchEvent == nil {
-		logger.Infof("Dispatch event not found")
+	if result.TxStatus != models.TransactionStatusConfirmed {
+		logger.Debugf("Found tx with status %s", result.TxStatus)
 		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
 	}
 
@@ -638,7 +565,6 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndBroadcastMessage(mess
 		logger.WithError(err).Error("Error locking message")
 		return false
 	} else {
-
 		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
@@ -663,7 +589,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastMessages() bool {
 	return success
 }
 
-func (x *CosmosMessageSignerRunnable) ValidateSignatures(
+func (x *CosmosMessageSignerRunnable) ValidateSignaturesAndAddMultiSignatureToTxConfig(
 	originTxHash string,
 	sequence uint64,
 	txCfg client.TxConfig,
@@ -691,11 +617,9 @@ func (x *CosmosMessageSignerRunnable) ValidateSignatures(
 		return false
 	}
 
-	multisigPub := x.multisigPk
-	multisigSig := multisigtypes.NewMultisig(len(multisigPub.PubKeys))
+	multisigSig := multisigtypes.NewMultisig(len(x.multisigPk.PubKeys))
 
 	// read each signature and add it to the multisig if valid
-
 	for _, sig := range sigV2s {
 		anyPk, err := codectypes.NewAnyWithValue(sig.PubKey)
 		if err != nil {
@@ -715,7 +639,6 @@ func (x *CosmosMessageSignerRunnable) ValidateSignatures(
 		builtTx := txBuilder.GetTx()
 		adaptableTx, ok := builtTx.(authsigning.V2AdaptableTx)
 		if !ok {
-			// return fmt.Errorf("expected Tx to be signing.V2AdaptableTx, got %T", builtTx)
 			logger.Errorf("expected Tx to be signing.V2AdaptableTx, got %T", builtTx)
 			return false
 		}
@@ -724,21 +647,19 @@ func (x *CosmosMessageSignerRunnable) ValidateSignatures(
 		err = authsigning.VerifySignature(context.Background(), sig.PubKey, txSignerData, sig.Data,
 			txCfg.SignModeHandler(), txData)
 		if err != nil {
-			addr, _ := sdk.AccAddressFromHexUnsafe(sig.PubKey.Address().String())
-			// return fmt.Errorf("couldn't verify signature for address %s", addr)
+			addr, _ := common.Bech32FromBytes(x.config.Bech32Prefix, sig.PubKey.Address().Bytes())
 			logger.Errorf("couldn't verify signature for address %s", addr)
 			return false
 		}
 
-		if err := multisigtypes.AddSignatureV2(multisigSig, sig, multisigPub.GetPubKeys()); err != nil {
-			// return err
+		if err := multisigtypes.AddSignatureV2(multisigSig, sig, x.multisigPk.GetPubKeys()); err != nil {
 			logger.WithError(err).Error("Error adding signature")
 			return false
 		}
 	}
 
 	sigV2 := signingtypes.SignatureV2{
-		PubKey:   multisigPub,
+		PubKey:   x.multisigPk,
 		Data:     multisigSig,
 		Sequence: sequence,
 	}
@@ -752,9 +673,36 @@ func (x *CosmosMessageSignerRunnable) ValidateSignatures(
 	// TODO: add more validation
 	return true
 }
+func (x *CosmosMessageSignerRunnable) ResetRefund(
+	refund *models.Refund,
+) bool {
+	update := bson.M{
+		"status":           models.RefundStatusPending,
+		"signatures":       []models.Signature{},
+		"transaction_body": "",
+		"transaction":      nil,
+		"transaction_hash": "",
+	}
+
+	return x.UpdateRefund(refund, update)
+}
+
+func (x *CosmosMessageSignerRunnable) ResetMessage(
+	message *models.Message,
+) bool {
+
+	update := bson.M{
+		"status":           models.MessageStatusPending,
+		"signatures":       []models.Signature{},
+		"transaction_body": "",
+		"transaction":      nil,
+		"transaction_hash": "",
+	}
+
+	return x.UpdateMessage(message, update)
+}
 
 func (x *CosmosMessageSignerRunnable) BroadcastRefund(
-	txResponse *sdk.TxResponse,
 	refundDoc *models.Refund,
 	spender []byte,
 	amount sdk.Coin,
@@ -764,36 +712,15 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefund(
 		WithField("tx_hash", refundDoc.OriginTransactionHash).
 		WithField("section", "broadcast-refund")
 
-	valid := x.ValidateRefund(txResponse, refundDoc, spender, amount)
-	if !valid {
-		logger.Warnf("Invalid refund")
-		return x.UpdateRefund(refundDoc, bson.M{"status": models.RefundStatusInvalid})
-	}
-
 	txBuilder, txCfg, err := utilWrapTxBuilder(x.config.Bech32Prefix, refundDoc.TransactionBody)
 	if err != nil {
 		logger.WithError(err).Error("Error wrapping tx builder")
 		return false
 	}
 
-	valid = x.ValidateSignatures(refundDoc.OriginTransactionHash, *refundDoc.Sequence, txCfg, txBuilder)
+	valid := x.ValidateSignaturesAndAddMultiSignatureToTxConfig(refundDoc.OriginTransactionHash, *refundDoc.Sequence, txCfg, txBuilder)
 	if !valid {
-		err = txBuilder.SetSignatures()
-		if err != nil {
-			logger.WithError(err).Errorf("Error setting signatures")
-			return false
-		}
-		txBody, err := txCfg.TxJSONEncoder()(txBuilder.GetTx())
-		if err != nil {
-			logger.WithError(err).Errorf("Error encoding tx")
-			return false
-		}
-		update := bson.M{
-			"status":           models.RefundStatusPending,
-			"transaction_body": string(txBody),
-			"signatures":       []models.Signature{},
-		}
-		return x.UpdateRefund(refundDoc, update)
+		return x.ResetRefund(refundDoc)
 	}
 
 	txJSON, err := txCfg.TxJSONEncoder()(txBuilder.GetTx())
@@ -867,6 +794,11 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefunds() bool {
 			success = x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid}) && success
 		}
 
+		if !x.ValidateRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) {
+			logger.Warnf("Invalid refund")
+			return x.UpdateRefund(&refundDoc, bson.M{"status": models.RefundStatusInvalid})
+		}
+
 		lockID, err := x.db.LockWriteRefund(&refundDoc)
 		// lock before signing so that no other validator adds a signature at the same time
 		if err != nil {
@@ -875,7 +807,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefunds() bool {
 			continue
 		}
 
-		success = x.BroadcastRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
+		success = x.BroadcastRefund(&refundDoc, result.SenderAddress, result.Amount) && success
 
 		if err = x.db.Unlock(lockID); err != nil {
 			logger.WithError(err).Error("Error unlocking refund")
@@ -947,7 +879,7 @@ func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 			continue
 		}
 
-		success = x.SignRefund(txResponse, &refundDoc, result.SenderAddress, result.Amount) && success
+		success = x.SignRefund(&refundDoc, result.SenderAddress, result.Amount) && success
 
 		//nolint:errcheck
 		x.db.Unlock(lockID)

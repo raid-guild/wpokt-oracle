@@ -89,37 +89,37 @@ func (content *MessageContent) DecodeFromBytes(data []byte) error {
 	if err := binary.Read(buf, binary.BigEndian, &content.Version); err != nil {
 		return err
 	}
+
 	if err := binary.Read(buf, binary.BigEndian, &content.Nonce); err != nil {
 		return err
 	}
+
 	if err := binary.Read(buf, binary.BigEndian, &content.OriginDomain); err != nil {
 		return err
 	}
+
 	senderBytes := make([]byte, 32)
 	if _, err := io.ReadFull(buf, senderBytes); err != nil {
 		return err
 	}
-	sender := "0x" + hex.EncodeToString(senderBytes[12:32])
-	content.Sender = sender
+	content.Sender = common.Ensure0xPrefix(hex.EncodeToString(senderBytes[12:32]))
+
 	if err := binary.Read(buf, binary.BigEndian, &content.DestinationDomain); err != nil {
 		return err
 	}
+
 	recipientBytes := make([]byte, 32)
 	if _, err := io.ReadFull(buf, recipientBytes); err != nil {
 		return err
 	}
-	recipient := "0x" + hex.EncodeToString(recipientBytes[12:32])
-	content.Recipient = recipient
+	content.Recipient = common.Ensure0xPrefix(hex.EncodeToString(recipientBytes[12:32]))
+
 	bodyBytes := make([]byte, 96)
 	if _, err := io.ReadFull(buf, bodyBytes); err != nil {
 		return err
 	}
 	if err := content.MessageBody.DecodeFromBytes(bodyBytes); err != nil {
 		return err
-	}
-
-	if buf.Len() != 0 {
-		return fmt.Errorf("unexpected data")
 	}
 
 	return nil
@@ -167,6 +167,7 @@ func (body *MessageBody) EncodeToBytes() ([]byte, error) {
 	if _, err = buf.Write(recipientBytes[:]); err != nil { // 32 bytes
 		return nil, err
 	}
+
 	amount, ok := new(big.Int).SetString(body.Amount, 10)
 	if !ok {
 		return nil, fmt.Errorf("invalid amount")
@@ -175,6 +176,7 @@ func (body *MessageBody) EncodeToBytes() ([]byte, error) {
 	if _, err = buf.Write(amountBytes); err != nil { // 32 bytes
 		return nil, err
 	}
+
 	senderBytes, err := common.Bytes32FromAddressHex(body.SenderAddress)
 	if err != nil {
 		return nil, err
@@ -212,17 +214,10 @@ func (body *MessageBody) DecodeFromBytes(data []byte) error {
 		return err
 	}
 
-	if buf.Len() != 0 {
-		return fmt.Errorf("unexpected data")
-	}
-
-	recipient := "0x" + hex.EncodeToString(recipientBytes[12:32])
-	sender := "0x" + hex.EncodeToString(senderBytes[12:32])
-
 	*body = MessageBody{
-		RecipientAddress: recipient,
+		RecipientAddress: common.Ensure0xPrefix(hex.EncodeToString(recipientBytes[12:32])),
 		Amount:           amount.String(),
-		SenderAddress:    sender,
+		SenderAddress:    common.Ensure0xPrefix(hex.EncodeToString(senderBytes[12:32])),
 	}
 
 	return nil

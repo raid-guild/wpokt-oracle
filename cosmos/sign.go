@@ -79,7 +79,7 @@ func cosmosSignTx(
 	}
 
 	if !isTxSigner(multisigAddressBytes, signers) {
-		return "", nil, fmt.Errorf("address is not a signer")
+		return "", nil, fmt.Errorf("multisig is not a signer")
 	}
 
 	account, err := client.GetAccount(config.MultisigAddress)
@@ -107,7 +107,7 @@ func cosmosSignTx(
 		sequence,
 	)
 	if err != nil {
-		return "", nil, fmt.Errorf("error signing: %w", err)
+		return "", nil, fmt.Errorf("error signing tx: %w", err)
 	}
 
 	var sigV2s []signingtypes.SignatureV2

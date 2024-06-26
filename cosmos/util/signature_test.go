@@ -9,7 +9,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
+	clientMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util/mocks"
+	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -112,4 +114,138 @@ func TestSignWithPrivKey_ErrorSigning(t *testing.T) {
 	// Assertions
 	assert.Error(t, err)
 	assert.Empty(t, sigV2)
+}
+
+func TestValidateSignature(t *testing.T) {
+	privKey := secp256k1.GenPrivKey()
+
+	// Create a new TxConfig
+	txConfig := NewTxConfig("pokt")
+
+	// Create a new TxBuilder
+	txBuilder := txConfig.NewTxBuilder()
+
+	// Create dummy signer data
+	signerData := authsigning.SignerData{
+		ChainID:       "poktroll",
+		AccountNumber: 1,
+		Sequence:      1,
+		PubKey:        privKey.PubKey(),
+		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+	}
+
+	// Create a new context
+	ctx := context.Background()
+
+	// Call the SignWithPrivKey function
+	sigV2, _, err := SignWithPrivKey(ctx, signerData, txBuilder, privKey, txConfig, 1)
+	assert.NoError(t, err)
+
+	config := models.CosmosNetworkConfig{
+		ChainID:      "poktroll",
+		Bech32Prefix: "pokt",
+	}
+
+	err = ValidateSignature(config, &sigV2, 1, 1, txConfig, txBuilder)
+	assert.NoError(t, err)
+}
+
+func TestValidateSignature_VerificationFailure(t *testing.T) {
+	privKey := secp256k1.GenPrivKey()
+
+	// Create a new TxConfig
+	txConfig := NewTxConfig("pokt")
+
+	// Create a new TxBuilder
+	txBuilder := txConfig.NewTxBuilder()
+
+	// Create dummy signer data
+	signerData := authsigning.SignerData{
+		ChainID:       "poktroll",
+		AccountNumber: 1,
+		Sequence:      1,
+		PubKey:        privKey.PubKey(),
+		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+	}
+
+	// Create a new context
+	ctx := context.Background()
+
+	// Call the SignWithPrivKey function
+	sigV2, _, err := SignWithPrivKey(ctx, signerData, txBuilder, privKey, txConfig, 1)
+	assert.NoError(t, err)
+
+	config := models.CosmosNetworkConfig{
+		ChainID:      "poktroll-different",
+		Bech32Prefix: "pokt",
+	}
+
+	err = ValidateSignature(config, &sigV2, 1, 1, txConfig, txBuilder)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "couldn't verify signature for address")
+}
+
+func TestValidateSignature_AnyError(t *testing.T) {
+	privKey := secp256k1.GenPrivKey()
+
+	// Create a new TxConfig
+	txConfig := NewTxConfig("pokt")
+
+	// Create a new TxBuilder
+	txBuilder := txConfig.NewTxBuilder()
+
+	// Create dummy signer data
+	signerData := authsigning.SignerData{
+		ChainID:       "poktroll",
+		AccountNumber: 1,
+		Sequence:      1,
+		PubKey:        privKey.PubKey(),
+		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+	}
+
+	// Create a new context
+	ctx := context.Background()
+
+	// Call the SignWithPrivKey function
+	sigV2, _, err := SignWithPrivKey(ctx, signerData, txBuilder, privKey, txConfig, 1)
+	assert.NoError(t, err)
+
+	config := models.CosmosNetworkConfig{
+		ChainID:      "poktroll-different",
+		Bech32Prefix: "pokt",
+	}
+
+	sigV2.PubKey = nil
+
+	err = ValidateSignature(config, &sigV2, 1, 1, txConfig, txBuilder)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "error creating any pubkey")
+}
+
+func TestValidateSignature_TxError(t *testing.T) {
+	privKey := secp256k1.GenPrivKey()
+
+	// Create a new TxConfig
+	txConfig := NewTxConfig("pokt")
+
+	// Create a new TxBuilder
+	txBuilder := clientMocks.NewMockTxBuilder(t)
+
+	tx := clientMocks.NewMockTx(t)
+
+	txBuilder.EXPECT().GetTx().Return(tx)
+
+	// Call the SignWithPrivKey function
+	sigV2 := signingtypes.SignatureV2{
+		PubKey: privKey.PubKey(),
+	}
+
+	config := models.CosmosNetworkConfig{
+		ChainID:      "poktroll",
+		Bech32Prefix: "pokt",
+	}
+
+	err := ValidateSignature(config, &sigV2, 1, 1, txConfig, txBuilder)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "expected Tx to be signing.V2AdaptableTx")
 }

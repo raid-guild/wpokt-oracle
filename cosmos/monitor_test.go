@@ -477,11 +477,11 @@ func TestSyncNewTxs(t *testing.T) {
 	mockClient.EXPECT().GetTxsSentToAddressAfterHeight(multisigAddress.Hex(), uint64(1)).Return(txResponses, nil).Once()
 	mockDB.EXPECT().NewCosmosTransaction(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(models.Transaction{}, nil).Twice()
 	mockDB.EXPECT().InsertTransaction(mock.Anything).Return(primitive.ObjectID{}, nil).Twice()
+
 	result := &util.ValidateTxResult{
 		Confirmations: 0,
 		TxStatus:      models.TransactionStatusPending,
 	}
-
 	utilValidateTxToCosmosMultisig = func(*sdk.TxResponse, models.CosmosNetworkConfig, map[uint32]bool, uint64) (*util.ValidateTxResult, error) {
 		return result, nil
 	}

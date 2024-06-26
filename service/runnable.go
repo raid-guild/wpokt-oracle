@@ -122,7 +122,7 @@ func NewRunnerService(
 
 	if (runnable == nil) || (interval == 0) {
 		logger.
-			Debug("Invalid parameters")
+			Fatal("Invalid parameters")
 		return nil
 	}
 

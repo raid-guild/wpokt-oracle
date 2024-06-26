@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -102,6 +103,7 @@ func TestChainService_Health(t *testing.T) {
 }
 
 func TestNewChainService(t *testing.T) {
+
 	var wg sync.WaitGroup
 	chain := models.Chain{ChainName: "TestChain", ChainID: "1"}
 
@@ -109,6 +111,8 @@ func TestNewChainService(t *testing.T) {
 	assert.NotNil(t, cs)
 	assert.Equal(t, "TESTCHAIN", cs.(*chainService).Name())
 
-	cs = NewChainService(models.Chain{}, nil, nil, nil, nil)
-	assert.Nil(t, cs)
+	defer func() { log.StandardLogger().ExitFunc = nil }()
+	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
+
+	assert.Panics(t, func() { NewChainService(models.Chain{}, nil, nil, nil, nil) })
 }

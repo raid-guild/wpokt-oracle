@@ -104,7 +104,7 @@ func NewChainService(
 		WithField("chain_name", strings.ToLower(chain.ChainName)).
 		WithField("chain_id", strings.ToLower(chain.ChainID))
 	if chain.ChainName == "" || monitorService == nil || signerService == nil || relayerService == nil || wg == nil {
-		logger.Debug("Invalid parameters")
+		logger.Fatal("Invalid parameters")
 		return nil
 	}
 

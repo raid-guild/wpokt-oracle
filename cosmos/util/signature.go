@@ -1,14 +1,25 @@
 package util
 
 import (
+	"fmt"
+
 	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/dan13ram/wpokt-oracle/common"
+	"github.com/dan13ram/wpokt-oracle/models"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"context"
 
 	"github.com/cosmos/cosmos-sdk/client"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
+
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+
+	txsigning "cosmossdk.io/x/tx/signing"
 )
 
 var signMode = signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
@@ -47,4 +58,41 @@ func SignWithPrivKey(
 	}
 
 	return sigV2, msg, nil
+}
+
+func ValidateSignature(
+	config models.CosmosNetworkConfig,
+	sig *signingtypes.SignatureV2,
+	accountNumber uint64,
+	sequence uint64,
+	txConfig client.TxConfig,
+	txBuilder client.TxBuilder,
+) error {
+	anyPk, err := codectypes.NewAnyWithValue(sig.PubKey)
+	if err != nil {
+		return fmt.Errorf("error creating any pubkey: %w", err)
+	}
+	txSignerData := txsigning.SignerData{
+		ChainID:       config.ChainID,
+		AccountNumber: accountNumber,
+		Sequence:      sequence,
+		Address:       sdk.AccAddress(sig.PubKey.Address()).String(),
+		PubKey: &anypb.Any{
+			TypeUrl: anyPk.TypeUrl,
+			Value:   anyPk.Value,
+		},
+	}
+	builtTx := txBuilder.GetTx()
+	adaptableTx, ok := builtTx.(authsigning.V2AdaptableTx)
+	if !ok {
+		return fmt.Errorf("expected Tx to be signing.V2AdaptableTx")
+	}
+	txData := adaptableTx.GetSigningTxData()
+
+	err = authsigning.VerifySignature(context.Background(), sig.PubKey, txSignerData, sig.Data, txConfig.SignModeHandler(), txData)
+	if err != nil {
+		addr, _ := common.Bech32FromBytes(config.Bech32Prefix, sig.PubKey.Address().Bytes())
+		return fmt.Errorf("couldn't verify signature for address %s", addr)
+	}
+	return nil
 }

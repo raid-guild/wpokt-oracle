@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -133,9 +134,14 @@ func TestNewRunnerService(t *testing.T) {
 	assert.Equal(t, "TESTSERVICE", r.(*runnerService).name)
 	assert.True(t, r.Enabled())
 
-	r = NewRunnerService("TestService", nil, true, 1*time.Second, chain)
-	assert.Nil(t, r)
+	defer func() { log.StandardLogger().ExitFunc = nil }()
+	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
-	r = NewRunnerService("TestService", runnable, true, 0, chain)
-	assert.Nil(t, r)
+	assert.Panics(t, func() {
+		NewRunnerService("TestService", nil, true, 1*time.Second, chain)
+	})
+
+	assert.Panics(t, func() {
+		NewRunnerService("TestService", runnable, true, 0, chain)
+	})
 }

@@ -726,6 +726,7 @@ func (x *CosmosMessageSignerRunnable) BroadcastRefund(
 	txJSON, err := txCfg.TxJSONEncoder()(txBuilder.GetTx())
 	if err != nil {
 		logger.WithError(err).Errorf("Error encoding tx")
+		return false
 	}
 
 	txBytes, err := txCfg.TxEncoder()(txBuilder.GetTx())

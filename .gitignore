@@ -32,3 +32,6 @@ credentials.json
 
 # docker
 docker/docker-compose.yml
+
+# secrets
+secrets/

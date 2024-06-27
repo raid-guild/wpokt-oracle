@@ -70,3 +70,9 @@ docker_wipe: prompt_user ## [WARNING] Remove all the docker containers, images a
 
 .PHONY: e2e_test
 e2e_test :; cd e2e && yarn install && yarn test
+
+.PHONY: generate_keys
+generate_keys :; go run scripts/generate_keys/main.go --mnemonic "${mnemonic}"
+
+.PHONY: generate_multisig
+generate_multisig :; go run scripts/generate_multisig/main.go --publickeys "${publickeys}" --threshold ${threshold}

@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"flag"
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
@@ -23,7 +23,8 @@ func main() {
 	flag.Parse()
 
 	if publickeys == "" {
-		log.Fatal("publickeys is required")
+		fmt.Printf("publickeys is required\n")
+		return
 	}
 
 	var keys []string
@@ -32,40 +33,46 @@ func main() {
 	}
 
 	if threshold <= 0 {
-		log.Fatal("threshold is required")
+		fmt.Printf("threshold is required\n")
+		return
 	}
 
 	if len(keys) < threshold {
-		log.Fatal("threshold must be less than or equal to the number of public keys")
+		fmt.Printf("threshold must be less than or equal to the number of public keys\n")
+		return
 	}
 
 	var pKeys []crypto.PubKey
 
 	for i, key := range keys {
 		if !common.IsValidCosmosPublicKey(key) {
-			log.Fatalf("invalid public key %d: %v", i, key)
+			fmt.Printf("invalid public key %d: %v\n", i, key)
+			return
 		}
 		pKey := &secp256k1.PubKey{}
 		pKeyBytes, err := hex.DecodeString(key)
 		if err != nil {
-			log.Fatalf("error decoding public key %d: %v", i, err)
+			fmt.Printf("error decoding public key %d: %v\n", i, err)
+			return
 		}
 		err = pKey.UnmarshalAmino(pKeyBytes)
 		if err != nil {
-			log.Fatalf("error unmarshalling public key %d: %v", i, err)
+			fmt.Printf("error unmarshalling public key %d: %v\n", i, err)
+			return
 		}
 		pKeys = append(pKeys, pKey)
-		log.Printf("public key %d: %v", i, key)
+		fmt.Printf("public key %d: %v\n", i, key)
 	}
 
-	log.Printf("threshold: %v", threshold)
+	fmt.Printf("threshold: %v\n", threshold)
 	pk := multisig.NewLegacyAminoPubKey(threshold, pKeys)
-	log.Printf("multisig address: %v", strings.ToLower(pk.Address().String()))
+	fmt.Printf("multisig address: %v\n", strings.ToLower(pk.Address().String()))
 
 	bech32, err := common.Bech32FromBytes(DefaultBech32Prefix, pk.Address().Bytes())
 	if err != nil {
-		log.Fatalf("error encoding address: %v", err)
+		fmt.Printf("error encoding address: %v\n", err)
+		return
 	}
-	log.Printf("multisig address bech32: %v", bech32)
+	fmt.Printf("multisig address bech32: %v\n", bech32)
 
 }

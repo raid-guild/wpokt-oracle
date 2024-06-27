@@ -428,6 +428,10 @@ func (x *EthMessageMonitorRunnable) InitStartBlockHeight(lastHealth *models.Runn
 	x.logger.Infof("Initialized start block height: %d", x.startBlockHeight)
 }
 
+var ethNewClient = eth.NewClient
+var ethNewMailboxContract = eth.NewMailboxContract
+var dbNewDB = db.NewDB
+
 func NewMessageMonitor(
 	config models.EthereumNetworkConfig,
 	mintControllerMap map[uint32][]byte,
@@ -445,13 +449,13 @@ func NewMessageMonitor(
 
 	logger.Debugf("Initializing")
 
-	client, err := eth.NewClient(config)
+	client, err := ethNewClient(config)
 	if err != nil {
 		logger.Fatalf("Error creating ethereum client: %s", err)
 	}
 
 	logger.Debug("Connecting to mailbox contract at: ", config.MailboxAddress)
-	mailbox, err := eth.NewMailboxContract(common.HexToAddress(config.MailboxAddress), client.GetClient())
+	mailbox, err := ethNewMailboxContract(common.HexToAddress(config.MailboxAddress), client.GetClient())
 	if err != nil {
 		logger.Fatal("Error connecting to mailbox contract: ", err)
 	}
@@ -472,7 +476,7 @@ func NewMessageMonitor(
 
 		logger: logger,
 
-		db: db.NewDB(),
+		db: dbNewDB(),
 	}
 
 	x.UpdateCurrentBlockHeight()

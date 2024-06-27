@@ -359,13 +359,13 @@ func NewMessageRelayer(
 
 	logger.Debugf("Initializing")
 
-	client, err := eth.NewClient(config)
+	client, err := ethNewClient(config)
 	if err != nil {
 		logger.Fatalf("Error creating ethereum client: %s", err)
 	}
 
 	logger.Debug("Connecting to mintController contract at: ", config.MintControllerAddress)
-	mintController, err := eth.NewMintControllerContract(common.HexToAddress(config.MintControllerAddress), client.GetClient())
+	mintController, err := ethNewMintControllerContract(common.HexToAddress(config.MintControllerAddress), client.GetClient())
 	if err != nil {
 		logger.Fatal("Error connecting to mintController contract: ", err)
 	}
@@ -386,7 +386,7 @@ func NewMessageRelayer(
 
 		logger: logger,
 
-		db: db.NewDB(),
+		db: dbNewDB(),
 	}
 
 	x.UpdateCurrentBlockHeight()

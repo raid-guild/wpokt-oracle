@@ -2260,7 +2260,8 @@ func TestValidateSignatures_Threshold(t *testing.T) {
 	sigV2, msg, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
 	assert.NoError(t, err)
 
-	txBuilder.SetSignatures(sigV2)
+	err = txBuilder.SetSignatures(sigV2)
+	assert.NoError(t, err)
 	sigs, err := txBuilder.GetTx().GetSignaturesV2()
 	assert.NoError(t, err)
 
@@ -2297,7 +2298,8 @@ func TestValidateSignatures_Threshold(t *testing.T) {
 
 	multisigSig := multisigtypes.NewMultisig(len(multisigPk.PubKeys))
 
-	multisigtypes.AddSignatureV2(multisigSig, sigV2, multisigPk.GetPubKeys())
+	err = multisigtypes.AddSignatureV2(multisigSig, sigV2, multisigPk.GetPubKeys())
+	assert.NoError(t, err)
 
 	expectedSignature := signingtypes.SignatureV2{
 		PubKey:   multisigPk,
@@ -2357,7 +2359,8 @@ func TestValidateSignatures_Threshold_AnyError(t *testing.T) {
 
 	sigV2.PubKey = nil
 
-	txBuilder.SetSignatures(sigV2)
+	err = txBuilder.SetSignatures(sigV2)
+	assert.NoError(t, err)
 
 	result := signer.ValidateSignaturesAndAddMultiSignatureToTxConfig("hash1", 1, txConfig, txBuilder)
 	assert.False(t, result)
@@ -2404,7 +2407,8 @@ func TestValidateSignatures_Threshold_VerifyError(t *testing.T) {
 	sigV2, _, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
 	assert.NoError(t, err)
 
-	txBuilder.SetSignatures(sigV2)
+	err = txBuilder.SetSignatures(sigV2)
+	assert.NoError(t, err)
 
 	result := signer.ValidateSignaturesAndAddMultiSignatureToTxConfig("hash1", 1, txConfig, txBuilder)
 	assert.False(t, result)
@@ -2452,7 +2456,8 @@ func TestValidateSignatures_Threshold_AddSignatureError(t *testing.T) {
 	sigV2, _, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
 	assert.NoError(t, err)
 
-	txBuilder.SetSignatures(sigV2)
+	err = txBuilder.SetSignatures(sigV2)
+	assert.NoError(t, err)
 
 	result := signer.ValidateSignaturesAndAddMultiSignatureToTxConfig("hash1", 1, txConfig, txBuilder)
 	assert.False(t, result)
@@ -2540,7 +2545,8 @@ func TestValidateSignatures_TwoThreshold(t *testing.T) {
 	sig3, _, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signer3Key, txConfig, 1)
 	assert.NoError(t, err)
 
-	txBuilder.SetSignatures(sig1, sig3)
+	err = txBuilder.SetSignatures(sig1, sig3)
+	assert.NoError(t, err)
 
 	sigs, err := txBuilder.GetTx().GetSignaturesV2()
 	assert.NoError(t, err)
@@ -2550,8 +2556,10 @@ func TestValidateSignatures_TwoThreshold(t *testing.T) {
 
 	multisigSig := multisigtypes.NewMultisig(len(multisigPk.PubKeys))
 
-	multisigtypes.AddSignatureV2(multisigSig, sig1, multisigPk.GetPubKeys())
-	multisigtypes.AddSignatureV2(multisigSig, sig3, multisigPk.GetPubKeys())
+	err = multisigtypes.AddSignatureV2(multisigSig, sig1, multisigPk.GetPubKeys())
+	assert.NoError(t, err)
+	err = multisigtypes.AddSignatureV2(multisigSig, sig3, multisigPk.GetPubKeys())
+	assert.NoError(t, err)
 
 	expectedSignature := signingtypes.SignatureV2{
 		PubKey:   multisigPk,

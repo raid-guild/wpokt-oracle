@@ -2,17 +2,20 @@ package ethereum
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/db/mocks"
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
@@ -1302,4 +1305,154 @@ func TestRelayerRun(t *testing.T) {
 	mockDB.EXPECT().GetConfirmedTransactionsTo(mock.Anything, mock.Anything).Return([]models.Transaction{}, nil)
 
 	relayer.Run()
+}
+
+func TestNewMessageRelayer(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockEthereumClient(t)
+	mockMintController := clientMocks.NewMockMintControllerContract(t)
+
+	mintControllerMap := map[uint32][]byte{
+		1: ethcommon.FromHex("0x01"),
+		2: ethcommon.FromHex("0x02"),
+	}
+
+	lastHealth := &models.RunnerServiceStatus{BlockHeight: 50}
+
+	config := models.EthereumNetworkConfig{
+		ChainID:               1,
+		ChainName:             "test",
+		StartBlockHeight:      1,
+		Confirmations:         10,
+		MintControllerAddress: ethcommon.BytesToAddress([]byte("mintController")).Hex(),
+		MessageRelayer: models.ServiceConfig{
+			Enabled: true,
+		},
+	}
+
+	ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+		return mockClient, nil
+	}
+
+	ethNewMintControllerContract = func(ethcommon.Address, bind.ContractBackend) (eth.MintControllerContract, error) {
+		return mockMintController, nil
+	}
+
+	dbNewDB = func() db.DB {
+		return mockDB
+	}
+
+	defer func() {
+		ethNewClient = eth.NewClient
+		ethNewMintControllerContract = eth.NewMintControllerContract
+		dbNewDB = db.NewDB
+	}()
+
+	mockClient.EXPECT().GetBlockHeight().Return(uint64(100), nil)
+
+	mockClient.EXPECT().GetClient().Return(nil)
+
+	runnable := NewMessageRelayer(config, mintControllerMap, lastHealth)
+
+	assert.NotNil(t, runnable)
+
+	monitor, ok := runnable.(*EthMessageRelayerRunnable)
+	assert.True(t, ok)
+	assert.Equal(t, mockDB, monitor.db)
+	assert.Equal(t, mockClient, monitor.client)
+	assert.Equal(t, mockMintController, monitor.mintController)
+	assert.Equal(t, mintControllerMap, monitor.mintControllerMap)
+	assert.Equal(t, uint64(100), monitor.currentBlockHeight)
+	assert.Equal(t, uint64(50), monitor.startBlockHeight)
+
+}
+
+func TestNewMessageRelayerFailures(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockEthereumClient(t)
+	mockMintController := clientMocks.NewMockMintControllerContract(t)
+
+	mintControllerMap := map[uint32][]byte{
+		1: ethcommon.FromHex("0x01"),
+		2: ethcommon.FromHex("0x02"),
+	}
+
+	lastHealth := &models.RunnerServiceStatus{BlockHeight: 50}
+
+	config := models.EthereumNetworkConfig{
+		ChainID:               1,
+		ChainName:             "test",
+		StartBlockHeight:      1,
+		Confirmations:         10,
+		MintControllerAddress: ethcommon.BytesToAddress([]byte("mintController")).Hex(),
+		MessageRelayer: models.ServiceConfig{
+			Enabled: true,
+		},
+	}
+
+	ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+		return mockClient, nil
+	}
+
+	ethNewMintControllerContract = func(ethcommon.Address, bind.ContractBackend) (eth.MintControllerContract, error) {
+		return mockMintController, nil
+	}
+
+	dbNewDB = func() db.DB {
+		return mockDB
+	}
+
+	defer func() {
+		ethNewClient = eth.NewClient
+		ethNewMailboxContract = eth.NewMailboxContract
+		dbNewDB = db.NewDB
+	}()
+
+	mockClient.EXPECT().GetClient().Return(nil)
+
+	defer func() { log.StandardLogger().ExitFunc = nil }()
+	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
+
+	t.Run("Disabled", func(t *testing.T) {
+		config.MessageRelayer.Enabled = false
+
+		assert.Panics(t, func() {
+			NewMessageRelayer(config, mintControllerMap, lastHealth)
+		})
+
+		config.MessageRelayer.Enabled = true
+	})
+
+	t.Run("ClientError", func(t *testing.T) {
+
+		ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+			return nil, assert.AnError
+		}
+
+		assert.Panics(t, func() {
+			NewMessageRelayer(config, mintControllerMap, lastHealth)
+		})
+
+		ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+			return mockClient, nil
+		}
+
+	})
+
+	t.Run("MintControllerError", func(t *testing.T) {
+
+		ethNewMintControllerContract = func(ethcommon.Address, bind.ContractBackend) (eth.MintControllerContract, error) {
+			return nil, assert.AnError
+		}
+
+		assert.Panics(t, func() {
+			NewMessageRelayer(config, mintControllerMap, lastHealth)
+		})
+
+		ethNewMintControllerContract = func(ethcommon.Address, bind.ContractBackend) (eth.MintControllerContract, error) {
+			return mockMintController, nil
+		}
+
+	})
+
 }

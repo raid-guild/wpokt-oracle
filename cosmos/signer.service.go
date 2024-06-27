@@ -741,6 +741,7 @@ func (x *CosmosMessageSignerRunnable) ValidateCosmosTxAndBroadcastRefund(
 		logger.WithError(err).Error("Error locking refund")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 
@@ -821,6 +822,7 @@ func (x *CosmosMessageSignerRunnable) ValidateCosmosTxAndSignRefund(
 		logger.WithError(err).Error("Error locking refund")
 		return false
 	} else {
+		//nolint:errcheck
 		defer x.db.Unlock(lockID)
 	}
 

@@ -2,10 +2,12 @@ package ethereum
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/dan13ram/wpokt-oracle/common"
+	"github.com/dan13ram/wpokt-oracle/db"
 	"github.com/dan13ram/wpokt-oracle/db/mocks"
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
@@ -1550,6 +1552,37 @@ func TestMonitorSyncBlocks_Error(t *testing.T) {
 	assert.False(t, result)
 }
 
+func TestMonitorSyncNewBlocks_NoNewBlocks(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockEthereumClient(t)
+	logger := log.New().WithField("test", "monitor")
+
+	mintControllerMap := map[uint32][]byte{
+		1: ethcommon.FromHex("0x01"),
+	}
+
+	startBlock := uint64(100)
+	endBlock := uint64(100)
+
+	mailbox := clientMocks.NewMockMailboxContract(t)
+	monitor := &EthMessageMonitorRunnable{
+		db:                mockDB,
+		client:            mockClient,
+		logger:            logger,
+		mintControllerMap: mintControllerMap,
+		chain: models.Chain{
+			ChainDomain: 1,
+		},
+		mailbox:            mailbox,
+		currentBlockHeight: endBlock,
+		startBlockHeight:   startBlock,
+	}
+
+	result := monitor.SyncNewBlocks()
+
+	assert.True(t, result)
+}
+
 func TestMonitorSyncNewBlocks(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockClient := clientMocks.NewMockEthereumClient(t)
@@ -1825,4 +1858,154 @@ func TestMonitorRun(t *testing.T) {
 
 	mockClient.AssertExpectations(t)
 	mockDB.AssertExpectations(t)
+}
+
+func TestNewMessageMonitor(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockEthereumClient(t)
+	mockMailbox := clientMocks.NewMockMailboxContract(t)
+
+	mintControllerMap := map[uint32][]byte{
+		1: ethcommon.FromHex("0x01"),
+		2: ethcommon.FromHex("0x02"),
+	}
+
+	lastHealth := &models.RunnerServiceStatus{BlockHeight: 50}
+
+	config := models.EthereumNetworkConfig{
+		ChainID:          1,
+		ChainName:        "test",
+		StartBlockHeight: 1,
+		Confirmations:    10,
+		MailboxAddress:   ethcommon.BytesToAddress([]byte("mailbox")).Hex(),
+		MessageMonitor: models.ServiceConfig{
+			Enabled: true,
+		},
+	}
+
+	ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+		return mockClient, nil
+	}
+
+	ethNewMailboxContract = func(ethcommon.Address, bind.ContractBackend) (eth.MailboxContract, error) {
+		return mockMailbox, nil
+	}
+
+	dbNewDB = func() db.DB {
+		return mockDB
+	}
+
+	defer func() {
+		ethNewClient = eth.NewClient
+		ethNewMailboxContract = eth.NewMailboxContract
+		dbNewDB = db.NewDB
+	}()
+
+	mockClient.EXPECT().GetBlockHeight().Return(uint64(100), nil)
+
+	mockClient.EXPECT().GetClient().Return(nil)
+
+	runnable := NewMessageMonitor(config, mintControllerMap, lastHealth)
+
+	assert.NotNil(t, runnable)
+
+	monitor, ok := runnable.(*EthMessageMonitorRunnable)
+	assert.True(t, ok)
+	assert.Equal(t, mockDB, monitor.db)
+	assert.Equal(t, mockClient, monitor.client)
+	assert.Equal(t, mockMailbox, monitor.mailbox)
+	assert.Equal(t, mintControllerMap, monitor.mintControllerMap)
+	assert.Equal(t, uint64(100), monitor.currentBlockHeight)
+	assert.Equal(t, uint64(50), monitor.startBlockHeight)
+
+}
+
+func TestNewMessageMonitorFailures(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockClient := clientMocks.NewMockEthereumClient(t)
+	mockMailbox := clientMocks.NewMockMailboxContract(t)
+
+	mintControllerMap := map[uint32][]byte{
+		1: ethcommon.FromHex("0x01"),
+		2: ethcommon.FromHex("0x02"),
+	}
+
+	lastHealth := &models.RunnerServiceStatus{BlockHeight: 50}
+
+	config := models.EthereumNetworkConfig{
+		ChainID:          1,
+		ChainName:        "test",
+		StartBlockHeight: 1,
+		Confirmations:    10,
+		MailboxAddress:   ethcommon.BytesToAddress([]byte("mailbox")).Hex(),
+		MessageMonitor: models.ServiceConfig{
+			Enabled: true,
+		},
+	}
+
+	ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+		return mockClient, nil
+	}
+
+	ethNewMailboxContract = func(ethcommon.Address, bind.ContractBackend) (eth.MailboxContract, error) {
+		return mockMailbox, nil
+	}
+
+	dbNewDB = func() db.DB {
+		return mockDB
+	}
+
+	defer func() {
+		ethNewClient = eth.NewClient
+		ethNewMailboxContract = eth.NewMailboxContract
+		dbNewDB = db.NewDB
+	}()
+
+	mockClient.EXPECT().GetClient().Return(nil)
+
+	defer func() { log.StandardLogger().ExitFunc = nil }()
+	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
+
+	t.Run("Disabled", func(t *testing.T) {
+		config.MessageMonitor.Enabled = false
+
+		assert.Panics(t, func() {
+			NewMessageMonitor(config, mintControllerMap, lastHealth)
+		})
+
+		config.MessageMonitor.Enabled = true
+	})
+
+	t.Run("ClientError", func(t *testing.T) {
+
+		ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+			return nil, assert.AnError
+		}
+
+		assert.Panics(t, func() {
+			NewMessageMonitor(config, mintControllerMap, lastHealth)
+		})
+
+		ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
+			return mockClient, nil
+		}
+
+	})
+
+	t.Run("MailboxError", func(t *testing.T) {
+
+		ethNewMailboxContract = func(ethcommon.Address, bind.ContractBackend) (eth.MailboxContract, error) {
+			return nil, assert.AnError
+		}
+
+		assert.Panics(t, func() {
+			NewMessageMonitor(config, mintControllerMap, lastHealth)
+		})
+
+		ethNewMailboxContract = func(ethcommon.Address, bind.ContractBackend) (eth.MailboxContract, error) {
+			return mockMailbox, nil
+		}
+
+	})
+
 }

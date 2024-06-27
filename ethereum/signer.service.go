@@ -59,7 +59,6 @@ type EthMessageSignerRunnable struct {
 
 func (x *EthMessageSignerRunnable) Run() {
 	x.UpdateCurrentBlockHeight()
-	x.UpdateMaxMintLimit()
 	x.SignMessages()
 }
 
@@ -377,6 +376,10 @@ func (x *EthMessageSignerRunnable) UpdateMaxMintLimit() {
 	x.maximumAmount = mintLimit
 }
 
+var ethNewMintControllerContract = eth.NewMintControllerContract
+var ethNewWarpISMContract = eth.NewWarpISMContract
+var cosmosNewClient = cosmos.NewClient
+
 func NewMessageSigner(
 	mnemonic string,
 	config models.EthereumNetworkConfig,
@@ -395,20 +398,20 @@ func NewMessageSigner(
 
 	logger.Debugf("Initializing")
 
-	client, err := eth.NewClient(config)
+	client, err := ethNewClient(config)
 	if err != nil {
 		logger.Fatalf("Error creating ethereum client: %s", err)
 	}
 
 	logger.Debug("Connecting to mint controller contract at: ", config.MintControllerAddress)
-	mintController, err := eth.NewMintControllerContract(common.HexToAddress(config.MintControllerAddress), client.GetClient())
+	mintController, err := ethNewMintControllerContract(common.HexToAddress(config.MintControllerAddress), client.GetClient())
 	if err != nil {
 		logger.Fatal("Error connecting to mint controller contract: ", err)
 	}
 	logger.Debug("Connected to mint controller contract")
 
 	logger.Debug("Connecting to warp ism contract at: ", config.WarpISMAddress)
-	warpISM, err := eth.NewWarpISMContract(common.HexToAddress(config.WarpISMAddress), client.GetClient())
+	warpISM, err := ethNewWarpISMContract(common.HexToAddress(config.WarpISMAddress), client.GetClient())
 	if err != nil {
 		logger.Fatal("Error connecting to warp ism contract: ", err)
 	}
@@ -418,11 +421,8 @@ func NewMessageSigner(
 	if err != nil {
 		logger.Fatalf("Error getting private key from mnemonic: %s", err)
 	}
-	if privateKey == nil {
-		logger.Fatalf("Private key is nil")
-	}
 
-	cosmosClient, err := cosmos.NewClient(cosmosConfig)
+	cosmosClient, err := cosmosNewClient(cosmosConfig)
 	if err != nil {
 		logger.Fatalf("Error creating cosmos client: %s", err)
 	}
@@ -436,13 +436,13 @@ func NewMessageSigner(
 		if ethConfig.ChainID == config.ChainID {
 			ethClient = client
 		} else {
-			ethClient, err = eth.NewClient(ethConfig)
+			ethClient, err = ethNewClient(ethConfig)
 			if err != nil {
 				logger.WithError(err).WithField("eth_chain_id", ethConfig.ChainID).
 					Fatalf("Error creating ethereum client")
 			}
 		}
-		mailbox, err := eth.NewMailboxContract(common.HexToAddress(ethConfig.MailboxAddress), ethClient.GetClient())
+		mailbox, err := ethNewMailboxContract(common.HexToAddress(ethConfig.MailboxAddress), ethClient.GetClient())
 		if err != nil {
 			logger.WithError(err).WithField("eth_chain_id", ethConfig.ChainID).
 				Fatalf("Error creating mailbox contract")
@@ -477,7 +477,7 @@ func NewMessageSigner(
 
 		logger: logger,
 
-		db: db.NewDB(),
+		db: dbNewDB(),
 	}
 
 	x.UpdateCurrentBlockHeight()

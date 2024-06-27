@@ -29,7 +29,7 @@ func NewEthereumChainService(
 	var chainHealth models.ChainServiceHealth
 	if nodeHealth != nil {
 		for _, health := range nodeHealth.Health {
-			if health.Chain.ChainID == fmt.Sprintf("%d", config.ChainID) && health.Chain.ChainType == models.ChainTypeCosmos {
+			if health.Chain.ChainID == fmt.Sprintf("%d", config.ChainID) && health.Chain.ChainType == models.ChainTypeEthereum {
 				chainHealth = health
 				break
 			}

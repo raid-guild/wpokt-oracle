@@ -252,7 +252,8 @@ func (x *EthMessageMonitorRunnable) CreateMessagesForTx(txDoc *models.Transactio
 
 	if result.TxStatus != models.TransactionStatusConfirmed {
 		logger.Errorf("Transaction not confirmed")
-		return x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
+		x.UpdateTransaction(txDoc, bson.M{"status": result.TxStatus})
+		return false
 	}
 
 	if lockID, err := x.db.LockWriteTransaction(txDoc); err != nil {

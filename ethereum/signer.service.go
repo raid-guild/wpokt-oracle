@@ -191,7 +191,8 @@ func (x *EthMessageSignerRunnable) ValidateCosmosTxAndSignMessage(messageDoc *mo
 
 	if err != nil {
 		logger.WithError(err).Errorf("Error validating cosmos message")
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+		x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+		return false
 	}
 
 	if !confirmed {
@@ -202,13 +203,13 @@ func (x *EthMessageSignerRunnable) ValidateCosmosTxAndSignMessage(messageDoc *mo
 	return x.SignMessage(messageDoc)
 }
 
-type ValidateTransactionAndParseDispatchIdEventsResult struct {
+type ValidateTransactionAndParseDispatchIDEventsResult struct {
 	Event         *autogen.MailboxDispatchId
 	Confirmations uint64
 	TxStatus      models.TransactionStatus
 }
 
-func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIDEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIdEventsResult, error) {
+func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIDEvent(messageDoc *models.Message) (*ValidateTransactionAndParseDispatchIDEventsResult, error) {
 	chainDomain := messageDoc.Content.OriginDomain
 	txHash := messageDoc.OriginTransactionHash
 	messageIDBytes, err := common.BytesFromHex(messageDoc.MessageID)
@@ -230,7 +231,7 @@ func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIDEvent(messageDoc *mo
 		return nil, fmt.Errorf("error getting transaction receipt: %w", err)
 	}
 	if receipt == nil || receipt.Status != types.ReceiptStatusSuccessful {
-		return &ValidateTransactionAndParseDispatchIdEventsResult{
+		return &ValidateTransactionAndParseDispatchIDEventsResult{
 			TxStatus: models.TransactionStatusFailed,
 		}, nil
 	}
@@ -253,7 +254,7 @@ func (x *EthMessageSignerRunnable) ValidateAndFindDispatchIDEvent(messageDoc *mo
 		return nil, fmt.Errorf("error getting current block height: %w", err)
 	}
 
-	result := &ValidateTransactionAndParseDispatchIdEventsResult{
+	result := &ValidateTransactionAndParseDispatchIDEventsResult{
 		Event:         dispatchEvent,
 		Confirmations: currentBlockHeight - receipt.BlockNumber.Uint64(),
 		TxStatus:      models.TransactionStatusPending,
@@ -284,7 +285,8 @@ func (x *EthMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDoc *
 
 	if result.TxStatus != models.TransactionStatusConfirmed {
 		logger.Debugf("Found tx with status %s", result.TxStatus)
-		return x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+		x.UpdateMessage(messageDoc, bson.M{"status": models.MessageStatusInvalid})
+		return false
 	}
 
 	return x.SignMessage(messageDoc)
@@ -295,6 +297,7 @@ func (x *EthMessageSignerRunnable) SignMessages() bool {
 	addressHex, err := common.EthereumPrivateKeyToAddressHex(x.privateKey)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting address hex")
+		return false
 	}
 	messages, err := x.db.GetPendingMessages(common.Ensure0xPrefix(addressHex), x.chain)
 
@@ -328,6 +331,7 @@ func (x *EthMessageSignerRunnable) UpdateValidatorCountAndSignerThreshold() {
 		return
 	}
 	x.logger.Debug("Fetched validator count")
+	x.numSigners = count.Int64()
 
 	x.logger.Debug("Fetching signer threshold")
 	ctx, cancel = context.WithTimeout(context.Background(), x.timeout)
@@ -340,7 +344,6 @@ func (x *EthMessageSignerRunnable) UpdateValidatorCountAndSignerThreshold() {
 	}
 	x.logger.Debug("Fetched signer threshold")
 
-	x.numSigners = count.Int64()
 	x.signerThreshold = threshold.Int64()
 }
 

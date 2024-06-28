@@ -30,8 +30,5 @@ credentials.json
 # build
 /wpokt-oracle
 
-# docker
-docker/docker-compose.yml
-
 # secrets
 secrets/

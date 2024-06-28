@@ -6,13 +6,13 @@ all: clean install test build
 dev : dev_one
 
 .PHONY: dev_one
-dev_one:; go run . --yaml ./defaults/config.local.one.yml
+dev_one:; MNEMONIC="infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve" go run . --yaml ./defaults/config.local.yml
 
 .PHONY: dev_two
-dev_two:; go run . --yaml ./defaults/config.local.two.yml
+dev_two:; MNEMONIC="shy smile praise educate custom fashion gun enjoy zero powder garden second" go run . --yaml ./defaults/config.local.yml
 
 .PHONY: dev_three
-dev_three:; go run . --yaml ./defaults/config.local.three.yml
+dev_three:; MNEMONIC="wink giant track dwarf visa feed visual drip play grant royal noise" go run . --yaml ./defaults/config.local.yml
 
 .PHONY: clean
 clean: clean_tmp_data
@@ -42,17 +42,20 @@ build :; go build -o wpokt-oracle .
 .PHONY: docker_build
 docker_build :; docker buildx build . -t dan13ram/wpokt-oracle:v0.0.1 --file ./docker/Dockerfile
 
+.PHONY: docker_push
+docker_push :; docker push dan13ram/wpokt-oracle:v0.0.1
+
 .PHONY: docker_dev
 docker_dev : docker_one
 
 .PHONY: docker_one
-docker_one :; YAML_FILE=/app/defaults/config.local.one.yml docker compose -f docker/docker-compose.yml up --force-recreate
+docker_one :; MNEMONIC="infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
 
 .PHONY: docker_two
-docker_two :; YAML_FILE=/app/defaults/config.local.two.yml docker compose -f docker/docker-compose.yml up --force-recreate
+docker_two :; MNEMONIC="shy smile praise educate custom fashion gun enjoy zero powder garden second" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
 
 .PHONY: docker_three
-docker_three :; YAML_FILE=/app/defaults/config.local.three.yml docker compose -f docker/docker-compose.yml up --force-recreate
+docker_three :; MNEMONIC="wink giant track dwarf visa feed visual drip play grant royal noise" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
 
 .PHONY: localnet_up
 localnet_up:; docker compose -f e2e/docker-compose.yml up --force-recreate

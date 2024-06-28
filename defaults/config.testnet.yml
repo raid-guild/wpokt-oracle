@@ -1,0 +1,86 @@
+mnemonic: ""
+health_check:
+  interval_ms: 30000
+  read_last_health: false
+logger:
+  level: "info"
+  format: "json"
+mongodb:
+  uri: ""
+  database: "bridge"
+  timeout_ms: 30000
+ethereum_networks:
+  - start_block_height: 6202882
+    confirmations: 6
+    rpc_url: ""
+    timeout_ms: 30000
+    chain_id: 11155111
+    chain_name: "sepolia"
+    mailbox_address: "0x7039cedcff94939f9E0ab6E2c8e696788E3bC892"
+    warp_ism_address: "0xFFC2b08B0601e629f3b3F13ABD62667F31fb56eb"
+    omni_token_address: "0x87C4D1570e89eA78B0491714681D76ACeF28E9f5"
+    mint_controller_address: "0x4490b9a48696Db8B0F974b1BCC59397c67997Ff2"
+    oracle_addresses:
+      - "0xf838e8bc158bB2A2142e899c048627e28cEDa9c0"
+      - "0x124A773FFE06822E6Aa0eBC13cdBce8709916234"
+      - "0x11D95B5933542f33F8476Eb2a4A9aDD47DF18BF0"
+    message_monitor:
+      enabled: true
+      interval_ms: 30000
+    message_signer:
+      enabled: true
+      interval_ms: 30000
+    message_relayer:
+      enabled: true
+      interval_ms: 30000
+  - start_block_height: 1822758
+    confirmations: 6
+    rpc_url: ""
+    timeout_ms: 30000
+    chain_id: 17000
+    chain_name: "holesky"
+    mailbox_address: "0x7039cedcff94939f9E0ab6E2c8e696788E3bC892"
+    warp_ism_address: "0xFFC2b08B0601e629f3b3F13ABD62667F31fb56eb"
+    omni_token_address: "0x87C4D1570e89eA78B0491714681D76ACeF28E9f5"
+    mint_controller_address: "0x4490b9a48696Db8B0F974b1BCC59397c67997Ff2"
+    oracle_addresses:
+      - "0xf838e8bc158bB2A2142e899c048627e28cEDa9c0"
+      - "0x124A773FFE06822E6Aa0eBC13cdBce8709916234"
+      - "0x11D95B5933542f33F8476Eb2a4A9aDD47DF18BF0"
+    message_monitor:
+      enabled: true
+      interval_ms: 30000
+    message_signer:
+      enabled: true
+      interval_ms: 30000
+    message_relayer:
+      enabled: true
+      interval_ms: 30000
+cosmos_network:
+  start_block_height: 59705
+  confirmations: 1
+  rpc_url: ""
+  grpc_enabled: false
+  grpc_host: ''
+  grpc_port: 9090
+  timeout_ms: 30000
+  chain_id: "poktroll"
+  chain_name: "pokt_shannon_testnet"
+  tx_fee: 0
+  bech32_prefix: "pokt"
+  coin_denom: "upokt"
+  multisig_address: "pokt1msx54e7a8x6xyhc36a6denw8tq0mnc7glzdfj7"
+  multisig_public_keys:
+    - "0259ee1331a4516f348ecbf03fa23653492e0230bbef4d1f309922366158d317cb"
+    - "03db75b9c8219c98e4ab29429b8c27043b1ef09bd78f230377823fb24314efd682"
+    - "02829550d134aae863792bc0f0631b387026bb046424ec1ab21b136c64af63c920"
+  multisig_threshold: 2
+  message_monitor:
+    enabled: true
+    interval_ms: 30000
+  message_signer:
+    enabled: true
+    interval_ms: 30000
+  message_relayer:
+    enabled: true
+    interval_ms: 30000

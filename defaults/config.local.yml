@@ -1,4 +1,4 @@
-mnemonic: "shy smile praise educate custom fashion gun enjoy zero powder garden second"
+mnemonic: ""
 health_check:
   interval_ms: 1000
   read_last_health: false
@@ -7,7 +7,7 @@ logger:
   format: "json"
 mongodb:
   uri: "mongodb://127.0.0.1:27017/test?retryWrites=true&w=majority"
-  database: "test"
+  database: "bridge"
   timeout_ms: 10000
 ethereum_networks:
   - start_block_height: 1
@@ -16,10 +16,10 @@ ethereum_networks:
     timeout_ms: 5000
     chain_id: 38545
     chain_name: "anvil-one"
-    mailbox_address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
-    warp_ism_address: "0x0165878A594ca255338adfa4d48449f69242Eb8F"
-    omni_token_address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-    mint_controller_address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6"
+    mailbox_address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    warp_ism_address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+    omni_token_address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+    mint_controller_address: "0x0165878A594ca255338adfa4d48449f69242Eb8F"
     oracle_addresses:
       - "0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb"
       - "0x958d1F55E14Cba24a077b9634F16f83565fc9411"
@@ -39,10 +39,10 @@ ethereum_networks:
     timeout_ms: 5000
     chain_id: 38546
     chain_name: "anvil-two"
-    mailbox_address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
-    warp_ism_address: "0x0165878A594ca255338adfa4d48449f69242Eb8F"
-    omni_token_address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-    mint_controller_address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6"
+    mailbox_address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    warp_ism_address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+    omni_token_address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
+    mint_controller_address: "0x0165878A594ca255338adfa4d48449f69242Eb8F"
     oracle_addresses:
       - "0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb"
       - "0x958d1F55E14Cba24a077b9634F16f83565fc9411"

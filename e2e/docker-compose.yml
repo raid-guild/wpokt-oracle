@@ -7,8 +7,6 @@ services:
     environment:
       PORT: "38545"
       CHAIN_ID: "38545"
-    ports:
-      - "38545:38545"
     expose:
       - "38545"
 
@@ -18,42 +16,42 @@ services:
     environment:
       PORT: "38546"
       CHAIN_ID: "38546"
-    ports:
-      - "38546:38546"
     expose:
       - "38546"
 
   oracle-one:
     image: dan13ram/wpokt-oracle:v0.0.1
     network_mode: host
-    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.one.yml"]
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.yml"]
     environment:
       LOGGER_LEVEL: info
       LOGGER_FORMAT: text
+      MNEMONIC: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+      COSMOS_NETWORK_GRPC_ENABLED: false
 
   oracle-two:
     image: dan13ram/wpokt-oracle:v0.0.1
     network_mode: host
-    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.two.yml"]
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.yml"]
     environment:
       LOGGER_LEVEL: info
       LOGGER_FORMAT: text
+      MNEMONIC: "shy smile praise educate custom fashion gun enjoy zero powder garden second"
 
   oracle-three:
     image: dan13ram/wpokt-oracle:v0.0.1
     network_mode: host
-    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.three.yml"]
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.yml"]
     environment:
       LOGGER_LEVEL: info
       LOGGER_FORMAT: text
+      MNEMONIC: "wink giant track dwarf visa feed visual drip play grant royal noise"
 
   mongodb:
     image: mongo
     network_mode: host
     volumes:
       - /tmp/data/oracle/mongodb:/data/db
-    ports:
-      - "27017:27017"
     expose:
       - "27017"
     command: mongod --quiet --logpath /dev/null

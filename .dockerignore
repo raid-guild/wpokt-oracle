@@ -54,3 +54,6 @@ e2e/
 # docker files
 docker/
 !docker/set_eth_envs.sh
+
+# secrets
+secrets/

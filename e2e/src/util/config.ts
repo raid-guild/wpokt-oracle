@@ -2,17 +2,15 @@ import yaml from "js-yaml";
 import fs from "fs";
 
 const CONFIG_PATH =
-  process.env.CONFIG_PATH || "../defaults/config.local.one.yml";
+  process.env.CONFIG_PATH || "../defaults/config.local.yml";
 
 export const HyperlaneVersion = 3;
-export const PausableIsm = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-export const Mailbox = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
-export const WarpISM = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
-export const Token = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853";
-export const MintController = "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6";
-export const AccountFactory = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82";
-export const Multicall3 = "0x9A676e781A523b5d0C0e43731313A708CB607508";
-
+export const Mailbox = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+export const WarpISM = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
+export const Token = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+export const MintController = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+export const AccountFactory = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e";
+export const Multicall3 = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0";
 
 export type Config = {
   mnemonic: string;

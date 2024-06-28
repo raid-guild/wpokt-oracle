@@ -86,11 +86,13 @@ func TestStringArrayEnv(t *testing.T) {
 
 func TestGetArrayLengthEnv(t *testing.T) {
 	t.Run("Valid env variable", func(t *testing.T) {
-		os.Setenv("TEST_VAR_ONE", "test1")
-		os.Setenv("TEST_VAR_TWO", "test2")
+		os.Setenv("TEST_VAR_0_ONE", "test1")
+		os.Setenv("TEST_VAR_0_TWO", "test1")
+		os.Setenv("TEST_VAR_1", "test2")
 
-		defer os.Unsetenv("TEST_VAR_ONE")
-		defer os.Unsetenv("TEST_VAR_TWO")
+		defer os.Unsetenv("TEST_VAR_0_ONE")
+		defer os.Unsetenv("TEST_VAR_0_TWO")
+		defer os.Unsetenv("TEST_VAR_1")
 
 		val := getArrayLengthEnv("TEST_VAR")
 		assert.Equal(t, 2, val)
@@ -166,7 +168,9 @@ NUM_ETHEREUM_NETWORKS=2
 		envContent := `
 NUM_ETHEREUM_NETWORKS=2
 ETHEREUM_NETWORKS_0_CONFIRMATIONS=1
+ETHEREUM_NETWORKS_0_START_BLOCK_NUMBER=1
 ETHEREUM_NETWORKS_1_CONFIRMATIONS=2
+ETHEREUM_NETWORKS_1_START_BLOCK_NUMBER=1
 COSMOS_NETWORK_CONFIRMATIONS=3
 `
 		err := os.WriteFile(".test.env", []byte(envContent), 0644)

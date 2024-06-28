@@ -158,12 +158,22 @@ func getStringArrayEnv(key string) []string {
 
 func getArrayLengthEnv(key string) int {
 	env := os.Environ()
-	var val int
+	var length int
+	seen := make(map[int]bool)
 	for _, e := range env {
 		pair := strings.Split(e, "=")
 		if strings.HasPrefix(pair[0], key) {
-			val++
+			vals := strings.Split(strings.TrimPrefix(pair[0], key), "_")
+			log.Println(vals)
+			val, err := strconv.Atoi(vals[1])
+			if err != nil {
+				return 0
+			}
+			if !seen[val] {
+				length++
+				seen[val] = true
+			}
 		}
 	}
-	return val
+	return length
 }

@@ -1,16 +1,10 @@
 import yaml from "js-yaml";
 import fs from "fs";
+import { Hex } from "viem";
 
 const CONFIG_PATH =
   process.env.CONFIG_PATH || "../defaults/config.local.yml";
 
-export const HyperlaneVersion = 3;
-export const Mailbox = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
-export const WarpISM = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
-export const Token = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
-export const MintController = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
-export const AccountFactory = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e";
-export const Multicall3 = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0";
 
 export type Config = {
   mnemonic: string;
@@ -81,3 +75,11 @@ export type ServiceConfig = {
 };
 
 export const config = yaml.load(fs.readFileSync(CONFIG_PATH, "utf8")) as Config;
+
+export const HyperlaneVersion = 3;
+export const Mailbox = config.ethereum_networks[0].mailbox_address as Hex;
+export const WarpISM = config.ethereum_networks[0].warp_ism_address as Hex;
+export const Token = config.ethereum_networks[0].omni_token_address as Hex;
+export const MintController = config.ethereum_networks[0].mint_controller_address as Hex;
+export const AccountFactory = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e";
+export const Multicall3 = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0";

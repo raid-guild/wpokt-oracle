@@ -25,7 +25,7 @@ go.work
 .env*
 
 # google cloud
-credentials.json
+*credentials.json
 
 # build
 /wpokt-oracle

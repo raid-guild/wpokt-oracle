@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 	"github.com/stretchr/testify/assert"
@@ -107,7 +108,9 @@ func TestNewHealthService(t *testing.T) {
 		HealthCheck: models.HealthCheckConfig{
 			IntervalMS: 1000,
 		},
-		Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
+		Signer: models.SignerConfig{
+			Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
+		},
 		CosmosNetwork: models.CosmosNetworkConfig{
 			MultisigPublicKeys: []string{
 				"026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d9",
@@ -117,6 +120,8 @@ func TestNewHealthService(t *testing.T) {
 		},
 	}
 
-	healthService := NewHealthService(config, &wg)
+	signer, _ := common.NewMnemonicSigner(config.Signer.Mnemonic)
+
+	healthService := NewHealthService(signer, config, &wg)
 	assert.NotNil(t, healthService)
 }

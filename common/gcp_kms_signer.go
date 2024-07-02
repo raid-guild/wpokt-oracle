@@ -16,6 +16,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
+	gax "github.com/googleapis/gax-go/v2"
+
 	"github.com/cosmos/cosmos-sdk/crypto/types"
 )
 
@@ -25,11 +27,19 @@ type Signer interface {
 	CosmosSign(data []byte) ([]byte, error)
 	EthAddress() common.Address
 	CosmosPublicKey() types.PubKey
+	Destroy()
+}
+
+type GCPKeyManagementClient interface {
+	Close() error
+	GetPublicKey(ctx context.Context, req *kmspb.GetPublicKeyRequest, opts ...gax.CallOption) (*kmspb.PublicKey, error)
+	AsymmetricSign(ctx context.Context, req *kmspb.AsymmetricSignRequest, opts ...gax.CallOption) (*kmspb.AsymmetricSignResponse, error)
+	GetCryptoKeyVersion(ctx context.Context, req *kmspb.GetCryptoKeyVersionRequest, opts ...gax.CallOption) (*kmspb.CryptoKeyVersion, error)
 }
 
 // Struct Definition
 type GcpKmsSigner struct {
-	client          *kms.KeyManagementClient
+	client          GCPKeyManagementClient
 	keyName         string
 	ethAddress      common.Address
 	cosmosPubKey    types.PubKey
@@ -38,15 +48,19 @@ type GcpKmsSigner struct {
 
 var _ Signer = &GcpKmsSigner{}
 
+var NewGCPKeyManagementClient = func(ctx context.Context) (GCPKeyManagementClient, error) {
+	return kms.NewKeyManagementClient(ctx)
+}
+
 // Constructor Function
 func NewGcpKmsSigner(keyName string) (Signer, error) {
-	client, err := kms.NewKeyManagementClient(context.Background())
+	client, err := NewGCPKeyManagementClient(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create KMS client: %w", err)
 	}
 
 	// verify key algorithm
-	keyVersionDetails, err := getKeyVersionDetails(client, keyName)
+	keyVersionDetails, err := resolveKeyVersionDetails(client, keyName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get key version details: %w", err)
 	}
@@ -55,14 +69,17 @@ func NewGcpKmsSigner(keyName string) (Signer, error) {
 		return nil, fmt.Errorf("key algorithm is not EC_SIGN_P256_SHA256")
 	}
 
-	ethAddress, err := resolveEthAddr(client, keyName)
+	// resolve public key
+	pubKeyBytes, err := resolvePubKeyBytes(client, keyName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve Ethereum address: %w", err)
+		return nil, fmt.Errorf("failed to resolve public key: %w", err)
 	}
 
-	secp256k1PubKey, err := resolveSecp256k1PubKey(client, keyName)
+	ethAddress := getEthAddr(pubKeyBytes)
+
+	secp256k1PubKey, err := getSecp256k1PubKey(pubKeyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve Secp256k1 public key: %w", err)
+		return nil, fmt.Errorf("failed to get secp256k1 public key: %w", err)
 	}
 
 	cosmosPubKey := &secp256k1.PubKey{Key: secp256k1PubKey.SerializeCompressed()}
@@ -74,6 +91,11 @@ func NewGcpKmsSigner(keyName string) (Signer, error) {
 		cosmosPubKey:    cosmosPubKey,
 		secp256k1PubKey: secp256k1PubKey,
 	}, nil
+}
+
+// Destructor Function
+func (s *GcpKmsSigner) Destroy() {
+	s.client.Close()
 }
 
 // Method Implementations
@@ -103,16 +125,17 @@ func (s *GcpKmsSigner) CosmosPublicKey() types.PubKey {
 	return s.cosmosPubKey
 }
 
-// Helper Functions (same as before)
-func resolveEthAddr(client *kms.KeyManagementClient, keyName string) (common.Address, error) {
-	resp, err := client.GetPublicKey(context.Background(), &kmspb.GetPublicKeyRequest{Name: keyName})
+func resolvePubKeyBytes(client GCPKeyManagementClient, keyName string) ([]byte, error) {
+	publicKeyResp, err := client.GetPublicKey(context.Background(), &kmspb.GetPublicKeyRequest{Name: keyName})
 	if err != nil {
-		return common.Address{}, fmt.Errorf("public key %q lookup: %w", keyName, err)
+		return nil, fmt.Errorf("failed to get public key: %w", err)
 	}
 
-	block, _ := pem.Decode([]byte(resp.Pem))
+	publicKeyPem := publicKeyResp.Pem
+
+	block, _ := pem.Decode([]byte(publicKeyPem))
 	if block == nil {
-		return common.Address{}, fmt.Errorf("public key %q PEM empty: %.130q", keyName, resp.Pem)
+		return nil, fmt.Errorf("public key %q PEM empty: %.130q", keyName, publicKeyPem)
 	}
 
 	var info struct {
@@ -121,26 +144,26 @@ func resolveEthAddr(client *kms.KeyManagementClient, keyName string) (common.Add
 	}
 	_, err = asn1.Unmarshal(block.Bytes, &info)
 	if err != nil {
-		return common.Address{}, fmt.Errorf("public key %q PEM block %q: %w", keyName, block.Type, err)
+		return nil, fmt.Errorf("public key %q PEM block %q: %w", keyName, block.Type, err)
 	}
 
 	wantAlg := asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
 	if gotAlg := info.AlgID.Algorithm; !gotAlg.Equal(wantAlg) {
-		return common.Address{}, fmt.Errorf("public key %q ASN.1 algorithm %s intead of %s", keyName, gotAlg, wantAlg)
+		return nil, fmt.Errorf("public key %q ASN.1 algorithm %s instead of %s", keyName, gotAlg, wantAlg)
 	}
 
-	return ethPubKeyAddr(info.Key.Bytes), nil
+	return info.Key.Bytes, nil
 }
 
 // PubKeyAddr returns the Ethereum address for (uncompressed-)key bytes.
-func ethPubKeyAddr(bytes []byte) common.Address {
+func getEthAddr(bytes []byte) common.Address {
 	digest := crypto.Keccak256(bytes[1:])
 	var addr common.Address
 	copy(addr[:], digest[12:])
 	return addr
 }
 
-func ethSignHash(hash common.Hash, client *kms.KeyManagementClient, keyName string, ethAddress common.Address) ([]byte, error) {
+func ethSignHash(hash common.Hash, client GCPKeyManagementClient, keyName string, ethAddress common.Address) ([]byte, error) {
 	// Resolve a signature
 	req := kmspb.AsymmetricSignRequest{
 		Name: keyName,
@@ -161,6 +184,7 @@ func ethSignHash(hash common.Hash, client *kms.KeyManagementClient, keyName stri
 	if err != nil {
 		return nil, fmt.Errorf("asymmetric signature encoding: %w", err)
 	}
+
 	var rLen, sLen int // byte size
 	if params.R != nil {
 		rLen = (params.R.BitLen() + 7) / 8
@@ -190,7 +214,7 @@ func ethSignHash(hash common.Hash, client *kms.KeyManagementClient, keyName stri
 			continue
 		}
 
-		if ethPubKeyAddr(pubKey.SerializeUncompressed()) == ethAddress {
+		if getEthAddr(pubKey.SerializeUncompressed()) == ethAddress {
 			// Sign the transaction
 			sig[65] = recoveryID // Ethereum 'v' parameter
 			return sig[1:], nil  // Exclude BitCoin header
@@ -200,7 +224,7 @@ func ethSignHash(hash common.Hash, client *kms.KeyManagementClient, keyName stri
 	return nil, fmt.Errorf("asymmetric signature address recovery mis: %w", recoverErr)
 }
 
-func cosmosSignHash(client *kms.KeyManagementClient, keyName string, hash [32]byte, pubKey *dcrecSecp256k1.PublicKey) ([]byte, error) {
+func cosmosSignHash(client GCPKeyManagementClient, keyName string, hash [32]byte, pubKey *dcrecSecp256k1.PublicKey) ([]byte, error) {
 	// Sign the hash using KMS
 	req := &kmspb.AsymmetricSignRequest{
 		Name: keyName,
@@ -264,10 +288,10 @@ func signatureFromBytes(sigStr []byte) (*btcecdsa.Signature, error) {
 	return btcecdsa.NewSignature(&r, &s), nil
 }
 
-// func resolveCosmosPubKey(client *kms.KeyManagementClient, keyName string) (*secp256k1.PubKey, error) {
-// 	pubkeyObject, err := resolveSecp256k1PubKey(client, keyName)
+// func getCosmosPubKey(pubKeyBytes []byte) (*secp256k1.PubKey, error) {
+// 	pubkeyObject, err := getSecp256k1PubKey(pubKeyBytes)
 // 	if err != nil {
-// 		return nil, fmt.Errorf("failed to resolve public key: %w", err)
+// 		return nil, err
 // 	}
 //
 // 	pk := pubkeyObject.SerializeCompressed()
@@ -275,34 +299,8 @@ func signatureFromBytes(sigStr []byte) (*btcecdsa.Signature, error) {
 // 	return &secp256k1.PubKey{Key: pk}, nil
 // }
 
-func resolveSecp256k1PubKey(client *kms.KeyManagementClient, keyName string) (*dcrecSecp256k1.PublicKey, error) {
-	publicKeyResp, err := client.GetPublicKey(context.Background(), &kmspb.GetPublicKeyRequest{Name: keyName})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get public key: %w", err)
-	}
-
-	publicKeyPem := publicKeyResp.Pem
-
-	block, _ := pem.Decode([]byte(publicKeyPem))
-	if block == nil {
-		return nil, fmt.Errorf("public key %q PEM empty: %.130q", keyName, publicKeyPem)
-	}
-
-	var info struct {
-		AlgID pkix.AlgorithmIdentifier
-		Key   asn1.BitString
-	}
-	_, err = asn1.Unmarshal(block.Bytes, &info)
-	if err != nil {
-		return nil, fmt.Errorf("public key %q PEM block %q: %w", keyName, block.Type, err)
-	}
-
-	wantAlg := asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
-	if gotAlg := info.AlgID.Algorithm; !gotAlg.Equal(wantAlg) {
-		return nil, fmt.Errorf("public key %q ASN.1 algorithm %s instead of %s", keyName, gotAlg, wantAlg)
-	}
-
-	pubkeyObject, err := dcrecSecp256k1.ParsePubKey(info.Key.Bytes)
+func getSecp256k1PubKey(pubKeyBytes []byte) (*dcrecSecp256k1.PublicKey, error) {
+	pubkeyObject, err := dcrecSecp256k1.ParsePubKey(pubKeyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}
@@ -310,7 +308,7 @@ func resolveSecp256k1PubKey(client *kms.KeyManagementClient, keyName string) (*d
 	return pubkeyObject, nil
 }
 
-func getKeyVersionDetails(client *kms.KeyManagementClient, keyName string) (*kmspb.CryptoKeyVersion, error) {
+func resolveKeyVersionDetails(client GCPKeyManagementClient, keyName string) (*kmspb.CryptoKeyVersion, error) {
 	// Request the key version details
 	req := &kmspb.GetCryptoKeyVersionRequest{
 		Name: keyName,

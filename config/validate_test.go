@@ -18,7 +18,9 @@ func validConfig() models.Config {
 			Database:  "testdb",
 			TimeoutMS: 1000,
 		},
-		Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
+		Signer: models.SignerConfig{
+			Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
+		},
 		EthereumNetworks: []models.EthereumNetworkConfig{
 			{
 				StartBlockHeight:      1,
@@ -85,60 +87,68 @@ func validConfig() models.Config {
 func TestValidateConfig(t *testing.T) {
 	t.Run("Valid config", func(t *testing.T) {
 		config := validConfig()
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.NoError(t, err)
+		assert.NotNil(t, signer)
 	})
 
 	t.Run("Invalid mongodb uri", func(t *testing.T) {
 		config := validConfig()
 		config.MongoDB.URI = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "MongoDB.URI")
 	})
 
 	t.Run("Invalid mongodb database", func(t *testing.T) {
 		config := validConfig()
 		config.MongoDB.Database = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "MongoDB.Database")
 	})
 
 	t.Run("Invalid mongodb timeout", func(t *testing.T) {
 		config := validConfig()
 		config.MongoDB.TimeoutMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "MongoDB.TimeoutMS")
 	})
 
 	t.Run("Invalid mnemonic", func(t *testing.T) {
 		config := validConfig()
-		config.Mnemonic = ""
-		err := validateConfig(config)
+		config.Signer.Mnemonic = ""
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mnemonic is required")
+		assert.Nil(t, signer)
+		assert.Contains(t, err.Error(), "Signer: Mnemonic or GcpKmsKeyName is required")
 
-		config.Mnemonic = "invalid mnemonic"
-		err = validateConfig(config)
+		config.Signer.Mnemonic = "invalid mnemonic"
+		signer, err = validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "Mnemonic is invalid")
 	})
 
 	t.Run("Invalid ethereum networks length", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks = []models.EthereumNetworkConfig{}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "at least one ethereum network must be configured")
 	})
 
 	t.Run("Invalid ethereum network rpc url", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].RPCURL = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].RPCURL")
 	})
 
@@ -153,8 +163,9 @@ func TestValidateConfig(t *testing.T) {
 		defer func() {
 			logger = oldLogger
 		}()
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].RPCURL")
 		assert.Contains(t, hook.LastEntry().Message, "EthereumNetworks[0].StartBlockHeight")
 		assert.Equal(t, hook.LastEntry().Level, log.WarnLevel)
@@ -171,8 +182,9 @@ func TestValidateConfig(t *testing.T) {
 		defer func() {
 			logger = oldLogger
 		}()
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].RPCURL")
 		assert.Contains(t, hook.LastEntry().Message, "EthereumNetworks[0].Confirmations")
 		assert.Equal(t, hook.LastEntry().Level, log.WarnLevel)
@@ -181,72 +193,81 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("Invalid ethereum network timeout", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].TimeoutMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].TimeoutMS")
 	})
 
 	t.Run("Invalid ethereum network chain id", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].ChainID = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].ChainId")
 	})
 
 	t.Run("Invalid ethereum network chain name", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].ChainName = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].ChainName")
 	})
 
 	t.Run("Invalid ethereum network mailbox address", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].MailboxAddress = "invalid address"
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].MailboxAddress")
 	})
 
 	t.Run("Invalid ethereum network mint controller address", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].MintControllerAddress = "invalid address"
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].MintControllerAddress")
 	})
 
 	t.Run("Invalid ethereum network omni token address", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].OmniTokenAddress = "invalid address"
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].OmniTokenAddress")
 	})
 
 	t.Run("Invalid ethereum network warp ism address", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].WarpISMAddress = "invalid address"
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].WarpISMAddress")
 	})
 
 	t.Run("Invalid ethereum network oracle addresses", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].OracleAddresses = []string{}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].OracleAddresses")
 	})
 
 	t.Run("Invalid ethereum network oracle addresses with invalid address", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].OracleAddresses = []string{"0xinvalid", "0xinvalid"}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].OracleAddresses[0] is invalid")
 	})
 
@@ -256,8 +277,9 @@ func TestValidateConfig(t *testing.T) {
 			"0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb",
 			"0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb",
 		}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].OracleAddresses[1] is duplicated")
 	})
 
@@ -267,32 +289,36 @@ func TestValidateConfig(t *testing.T) {
 			"0x4c672Edd2ec8eac8f0F1709f33de9A2E786e6902",
 			"0x0E90A32Df6f6143F1A91c25d9552dCbc789C3401",
 		}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].OracleAddresses")
 	})
 
 	t.Run("Invalid ethereum network message monitor", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].MessageMonitor.IntervalMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].MessageMonitor")
 	})
 
 	t.Run("Invalid ethereum network message signer", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].MessageSigner.IntervalMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].MessageSigner")
 	})
 
 	t.Run("Invalid ethereum network message relayer", func(t *testing.T) {
 		config := validConfig()
 		config.EthereumNetworks[0].MessageRelayer.IntervalMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "EthereumNetworks[0].MessageRelayer")
 	})
 
@@ -300,8 +326,9 @@ func TestValidateConfig(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.GRPCEnabled = false
 		config.CosmosNetwork.RPCURL = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.RPCURL")
 	})
 
@@ -318,8 +345,9 @@ func TestValidateConfig(t *testing.T) {
 			logger = oldLogger
 		}()
 
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.RPCURL")
 		assert.Contains(t, hook.LastEntry().Message, "CosmosNetwork.StartBlockHeight")
 		assert.Equal(t, hook.LastEntry().Level, log.WarnLevel)
@@ -338,8 +366,9 @@ func TestValidateConfig(t *testing.T) {
 			logger = oldLogger
 		}()
 
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.RPCURL")
 		assert.Contains(t, hook.LastEntry().Message, "CosmosNetwork.Confirmations")
 		assert.Equal(t, hook.LastEntry().Level, log.WarnLevel)
@@ -349,8 +378,9 @@ func TestValidateConfig(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.GRPCEnabled = true
 		config.CosmosNetwork.GRPCHost = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.GRPCHost")
 	})
 
@@ -358,40 +388,45 @@ func TestValidateConfig(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.GRPCEnabled = true
 		config.CosmosNetwork.GRPCPort = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.GRPCPort")
 	})
 
 	t.Run("Invalid cosmos network timeout", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.TimeoutMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.TimeoutMS")
 	})
 
 	t.Run("Invalid cosmos network chain id", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.ChainID = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.ChainId")
 	})
 
 	t.Run("Invalid cosmos network chain name", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.ChainName = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.ChainName")
 	})
 
 	t.Run("Invalid cosmos network bech32 prefix", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.Bech32Prefix = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.Bech32Prefix")
 	})
 
@@ -407,8 +442,9 @@ func TestValidateConfig(t *testing.T) {
 			logger = oldLogger
 		}()
 
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.Bech32Prefix")
 		assert.Contains(t, hook.LastEntry().Message, "CosmosNetwork.TxFee")
 		assert.Equal(t, hook.LastEntry().Level, log.WarnLevel)
@@ -417,40 +453,45 @@ func TestValidateConfig(t *testing.T) {
 	t.Run("Invalid cosmos network coin denom", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.CoinDenom = ""
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.CoinDenom")
 	})
 
 	t.Run("Invalid cosmos network multisig address", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MultisigAddress = "invalid address"
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MultisigAddress")
 	})
 
 	t.Run("Incorrect cosmos network multisig address", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MultisigAddress = "pokt1mrqt5f7qh8uxs27cjm9t7v9e74a9vvdnq5jva4"
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MultisigAddress")
 	})
 
 	t.Run("Invalid cosmos network multisig public keys", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MultisigPublicKeys = []string{}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MultisigPublicKeys")
 	})
 
 	t.Run("Invalid cosmos network multisig public keys with invalid address", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MultisigPublicKeys = []string{"invalid", "invalid"}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MultisigPublicKeys[0] is invalid")
 	})
 
@@ -460,8 +501,9 @@ func TestValidateConfig(t *testing.T) {
 			"026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d9",
 			"026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d9",
 		}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MultisigPublicKeys[1] is duplicated")
 	})
 
@@ -471,48 +513,54 @@ func TestValidateConfig(t *testing.T) {
 			"02cae233806460db75a941a269490ca5165a620b43241edb8bc72e169f4143a6d9",
 			"026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d8",
 		}
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MultisigPublicKeys")
 	})
 
 	t.Run("Invalid cosmos network multisig threshold", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MultisigThreshold = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MultisigThreshold")
 	})
 
 	t.Run("Invalid cosmos network message monitor", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MessageMonitor.IntervalMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MessageMonitor")
 	})
 
 	t.Run("Invalid cosmos network message signer", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MessageSigner.IntervalMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MessageSigner")
 	})
 
 	t.Run("Invalid cosmos network message relayer", func(t *testing.T) {
 		config := validConfig()
 		config.CosmosNetwork.MessageRelayer.IntervalMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "CosmosNetwork.MessageRelayer")
 	})
 
 	t.Run("Invalid health check interval", func(t *testing.T) {
 		config := validConfig()
 		config.HealthCheck.IntervalMS = 0
-		err := validateConfig(config)
+		signer, err := validateConfig(config)
 		assert.Error(t, err)
+		assert.Nil(t, signer)
 		assert.Contains(t, err.Error(), "HealthCheck.Interval")
 	})
 }

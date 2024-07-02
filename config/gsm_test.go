@@ -71,13 +71,15 @@ func TestLoadSecretsFromGSM_Error(t *testing.T) {
 			MongoDB: models.MongoConfig{
 				URI: "mongodb://localhost:27017",
 			},
-			Mnemonic: "mnemonic",
+			Signer: models.SignerConfig{
+				Mnemonic: "mnemonic",
+			},
 		}
 
 		configWithSecrets, err := loadSecretsFromGSM(config)
 
 		assert.Equal(t, "mongodb://localhost:27017", configWithSecrets.MongoDB.URI)
-		assert.Equal(t, "mnemonic", configWithSecrets.Mnemonic)
+		assert.Equal(t, "mnemonic", configWithSecrets.Signer.Mnemonic)
 		assert.NoError(t, err)
 	})
 
@@ -91,13 +93,15 @@ func TestLoadSecretsFromGSM_Error(t *testing.T) {
 			MongoDB: models.MongoConfig{
 				URI: "gsm:projects/project-id/secrets/secret-name/versions/latest",
 			},
-			Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			Signer: models.SignerConfig{
+				Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			},
 		}
 
 		configWithSecrets, err := loadSecretsFromGSM(config)
 
 		assert.Equal(t, "gsm:projects/project-id/secrets/secret-name/versions/latest", configWithSecrets.MongoDB.URI)
-		assert.Equal(t, "gsm:projects/project-id/secrets/mnemonic-name/versions/latest", configWithSecrets.Mnemonic)
+		assert.Equal(t, "gsm:projects/project-id/secrets/mnemonic-name/versions/latest", configWithSecrets.Signer.Mnemonic)
 		assert.Error(t, err)
 	})
 
@@ -114,13 +118,15 @@ func TestLoadSecretsFromGSM_Error(t *testing.T) {
 			MongoDB: models.MongoConfig{
 				URI: "gsm:projects/project-id/secrets/secret-name/versions/latest",
 			},
-			Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			Signer: models.SignerConfig{
+				Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			},
 		}
 
 		configWithSecrets, err := loadSecretsFromGSM(config)
 
 		assert.Equal(t, "", configWithSecrets.MongoDB.URI)
-		assert.Equal(t, "gsm:projects/project-id/secrets/mnemonic-name/versions/latest", configWithSecrets.Mnemonic)
+		assert.Equal(t, "gsm:projects/project-id/secrets/mnemonic-name/versions/latest", configWithSecrets.Signer.Mnemonic)
 		assert.Error(t, err)
 
 	})
@@ -139,13 +145,15 @@ func TestLoadSecretsFromGSM_Error(t *testing.T) {
 			MongoDB: models.MongoConfig{
 				URI: "gsm:projects/project-id/secrets/secret-name/versions/latest",
 			},
-			Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			Signer: models.SignerConfig{
+				Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			},
 		}
 
 		configWithSecrets, err := loadSecretsFromGSM(config)
 
 		assert.Equal(t, "mongodb://localhost:27017", configWithSecrets.MongoDB.URI)
-		assert.Equal(t, "", configWithSecrets.Mnemonic)
+		assert.Equal(t, "", configWithSecrets.Signer.Mnemonic)
 		assert.Error(t, err)
 	})
 
@@ -163,13 +171,15 @@ func TestLoadSecretsFromGSM_Error(t *testing.T) {
 			MongoDB: models.MongoConfig{
 				URI: "gsm:projects/project-id/secrets/secret-name/versions/latest",
 			},
-			Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			Signer: models.SignerConfig{
+				Mnemonic: "gsm:projects/project-id/secrets/mnemonic-name/versions/latest",
+			},
 		}
 
 		configWithSecrets, err := loadSecretsFromGSM(config)
 
 		assert.Equal(t, "mongodb://localhost:27017", configWithSecrets.MongoDB.URI)
-		assert.Equal(t, "mnemonic", configWithSecrets.Mnemonic)
+		assert.Equal(t, "mnemonic", configWithSecrets.Signer.Mnemonic)
 		assert.NoError(t, err)
 	})
 }

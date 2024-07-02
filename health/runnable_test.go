@@ -195,7 +195,9 @@ func Test_HealthCheckRunnable_PostHealth_Error(t *testing.T) {
 
 func TestNewHealthCheck(t *testing.T) {
 	config := models.Config{
-		Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
+		Signer: models.SignerConfig{
+			Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
+		},
 		CosmosNetwork: models.CosmosNetworkConfig{
 			MultisigPublicKeys: []string{
 				"026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d9",
@@ -204,8 +206,9 @@ func TestNewHealthCheck(t *testing.T) {
 			},
 		},
 	}
+	signer, _ := common.NewMnemonicSigner(config.Signer.Mnemonic)
 
-	healthCheck := newHealthCheck(config)
+	healthCheck := newHealthCheck(signer, config)
 	assert.NotNil(t, healthCheck)
 	assert.Equal(t, common.Ensure0xPrefix("0x0e90a32df6f6143f1a91c25d9552dcbc789c34eb"), healthCheck.ethAddress)
 	assert.Equal(t, common.Ensure0xPrefix("0x3f23b2b1de52d246657a4ec3ca69c7b04b3c739d"), healthCheck.cosmosAddress)
@@ -224,7 +227,7 @@ func TestNewHealthCheck(t *testing.T) {
 	defer func() { osHostname = os.Hostname }()
 
 	assert.Panics(t, func() {
-		newHealthCheck(config)
+		newHealthCheck(signer, config)
 	})
 }
 
@@ -233,7 +236,9 @@ func TestNewHealthCheck_MissingSigner(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	config := models.Config{
-		Mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+		Signer: models.SignerConfig{
+			Mnemonic: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve",
+		},
 		CosmosNetwork: models.CosmosNetworkConfig{
 			MultisigPublicKeys: []string{
 				"cosmos1nxyyrxs69w4qf9cwt8r0w9pw4z5uzhrx38p2s5",
@@ -241,7 +246,9 @@ func TestNewHealthCheck_MissingSigner(t *testing.T) {
 		},
 	}
 
+	signer, _ := common.NewMnemonicSigner(config.Signer.Mnemonic)
+
 	assert.Panics(t, func() {
-		newHealthCheck(config)
+		newHealthCheck(signer, config)
 	})
 }

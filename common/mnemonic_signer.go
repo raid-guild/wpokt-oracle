@@ -47,6 +47,11 @@ func NewMnemonicSigner(mnemonic string) (*MnemonicSigner, error) {
 	}, nil
 }
 
+// Destructor Function
+func (s *MnemonicSigner) Destroy() {
+	// nothing to do
+}
+
 // Method Implementations
 func (s *MnemonicSigner) EthSign(data []byte) ([]byte, error) {
 	digest := data

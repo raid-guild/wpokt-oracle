@@ -1,13 +1,15 @@
 package util
 
 import (
+	"errors"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
-	"github.com/ethereum/go-ethereum/crypto"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +22,7 @@ func TestHexToBytes32(t *testing.T) {
 }
 
 func TestSignTypedData(t *testing.T) {
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	content := models.MessageContent{
@@ -44,13 +46,13 @@ func TestSignTypedData(t *testing.T) {
 		VerifyingContract: common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5b3259aec9B"),
 	}
 
-	signature, err := signTypedData(content, domain, privateKey)
+	signature, err := signTypedData(content, domain, signerKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, signature)
 }
 
 func TestSignTypedData_InvalidTypes(t *testing.T) {
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	content := models.MessageContent{
@@ -80,15 +82,34 @@ func TestSignTypedData_InvalidTypes(t *testing.T) {
 		typesStandard = oldTypesStandard
 	}()
 
-	signature, err := signTypedData(content, domain, privateKey)
+	signature, err := signTypedData(content, domain, signerKey)
 	assert.Error(t, err)
 	assert.Nil(t, signature)
 }
 
-func TestSignTypedData_InvalidHash_ErrorSigning(t *testing.T) {
-	privateKey, err := crypto.GenerateKey()
-	assert.NoError(t, err)
+type mockSigner struct {
+}
 
+func (m *mockSigner) CosmosSign(msg []byte) ([]byte, error) {
+	return nil, errors.New("error signing")
+}
+
+func (m *mockSigner) CosmosPublicKey() types.PubKey {
+	return nil
+}
+
+func (m *mockSigner) EthSign(msg []byte) ([]byte, error) {
+	return nil, errors.New("error signing")
+}
+
+func (m *mockSigner) EthAddress() ethcommon.Address {
+	return ethcommon.Address{}
+}
+
+func (m *mockSigner) Destroy() {
+}
+
+func TestSignTypedData_InvalidHash_ErrorSigning(t *testing.T) {
 	content := models.MessageContent{
 		Version:           1,
 		Nonce:             1,
@@ -118,7 +139,9 @@ func TestSignTypedData_InvalidHash_ErrorSigning(t *testing.T) {
 		apitypesTypedDataAndHash = oldApitypesTypedDataAndHash
 	}()
 
-	signature, err := signTypedData(content, domain, privateKey)
+	signerKey := &mockSigner{}
+
+	signature, err := signTypedData(content, domain, signerKey)
 	assert.Error(t, err)
 	assert.Nil(t, signature)
 }
@@ -151,7 +174,7 @@ func TestSignTypedData_InvalidKey(t *testing.T) {
 }
 
 func TestSignTypedData_InvalidData(t *testing.T) {
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	content := models.MessageContent{
@@ -171,13 +194,13 @@ func TestSignTypedData_InvalidData(t *testing.T) {
 		VerifyingContract: common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5b3259aec9B"),
 	}
 
-	signature, err := signTypedData(content, domain, privateKey)
+	signature, err := signTypedData(content, domain, signerKey)
 	assert.Error(t, err)
 	assert.Nil(t, signature)
 }
 
 func TestSignMessage(t *testing.T) {
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	message := &models.Message{
@@ -203,14 +226,14 @@ func TestSignMessage(t *testing.T) {
 		VerifyingContract: common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5b3259aec9B"),
 	}
 
-	err = SignMessage(message, domain, privateKey)
+	err = SignMessage(message, domain, signerKey)
 	assert.NoError(t, err)
 	assert.Len(t, message.Signatures, 1)
-	assert.Equal(t, strings.ToLower(crypto.PubkeyToAddress(privateKey.PublicKey).Hex()), message.Signatures[0].Signer)
+	assert.Equal(t, strings.ToLower(signerKey.EthAddress().Hex()), message.Signatures[0].Signer)
 }
 
 func TestSignMessage_SortedSignatures(t *testing.T) {
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	message := &models.Message{
@@ -236,18 +259,18 @@ func TestSignMessage_SortedSignatures(t *testing.T) {
 		VerifyingContract: common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5b3259aec9B"),
 	}
 
-	address1 := crypto.PubkeyToAddress(privateKey.PublicKey)
-	err = SignMessage(message, domain, privateKey)
+	address1 := signerKey.EthAddress()
+	err = SignMessage(message, domain, signerKey)
 	assert.NoError(t, err)
 	assert.Len(t, message.Signatures, 1)
 	assert.Equal(t, strings.ToLower(address1.Hex()), message.Signatures[0].Signer)
 
-	privateKey, err = crypto.GenerateKey()
+	signerKey, err = common.NewMnemonicSigner("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
 	assert.NoError(t, err)
-	err = SignMessage(message, domain, privateKey)
+	err = SignMessage(message, domain, signerKey)
 	assert.NoError(t, err)
 	assert.Len(t, message.Signatures, 2)
-	address2 := crypto.PubkeyToAddress(privateKey.PublicKey)
+	address2 := signerKey.EthAddress()
 	address1Big := new(big.Int).SetBytes(address1.Bytes())
 	address2Big := new(big.Int).SetBytes(address2.Bytes())
 
@@ -261,7 +284,7 @@ func TestSignMessage_SortedSignatures(t *testing.T) {
 }
 
 func TestSignMessage_Error(t *testing.T) {
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	message := &models.Message{
@@ -283,6 +306,6 @@ func TestSignMessage_Error(t *testing.T) {
 		VerifyingContract: common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5b3259aec9B"),
 	}
 
-	err = SignMessage(message, domain, privateKey)
+	err = SignMessage(message, domain, signerKey)
 	assert.Error(t, err)
 }

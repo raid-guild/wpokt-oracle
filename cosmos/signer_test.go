@@ -149,8 +149,8 @@ func TestSignerUpdateMessage_Error(t *testing.T) {
 func TestSign(t *testing.T) {
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -158,7 +158,7 @@ func TestSign(t *testing.T) {
 	signer := &CosmosMessageSignerRunnable{
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:           "chain-id",
 			CoinDenom:         "upokt",
@@ -172,7 +172,7 @@ func TestSign(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -215,8 +215,8 @@ func TestSign_WithoutSequence(t *testing.T) {
 
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -226,7 +226,7 @@ func TestSign_WithoutSequence(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:           "chain-id",
 			CoinDenom:         "upokt",
@@ -240,7 +240,7 @@ func TestSign_WithoutSequence(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -288,8 +288,8 @@ func TestSign_WithoutSequence_Error(t *testing.T) {
 
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -299,7 +299,7 @@ func TestSign_WithoutSequence_Error(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:           "chain-id",
 			CoinDenom:         "upokt",
@@ -329,8 +329,8 @@ func TestSign_WithoutSequence_Error(t *testing.T) {
 func TestSign_AboveThreshold(t *testing.T) {
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -338,7 +338,7 @@ func TestSign_AboveThreshold(t *testing.T) {
 	signer := &CosmosMessageSignerRunnable{
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:           "chain-id",
 			CoinDenom:         "upokt",
@@ -354,7 +354,7 @@ func TestSign_AboveThreshold(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -396,8 +396,8 @@ func TestSign_AboveThreshold(t *testing.T) {
 func TestSign_AlreadySigned(t *testing.T) {
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -405,7 +405,7 @@ func TestSign_AlreadySigned(t *testing.T) {
 	signer := &CosmosMessageSignerRunnable{
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:           "chain-id",
 			CoinDenom:         "upokt",
@@ -419,7 +419,7 @@ func TestSign_AlreadySigned(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -454,8 +454,8 @@ func TestSignMessage_AddressError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	message := &models.Message{
@@ -471,7 +471,7 @@ func TestSignMessage_AddressError(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -491,8 +491,8 @@ func TestSignMessage_AmountError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -510,7 +510,7 @@ func TestSignMessage_AmountError(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -530,8 +530,8 @@ func TestSignMessage_AlreadySigned(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -549,7 +549,7 @@ func TestSignMessage_AlreadySigned(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -560,7 +560,7 @@ func TestSignMessage_AlreadySigned(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -585,8 +585,8 @@ func TestSignMessage_ErrorSigning(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -604,7 +604,7 @@ func TestSignMessage_ErrorSigning(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -615,7 +615,7 @@ func TestSignMessage_ErrorSigning(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -640,8 +640,8 @@ func TestSignMessage_ErrorLocking(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -659,7 +659,7 @@ func TestSignMessage_ErrorLocking(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -672,7 +672,7 @@ func TestSignMessage_ErrorLocking(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -697,8 +697,8 @@ func TestSignMessage_ErrorUpdating(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -716,7 +716,7 @@ func TestSignMessage_ErrorUpdating(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -730,7 +730,7 @@ func TestSignMessage_ErrorUpdating(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -757,8 +757,8 @@ func TestSignMessage(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -776,7 +776,7 @@ func TestSignMessage(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -790,7 +790,7 @@ func TestSignMessage(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -817,8 +817,8 @@ func TestSignRefund_InvalidRecipient(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	refund := &models.Refund{
@@ -835,7 +835,7 @@ func TestSignRefund_InvalidRecipient(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -855,8 +855,8 @@ func TestSignRefund_InvalidAmount(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -875,7 +875,7 @@ func TestSignRefund_InvalidAmount(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -895,8 +895,8 @@ func TestSignRefund_AlreadySigned(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -915,7 +915,7 @@ func TestSignRefund_AlreadySigned(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -926,7 +926,7 @@ func TestSignRefund_AlreadySigned(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -951,8 +951,8 @@ func TestSignRefund_ErrorSigning(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -971,7 +971,7 @@ func TestSignRefund_ErrorSigning(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -982,7 +982,7 @@ func TestSignRefund_ErrorSigning(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -1007,8 +1007,8 @@ func TestSignRefund_LockError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -1027,7 +1027,7 @@ func TestSignRefund_LockError(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1040,7 +1040,7 @@ func TestSignRefund_LockError(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -1065,8 +1065,8 @@ func TestSignRefund_UpdateError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -1085,7 +1085,7 @@ func TestSignRefund_UpdateError(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1099,7 +1099,7 @@ func TestSignRefund_UpdateError(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -1126,8 +1126,8 @@ func TestSignRefund(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -1146,7 +1146,7 @@ func TestSignRefund(t *testing.T) {
 		client:     mockClient,
 		logger:     logger,
 		multisigPk: multisigPk,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1160,7 +1160,7 @@ func TestSignRefund(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -1553,8 +1553,8 @@ func TestValidateEthereumTxAndSignMessage_ValidateError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -1581,7 +1581,7 @@ func TestValidateEthereumTxAndSignMessage_ValidateError(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1603,8 +1603,8 @@ func TestValidateEthereumTxAndSignMessage_Pending(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -1637,7 +1637,7 @@ func TestValidateEthereumTxAndSignMessage_Pending(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1669,8 +1669,8 @@ func TestValidateEthereumTxAndSignMessage_FailedTx(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -1702,7 +1702,7 @@ func TestValidateEthereumTxAndSignMessage_FailedTx(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1732,8 +1732,8 @@ func TestValidateEthereumTxAndSignMessage_LockError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -1766,7 +1766,7 @@ func TestValidateEthereumTxAndSignMessage_LockError(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1800,8 +1800,8 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -1834,7 +1834,7 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1870,9 +1870,9 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, authsigning.SignerData, client.TxBuilder, crypto.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, authsigning.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -1921,8 +1921,8 @@ func TestSignMessages(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -1955,7 +1955,7 @@ func TestSignMessages(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -1991,9 +1991,9 @@ func TestSignMessages(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, authsigning.SignerData, client.TxBuilder, crypto.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, authsigning.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -2044,12 +2044,12 @@ func TestSignMessages_DBError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	signer := &CosmosMessageSignerRunnable{
-		db:        mockDB,
-		client:    mockClient,
-		logger:    logger,
-		signerKey: signerKey,
+		db:     mockDB,
+		client: mockClient,
+		logger: logger,
+		signer: signerKey,
 	}
 
 	mockDB.EXPECT().GetPendingMessages(mock.Anything, mock.Anything).Return(nil, assert.AnError)
@@ -2101,16 +2101,16 @@ func TestSignerUpdateRefund_Error(t *testing.T) {
 }
 
 func TestIsTxSigner(t *testing.T) {
-	signer := secp256k1.GenPrivKey()
-	signerPk := signer.PubKey()
+	signer, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	signerPk := signer.CosmosPublicKey()
 
 	signers := [][]byte{signerPk.Bytes()}
 
 	assert.True(t, isTxSigner(signerPk.Bytes(), signers))
 
-	otherSigner := secp256k1.GenPrivKey()
+	otherSigner, _ := common.NewMnemonicSigner("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
 
-	assert.False(t, isTxSigner(otherSigner.PubKey().Bytes(), signers))
+	assert.False(t, isTxSigner(otherSigner.CosmosPublicKey().Bytes(), signers))
 }
 
 func TestValidateSignatures_GetSignaturesV2Error(t *testing.T) {
@@ -2120,8 +2120,8 @@ func TestValidateSignatures_GetSignaturesV2Error(t *testing.T) {
 	txBuilder := clientMocks.NewMockTxBuilder(t)
 	txConfig := clientMocks.NewMockTxConfig(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 
 	signer := &CosmosMessageSignerRunnable{
 		client:     mockClient,
@@ -2149,8 +2149,8 @@ func TestValidateSignatures_ThresholdError(t *testing.T) {
 	txBuilder := clientMocks.NewMockTxBuilder(t)
 	txConfig := clientMocks.NewMockTxConfig(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 
 	signer := &CosmosMessageSignerRunnable{
 		client:     mockClient,
@@ -2193,8 +2193,8 @@ func TestValidateSignatures_AccountError(t *testing.T) {
 	txBuilder := clientMocks.NewMockTxBuilder(t)
 	txConfig := clientMocks.NewMockTxConfig(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 
 	signer := &CosmosMessageSignerRunnable{
 		client:     mockClient,
@@ -2221,8 +2221,8 @@ func TestValidateSignatures_Threshold(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
@@ -2253,8 +2253,8 @@ func TestValidateSignatures_Threshold(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        signerKey.PubKey(),
-		Address:       sdk.AccAddress(signerKey.PubKey().Address()).String(),
+		PubKey:        signerKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(signerKey.CosmosPublicKey().Address()).String(),
 	}
 
 	sigV2, msg, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
@@ -2267,7 +2267,7 @@ func TestValidateSignatures_Threshold(t *testing.T) {
 
 	assert.Equal(t, sigV2, sigs[0])
 
-	assert.True(t, signerKey.PubKey().VerifySignature(msg, sigV2.Data.(*signingtypes.SingleSignatureData).Signature))
+	assert.True(t, signerKey.CosmosPublicKey().VerifySignature(msg, sigV2.Data.(*signingtypes.SingleSignatureData).Signature))
 
 	anyPk, err := codectypes.NewAnyWithValue(sigV2.PubKey)
 	if err != nil {
@@ -2322,8 +2322,8 @@ func TestValidateSignatures_Threshold_AnyError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
@@ -2350,8 +2350,8 @@ func TestValidateSignatures_Threshold_AnyError(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        signerKey.PubKey(),
-		Address:       sdk.AccAddress(signerKey.PubKey().Address()).String(),
+		PubKey:        signerKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(signerKey.CosmosPublicKey().Address()).String(),
 	}
 
 	sigV2, _, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
@@ -2372,8 +2372,8 @@ func TestValidateSignatures_Threshold_VerifyError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
@@ -2400,8 +2400,8 @@ func TestValidateSignatures_Threshold_VerifyError(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        signerKey.PubKey(),
-		Address:       sdk.AccAddress(signerKey.PubKey().Address()).String(),
+		PubKey:        signerKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(signerKey.CosmosPublicKey().Address()).String(),
 	}
 
 	sigV2, _, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
@@ -2420,9 +2420,10 @@ func TestValidateSignatures_Threshold_AddSignatureError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	signer2Key := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signer2Key.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	signer2Key, _ := common.NewMnemonicSigner("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
+
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signer2Key.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
@@ -2449,8 +2450,8 @@ func TestValidateSignatures_Threshold_AddSignatureError(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        signerKey.PubKey(),
-		Address:       sdk.AccAddress(signerKey.PubKey().Address()).String(),
+		PubKey:        signerKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(signerKey.CosmosPublicKey().Address()).String(),
 	}
 
 	sigV2, _, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
@@ -2469,8 +2470,8 @@ func TestValidateSignatures_Threshold_AdaptableError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
@@ -2493,7 +2494,7 @@ func TestValidateSignatures_Threshold_AdaptableError(t *testing.T) {
 	txConfig := util.NewTxConfig("pokt")
 	txBuilder := clientMocks.NewMockTxBuilder(t)
 	tx := clientMocks.NewMockTx(t)
-	tx.EXPECT().GetSignaturesV2().Return([]signingtypes.SignatureV2{{PubKey: signerKey.PubKey()}}, nil)
+	tx.EXPECT().GetSignaturesV2().Return([]signingtypes.SignatureV2{{PubKey: signerKey.CosmosPublicKey()}}, nil)
 	txBuilder.EXPECT().GetTx().Return(tx)
 	result := signer.ValidateSignaturesAndAddMultiSignatureToTxConfig("hash1", 1, txConfig, txBuilder)
 	assert.False(t, result)
@@ -2505,10 +2506,10 @@ func TestValidateSignatures_TwoThreshold(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	signer2Key := secp256k1.GenPrivKey()
-	signer3Key := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(2, []crypto.PubKey{signerKey.PubKey(), signer2Key.PubKey(), signer3Key.PubKey()})
+	signer3Key, _ := common.NewMnemonicSigner("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about")
+	multisigPk := multisig.NewLegacyAminoPubKey(2, []crypto.PubKey{signerKey.CosmosPublicKey(), signer2Key.PubKey(), signer3Key.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
@@ -2535,8 +2536,8 @@ func TestValidateSignatures_TwoThreshold(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        signerKey.PubKey(),
-		Address:       sdk.AccAddress(signerKey.PubKey().Address()).String(),
+		PubKey:        signerKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(signerKey.CosmosPublicKey().Address()).String(),
 	}
 
 	sig1, _, err := util.SignWithPrivKey(context.Background(), signerData, txBuilder, signerKey, txConfig, 1)
@@ -2765,8 +2766,8 @@ func TestBroadcastMessage(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -2783,7 +2784,7 @@ func TestBroadcastMessage(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -2852,8 +2853,8 @@ func TestBroadcastMessage_Invalid(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -2870,7 +2871,7 @@ func TestBroadcastMessage_Invalid(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -2935,8 +2936,8 @@ func TestBroadcastMessage_JsonEncoderError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -2953,7 +2954,7 @@ func TestBroadcastMessage_JsonEncoderError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -3012,8 +3013,8 @@ func TestBroadcastMessage_EncoderError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -3030,7 +3031,7 @@ func TestBroadcastMessage_EncoderError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -3093,8 +3094,8 @@ func TestBroadcastMessage_BroadcastError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -3111,7 +3112,7 @@ func TestBroadcastMessage_BroadcastError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -3176,8 +3177,8 @@ func TestValidateEthereumTxAndBroadcastMessage_ValidateError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -3204,7 +3205,7 @@ func TestValidateEthereumTxAndBroadcastMessage_ValidateError(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -3226,8 +3227,8 @@ func TestValidateEthereumTxAndBroadcastMessage_Pending(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -3260,7 +3261,7 @@ func TestValidateEthereumTxAndBroadcastMessage_Pending(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -3292,8 +3293,8 @@ func TestValidateEthereumTxAndBroadcastMessage_FailedTx(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -3325,7 +3326,7 @@ func TestValidateEthereumTxAndBroadcastMessage_FailedTx(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -3355,8 +3356,8 @@ func TestValidateEthereumTxAndBroadcastMessage_LockError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -3389,7 +3390,7 @@ func TestValidateEthereumTxAndBroadcastMessage_LockError(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -3423,8 +3424,8 @@ func TestValidateEthereumTxAndBroadcastMessage(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -3457,7 +3458,7 @@ func TestValidateEthereumTxAndBroadcastMessage(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -3542,8 +3543,8 @@ func TestBroadcastMessages(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	ethClient := ethMocks.NewMockEthereumClient(t)
@@ -3576,7 +3577,7 @@ func TestBroadcastMessages(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		multisigPk:   multisigPk,
-		signerKey:    signerKey,
+		signer:       signerKey,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
 			CoinDenom:       "upokt",
@@ -3719,8 +3720,8 @@ func TestBroadcastRefund(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -3738,7 +3739,7 @@ func TestBroadcastRefund(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -3806,8 +3807,8 @@ func TestBroadcastRefund_Invalid(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -3825,7 +3826,7 @@ func TestBroadcastRefund_Invalid(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -3890,8 +3891,8 @@ func TestBroadcastRefund_JsonEncoderError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -3909,7 +3910,7 @@ func TestBroadcastRefund_JsonEncoderError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -3968,8 +3969,8 @@ func TestBroadcastRefund_EncoderError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -3987,7 +3988,7 @@ func TestBroadcastRefund_EncoderError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4050,8 +4051,8 @@ func TestBroadcastRefund_BroadcastError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4069,7 +4070,7 @@ func TestBroadcastRefund_BroadcastError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4134,8 +4135,8 @@ func TestValidateRefund_EmptyBody(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4154,7 +4155,7 @@ func TestValidateRefund_EmptyBody(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4176,8 +4177,8 @@ func TestValidateRefund_InvalidAddress(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4196,7 +4197,7 @@ func TestValidateRefund_InvalidAddress(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4218,8 +4219,8 @@ func TestValidateRefund_AddressError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4238,7 +4239,7 @@ func TestValidateRefund_AddressError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4262,8 +4263,8 @@ func TestValidateRefund_InvalidAmount(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4282,7 +4283,7 @@ func TestValidateRefund_InvalidAmount(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4304,8 +4305,8 @@ func TestValidateRefund_AmountError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4324,7 +4325,7 @@ func TestValidateRefund_AmountError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4346,8 +4347,8 @@ func TestValidateRefund_WithBody(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4368,7 +4369,7 @@ func TestValidateRefund_WithBody(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4399,8 +4400,8 @@ func TestValidateRefund_WithBody_ParseError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4420,7 +4421,7 @@ func TestValidateRefund_WithBody_ParseError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4445,8 +4446,8 @@ func TestValidateRefund_WithBody_InvalidMsg(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4467,7 +4468,7 @@ func TestValidateRefund_WithBody_InvalidMsg(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4505,8 +4506,8 @@ func TestValidateRefund_WithBody_InvalidAmount(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4527,7 +4528,7 @@ func TestValidateRefund_WithBody_InvalidAmount(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4560,8 +4561,8 @@ func TestValidateRefund_WithBody_DifferentAmount(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4582,7 +4583,7 @@ func TestValidateRefund_WithBody_DifferentAmount(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4613,8 +4614,8 @@ func TestValidateRefund_WithBody_FromAddressError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4635,7 +4636,7 @@ func TestValidateRefund_WithBody_FromAddressError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4666,8 +4667,8 @@ func TestValidateRefund_WithBody_FromAddressDifferentError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4688,7 +4689,7 @@ func TestValidateRefund_WithBody_FromAddressDifferentError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4719,8 +4720,8 @@ func TestValidateRefund_WithBody_ToAddressError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4740,7 +4741,7 @@ func TestValidateRefund_WithBody_ToAddressError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4771,8 +4772,8 @@ func TestValidateRefund_WithBody_ToAddressDifferentError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddrBech32, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4792,7 +4793,7 @@ func TestValidateRefund_WithBody_ToAddressDifferentError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4823,8 +4824,8 @@ func TestValidateCosmosTx_ClientError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4842,7 +4843,7 @@ func TestValidateCosmosTx_ClientError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4866,8 +4867,8 @@ func TestValidateCosmosTx_ValidateError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4885,7 +4886,7 @@ func TestValidateCosmosTx_ValidateError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4916,8 +4917,8 @@ func TestValidateCosmosTx_Pending(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4935,7 +4936,7 @@ func TestValidateCosmosTx_Pending(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -4968,8 +4969,8 @@ func TestValidateCosmosTx_NoRefund(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -4987,7 +4988,7 @@ func TestValidateCosmosTx_NoRefund(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5023,8 +5024,8 @@ func TestValidateCosmosTx_Failed(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5042,7 +5043,7 @@ func TestValidateCosmosTx_Failed(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5078,8 +5079,8 @@ func TestValidateCosmosTx_Successful(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5098,7 +5099,7 @@ func TestValidateCosmosTx_Successful(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5134,8 +5135,8 @@ func TestValidateCosmosTx_Invalid(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5154,7 +5155,7 @@ func TestValidateCosmosTx_Invalid(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5191,8 +5192,8 @@ func TestValidateCosmosTxAndBroadcastRefund_Invalid(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5211,7 +5212,7 @@ func TestValidateCosmosTxAndBroadcastRefund_Invalid(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5248,8 +5249,8 @@ func TestValidateCosmosTxAndBroadcastRefund_LockError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5268,7 +5269,7 @@ func TestValidateCosmosTxAndBroadcastRefund_LockError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5306,8 +5307,8 @@ func TestValidateCosmosTxAndBroadcastRefund(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5326,7 +5327,7 @@ func TestValidateCosmosTxAndBroadcastRefund(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5404,8 +5405,8 @@ func TestBroadcastRefunds(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5424,7 +5425,7 @@ func TestBroadcastRefunds(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5504,15 +5505,15 @@ func TestBroadcastRefunds_Error(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5536,15 +5537,15 @@ func TestSignRefunds_Error(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5568,8 +5569,8 @@ func TestValidateCosmosTxAndSignRefund_Invalid(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5588,7 +5589,7 @@ func TestValidateCosmosTxAndSignRefund_Invalid(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5625,8 +5626,8 @@ func TestValidateCosmosTxAndSignRefund_LockError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5645,7 +5646,7 @@ func TestValidateCosmosTxAndSignRefund_LockError(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5683,8 +5684,8 @@ func TestValidateCosmosTxAndSignRefund(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5703,7 +5704,7 @@ func TestValidateCosmosTxAndSignRefund(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5735,7 +5736,7 @@ func TestValidateCosmosTxAndSignRefund(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -5763,8 +5764,8 @@ func TestSignRefunds(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -5783,7 +5784,7 @@ func TestSignRefunds(t *testing.T) {
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5815,7 +5816,7 @@ func TestSignRefunds(t *testing.T) {
 
 	oldCosmosSignTx := CosmosSignTx
 	CosmosSignTx = func(
-		signerKey crypto.PrivKey,
+		signerKey common.Signer,
 		config models.CosmosNetworkConfig,
 		client cosmos.CosmosClient,
 		sequence uint64,
@@ -5845,15 +5846,15 @@ func TestSignerRun(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []crypto.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	signer := &CosmosMessageSignerRunnable{
 		db:         mockDB,
 		client:     mockClient,
 		logger:     logger,
-		signerKey:  signerKey,
+		signer:     signerKey,
 		multisigPk: multisigPk,
 		config: models.CosmosNetworkConfig{
 			ChainID:         "chain-id",
@@ -5874,6 +5875,7 @@ func TestSignerRun(t *testing.T) {
 
 func TestNewMessageSigner(t *testing.T) {
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -5970,7 +5972,7 @@ func TestNewMessageSigner(t *testing.T) {
 		return nil, nil
 	}
 
-	runnable := NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+	runnable := NewMessageSigner(signerKey, config, mintControllerMap, ethNetworks)
 
 	assert.NotNil(t, runnable)
 	monitor, ok := runnable.(*CosmosMessageSignerRunnable)
@@ -5993,6 +5995,7 @@ func TestNewMessageSigner_Disabled(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -6090,7 +6093,7 @@ func TestNewMessageSigner_Disabled(t *testing.T) {
 	}
 
 	assert.Panics(t, func() {
-		NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+		NewMessageSigner(signerKey, config, mintControllerMap, ethNetworks)
 	})
 }
 
@@ -6099,6 +6102,7 @@ func TestNewMessageSigner_InvalidPublicKey(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -6196,7 +6200,7 @@ func TestNewMessageSigner_InvalidPublicKey(t *testing.T) {
 	}
 
 	assert.Panics(t, func() {
-		NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+		NewMessageSigner(signerKey, config, mintControllerMap, ethNetworks)
 	})
 }
 
@@ -6205,6 +6209,7 @@ func TestNewMessageSigner_InvalidMultisigAddress(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -6302,7 +6307,7 @@ func TestNewMessageSigner_InvalidMultisigAddress(t *testing.T) {
 	}
 
 	assert.Panics(t, func() {
-		NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+		NewMessageSigner(signerKey, config, mintControllerMap, ethNetworks)
 	})
 }
 
@@ -6311,6 +6316,7 @@ func TestNewMessageSigner_ClientError(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -6408,113 +6414,7 @@ func TestNewMessageSigner_ClientError(t *testing.T) {
 	}
 
 	assert.Panics(t, func() {
-		NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
-	})
-}
-
-func TestNewMessageSigner_MnemonicError(t *testing.T) {
-	defer func() { log.StandardLogger().ExitFunc = nil }()
-	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
-
-	// mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
-
-	config := models.CosmosNetworkConfig{
-		StartBlockHeight:   1,
-		Confirmations:      1,
-		RPCURL:             "http://localhost:36657",
-		GRPCEnabled:        true,
-		GRPCHost:           "localhost",
-		GRPCPort:           9090,
-		TimeoutMS:          1000,
-		ChainID:            "poktroll",
-		ChainName:          "Poktroll",
-		TxFee:              1000,
-		Bech32Prefix:       "pokt",
-		CoinDenom:          "upokt",
-		MultisigAddress:    "pokt13tsl3aglfyzf02n7x28x2ajzw94muu6y57k2ar",
-		MultisigPublicKeys: []string{"026892de2ec7fdf3125bc1bfd2ff2590d2c9ba756f98a05e9e843ac4d2a1acd4d9", "02faaaf0f385bb17381f36dcd86ab2486e8ff8d93440436496665ac007953076c2", "02cae233806460db75a941a269490ca5165a620b43241edb8bc72e169f4143a6df"},
-		MultisigThreshold:  2,
-		MessageMonitor: models.ServiceConfig{
-			Enabled:    true,
-			IntervalMS: 1000,
-		},
-		MessageSigner: models.ServiceConfig{
-			Enabled:    true,
-			IntervalMS: 1000,
-		},
-		MessageRelayer: models.ServiceConfig{
-			Enabled:    true,
-			IntervalMS: 1000,
-		},
-	}
-
-	mintControllerMap := make(map[uint32][]byte)
-	mintControllerMap[1] = []byte("mintControllerAddress")
-
-	ethNetworks := []models.EthereumNetworkConfig{
-		{
-			StartBlockHeight:      1,
-			Confirmations:         1,
-			RPCURL:                "http://localhost:8545",
-			TimeoutMS:             1000,
-			ChainID:               1,
-			ChainName:             "Ethereum",
-			MailboxAddress:        "0x0000000000000000000000000000000000000000",
-			MintControllerAddress: "0x0000000000000000000000000000000000000000",
-			OmniTokenAddress:      "0x0000000000000000000000000000000000000000",
-			WarpISMAddress:        "0x0000000000000000000000000000000000000000",
-			OracleAddresses:       []string{"0x0E90A32Df6f6143F1A91c25d9552dCbc789C34Eb", "0x958d1F55E14Cba24a077b9634F16f83565fc9411", "0x4c672Edd2ec8eac8f0F1709f33de9A2E786e6912"},
-			MessageMonitor: models.ServiceConfig{
-				Enabled:    true,
-				IntervalMS: 1000,
-			},
-			MessageSigner: models.ServiceConfig{
-				Enabled:    true,
-				IntervalMS: 1000,
-			},
-			MessageRelayer: models.ServiceConfig{
-				Enabled:    true,
-				IntervalMS: 1000,
-			},
-		},
-	}
-
-	mockClient := clientMocks.NewMockCosmosClient(t)
-	mockDB := dbMocks.NewMockDB(t)
-
-	// Mocking client methods
-	// mockClient.EXPECT().GetLatestBlockHeight().Return(int64(100), nil)
-
-	originalNewDB := dbNewDB
-	defer func() { dbNewDB = originalNewDB }()
-	dbNewDB = func() db.DB {
-		return mockDB
-	}
-
-	originalCosmosNewClient := cosmosNewClient
-	defer func() { cosmosNewClient = originalCosmosNewClient }()
-	cosmosNewClient = func(config models.CosmosNetworkConfig) (cosmos.CosmosClient, error) {
-		return mockClient, nil
-	}
-
-	originEthNewClient := ethNewClient
-	defer func() { ethNewClient = originEthNewClient }()
-	ethNewClient = func(config models.EthereumNetworkConfig) (eth.EthereumClient, error) {
-		mockEthClient := ethMocks.NewMockEthereumClient(t)
-		// mockEthClient.EXPECT().Chain().Return(models.Chain{ChainDomain: uint32(config.ChainID)})
-		// mockEthClient.EXPECT().GetClient().Return(nil)
-
-		return mockEthClient, nil
-	}
-
-	originalEthNewMailboxContract := ethNewMailboxContract
-	defer func() { ethNewMailboxContract = originalEthNewMailboxContract }()
-	ethNewMailboxContract = func(ethcommon.Address, bind.ContractBackend) (eth.MailboxContract, error) {
-		return nil, nil
-	}
-
-	assert.Panics(t, func() {
-		NewMessageSigner("mnemonic", config, mintControllerMap, ethNetworks)
+		NewMessageSigner(signerKey, config, mintControllerMap, ethNetworks)
 	})
 }
 
@@ -6523,6 +6423,7 @@ func TestNewMessageSigner_EthClientError(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -6620,7 +6521,7 @@ func TestNewMessageSigner_EthClientError(t *testing.T) {
 	}
 
 	assert.Panics(t, func() {
-		NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+		NewMessageSigner(signerKey, config, mintControllerMap, ethNetworks)
 	})
 }
 
@@ -6629,6 +6530,7 @@ func TestNewMessageSigner_EthMailboxError(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -6726,6 +6628,6 @@ func TestNewMessageSigner_EthMailboxError(t *testing.T) {
 	}
 
 	assert.Panics(t, func() {
-		NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+		NewMessageSigner(signerKey, config, mintControllerMap, ethNetworks)
 	})
 }

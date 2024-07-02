@@ -1,7 +1,6 @@
 package ethereum
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	cosmosMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/dan13ram/wpokt-oracle/ethereum/autogen"
 	eth "github.com/dan13ram/wpokt-oracle/ethereum/client"
@@ -140,7 +139,6 @@ func TestSignMessage_LockError(t *testing.T) {
 		db:              mockDB,
 		logger:          logger,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 	}
 
 	mockDB.EXPECT().LockWriteMessage(message).Return("lock-id", assert.AnError)
@@ -166,7 +164,6 @@ func TestSignMessage_SignError(t *testing.T) {
 		db:              mockDB,
 		logger:          logger,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 	}
 
 	mockDB.EXPECT().LockWriteMessage(message).Return("lock-id", nil)
@@ -175,13 +172,16 @@ func TestSignMessage_SignError(t *testing.T) {
 	utilSignMessage = func(
 		msg *models.Message,
 		domain util.DomainData,
-		privateKey *ecdsa.PrivateKey,
+		signer common.Signer,
 	) error {
 		assert.Equal(t, message, msg)
 		assert.NotNil(t, domain)
-		assert.NotNil(t, privateKey)
+		assert.Nil(t, signer)
 		return assert.AnError
 	}
+	defer func() {
+		utilSignMessage = util.SignMessage
+	}()
 
 	success := signer.SignMessage(message)
 	assert.False(t, success)
@@ -204,7 +204,6 @@ func TestSignMessage_UpdateError(t *testing.T) {
 		db:              mockDB,
 		logger:          logger,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 	}
 
 	mockDB.EXPECT().LockWriteMessage(message).Return("lock-id", nil)
@@ -214,13 +213,16 @@ func TestSignMessage_UpdateError(t *testing.T) {
 	utilSignMessage = func(
 		msg *models.Message,
 		domain util.DomainData,
-		privateKey *ecdsa.PrivateKey,
+		signer common.Signer,
 	) error {
 		assert.Equal(t, message, msg)
 		assert.NotNil(t, domain)
-		assert.NotNil(t, privateKey)
+		assert.Nil(t, signer)
 		return nil
 	}
+	defer func() {
+		utilSignMessage = util.SignMessage
+	}()
 
 	success := signer.SignMessage(message)
 	assert.False(t, success)
@@ -243,7 +245,6 @@ func TestSignMessage(t *testing.T) {
 		db:              mockDB,
 		logger:          logger,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 	}
 
 	mockDB.EXPECT().LockWriteMessage(message).Return("lock-id", nil)
@@ -253,13 +254,16 @@ func TestSignMessage(t *testing.T) {
 	utilSignMessage = func(
 		msg *models.Message,
 		domain util.DomainData,
-		privateKey *ecdsa.PrivateKey,
+		signer common.Signer,
 	) error {
 		assert.Equal(t, message, msg)
 		assert.NotNil(t, domain)
-		assert.NotNil(t, privateKey)
+		assert.Nil(t, signer)
 		return nil
 	}
+	defer func() {
+		utilSignMessage = util.SignMessage
+	}()
 
 	success := signer.SignMessage(message)
 	assert.True(t, success)
@@ -288,7 +292,6 @@ func TestValidateCosmosMessage_GetTxError(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -324,7 +327,6 @@ func TestValidateCosmosMessage_ValidationError(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -381,7 +383,6 @@ func TestValidateCosmosMessage_NeedsRefund(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -439,7 +440,6 @@ func TestValidateCosmosMessage_AmountMismatch(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -495,7 +495,6 @@ func TestValidateCosmosMessage_SenderMismatch(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -551,7 +550,6 @@ func TestValidateCosmosMessage_RecipientMismatch(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -607,7 +605,6 @@ func TestValidateCosmosMessage_TxPending(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -662,7 +659,6 @@ func TestValidateCosmosMessage_TxInvalid(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -718,7 +714,6 @@ func TestValidateCosmosMessage(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -775,7 +770,6 @@ func TestValidateCosmosTxAndSignMessage_ValidationFailed(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -832,7 +826,6 @@ func TestValidateCosmosTxAndSignMessage_TxPending(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -889,7 +882,6 @@ func TestValidateCosmosTxAndSignMessage(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               &ecdsa.PrivateKey{},
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -920,13 +912,16 @@ func TestValidateCosmosTxAndSignMessage(t *testing.T) {
 	utilSignMessage = func(
 		msg *models.Message,
 		domain util.DomainData,
-		privateKey *ecdsa.PrivateKey,
+		signer common.Signer,
 	) error {
 		assert.Equal(t, message, msg)
 		assert.NotNil(t, domain)
-		assert.NotNil(t, privateKey)
+		assert.Nil(t, signer)
 		return nil
 	}
+	defer func() {
+		utilSignMessage = util.SignMessage
+	}()
 
 	mockDB.EXPECT().LockWriteMessage(message).Return("lock-id", nil)
 	mockDB.EXPECT().Unlock("lock-id").Return(nil)
@@ -1340,7 +1335,6 @@ func TestValidateEthereumTxAndSignMessage_ValidateError(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		db:           mockDB,
-		privateKey:   &ecdsa.PrivateKey{},
 	}
 
 	txHash := "0x01"
@@ -1384,7 +1378,6 @@ func TestValidateEthereumTxAndSignMessage_PendingTx(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		db:           mockDB,
-		privateKey:   &ecdsa.PrivateKey{},
 	}
 
 	receipt := &types.Receipt{
@@ -1442,7 +1435,6 @@ func TestValidateEthereumTxAndSignMessage_NotConfirmedError(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		db:           mockDB,
-		privateKey:   &ecdsa.PrivateKey{},
 	}
 
 	receipt := &types.Receipt{
@@ -1499,7 +1491,6 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		db:           mockDB,
-		privateKey:   &ecdsa.PrivateKey{},
 	}
 
 	receipt := &types.Receipt{
@@ -1542,13 +1533,16 @@ func TestValidateEthereumTxAndSignMessage(t *testing.T) {
 	utilSignMessage = func(
 		msg *models.Message,
 		domain util.DomainData,
-		privateKey *ecdsa.PrivateKey,
+		signer common.Signer,
 	) error {
 		assert.Equal(t, message, msg)
 		assert.NotNil(t, domain)
-		assert.NotNil(t, privateKey)
+		assert.Nil(t, signer)
 		return nil
 	}
+	defer func() {
+		utilSignMessage = util.SignMessage
+	}()
 
 	success := signer.ValidateEthereumTxAndSignMessage(message)
 	assert.True(t, success)
@@ -1568,7 +1562,7 @@ func TestSignMessages_EthereumTx(t *testing.T) {
 	mailboxMap := map[uint32]eth.MailboxContract{1: mailbox}
 	cosmosClient := cosmosMocks.NewMockCosmosClient(t)
 
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	signer := &EthMessageSignerRunnable{
@@ -1578,7 +1572,7 @@ func TestSignMessages_EthereumTx(t *testing.T) {
 		ethClientMap: ethClientMap,
 		mailboxMap:   mailboxMap,
 		db:           mockDB,
-		privateKey:   privateKey,
+		signer:       signerKey,
 	}
 
 	receipt := &types.Receipt{
@@ -1623,13 +1617,16 @@ func TestSignMessages_EthereumTx(t *testing.T) {
 	utilSignMessage = func(
 		msg *models.Message,
 		domain util.DomainData,
-		privateKey *ecdsa.PrivateKey,
+		signer common.Signer,
 	) error {
 		assert.Equal(t, message, msg)
 		assert.NotNil(t, domain)
-		assert.NotNil(t, privateKey)
+		assert.NotNil(t, signer)
 		return nil
 	}
+	defer func() {
+		utilSignMessage = util.SignMessage
+	}()
 
 	mockDB.EXPECT().GetPendingMessages(mock.Anything, mock.Anything).Return([]models.Message{*message}, nil)
 
@@ -1637,30 +1634,12 @@ func TestSignMessages_EthereumTx(t *testing.T) {
 	assert.True(t, success)
 }
 
-func TestSignMessages_PrivKeyError(t *testing.T) {
-	mockDB := mocks.NewMockDB(t)
-	mockCosmosClient := cosmosMocks.NewMockCosmosClient(t)
-	logger := log.New().WithField("test", "signer")
-
-	signer := &EthMessageSignerRunnable{
-		db:                       mockDB,
-		cosmosClient:             mockCosmosClient,
-		logger:                   logger,
-		signerThreshold:          1,
-		privateKey:               nil,
-		currentCosmosBlockHeight: 100,
-	}
-
-	success := signer.SignMessages()
-	assert.False(t, success)
-}
-
 func TestSignMessages_ClientError(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockCosmosClient := cosmosMocks.NewMockCosmosClient(t)
 	logger := log.New().WithField("test", "signer")
 
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	signer := &EthMessageSignerRunnable{
@@ -1668,7 +1647,7 @@ func TestSignMessages_ClientError(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               privateKey,
+		signer:                   signerKey,
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -1698,7 +1677,7 @@ func TestSignMessages_CosmosTx(t *testing.T) {
 		},
 	}
 
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	signer := &EthMessageSignerRunnable{
@@ -1706,7 +1685,7 @@ func TestSignMessages_CosmosTx(t *testing.T) {
 		cosmosClient:             mockCosmosClient,
 		logger:                   logger,
 		signerThreshold:          1,
-		privateKey:               privateKey,
+		signer:                   signerKey,
 		currentCosmosBlockHeight: 100,
 	}
 
@@ -1738,13 +1717,16 @@ func TestSignMessages_CosmosTx(t *testing.T) {
 	utilSignMessage = func(
 		msg *models.Message,
 		domain util.DomainData,
-		privateKey *ecdsa.PrivateKey,
+		signer common.Signer,
 	) error {
 		assert.Equal(t, message, msg)
 		assert.NotNil(t, domain)
-		assert.NotNil(t, privateKey)
+		assert.NotNil(t, signer)
 		return nil
 	}
+	defer func() {
+		utilSignMessage = util.SignMessage
+	}()
 
 	mockDB.EXPECT().LockWriteMessage(message).Return("lock-id", nil)
 	mockDB.EXPECT().Unlock("lock-id").Return(nil)
@@ -1771,7 +1753,6 @@ func TestUpdateValidatorCountAndSignerThreshold(t *testing.T) {
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 		warpISM:         warpISM,
 	}
 
@@ -1799,7 +1780,6 @@ func TestUpdateValidatorCountAndSignerThreshold_ValidatorCountError(t *testing.T
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 		warpISM:         warpISM,
 	}
 
@@ -1826,7 +1806,6 @@ func TestUpdateValidatorCountAndSignerThreshold_SignerThresholdError(t *testing.
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 		warpISM:         warpISM,
 	}
 
@@ -1854,7 +1833,6 @@ func TestUpdateMaxMintLimit(t *testing.T) {
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 		mintController:  mintController,
 	}
 
@@ -1880,7 +1858,6 @@ func TestUpdateMaxMintLimit_Error(t *testing.T) {
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 		mintController:  mintController,
 	}
 
@@ -1908,7 +1885,6 @@ func TestUpdateDomainData_Error(t *testing.T) {
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 		warpISM:         warpISM,
 	}
 
@@ -1934,7 +1910,6 @@ func TestUpdateDomainData(t *testing.T) {
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      &ecdsa.PrivateKey{},
 		warpISM:         warpISM,
 	}
 
@@ -1952,7 +1927,7 @@ func TestSignerRun(t *testing.T) {
 	logger := log.New().WithField("test", "signer")
 
 	mintController := clientMocks.NewMockMintControllerContract(t)
-	privateKey, err := crypto.GenerateKey()
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	assert.NoError(t, err)
 
 	signer := &EthMessageSignerRunnable{
@@ -1962,7 +1937,7 @@ func TestSignerRun(t *testing.T) {
 		logger:          logger,
 		timeout:         10 * time.Second,
 		signerThreshold: 1,
-		privateKey:      privateKey,
+		signer:          signerKey,
 		mintController:  mintController,
 	}
 
@@ -1982,6 +1957,7 @@ func TestNewMessageSigner(t *testing.T) {
 	mockCosmosClient := cosmosMocks.NewMockCosmosClient(t)
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.EthereumNetworkConfig{
 		StartBlockHeight:      1,
@@ -2089,7 +2065,7 @@ func TestNewMessageSigner(t *testing.T) {
 	mockWarpISM.EXPECT().Eip712Domain(mock.Anything).Return(util.DomainData{ChainId: big.NewInt(1), VerifyingContract: ethcommon.HexToAddress(config.WarpISMAddress)}, nil)
 	mockMintController.EXPECT().MaxMintLimit(mock.Anything).Return(big.NewInt(100), nil)
 
-	runnable := NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+	runnable := NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 
 	assert.NotNil(t, runnable)
 
@@ -2117,6 +2093,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 	mockCosmosClient := cosmosMocks.NewMockCosmosClient(t)
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.EthereumNetworkConfig{
 		StartBlockHeight:      1,
@@ -2223,7 +2200,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		config.MessageSigner.Enabled = false
 
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 
 		config.MessageSigner.Enabled = true
@@ -2236,7 +2213,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		}
 
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 
 		ethNewClient = func(models.EthereumNetworkConfig) (eth.EthereumClient, error) {
@@ -2252,7 +2229,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		}
 
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 
 		ethNewMintControllerContract = func(ethcommon.Address, bind.ContractBackend) (eth.MintControllerContract, error) {
@@ -2268,24 +2245,12 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		}
 
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 
 		ethNewWarpISMContract = func(ethcommon.Address, bind.ContractBackend) (eth.WarpISMContract, error) {
 			return mockWarpISM, nil
 		}
-
-	})
-
-	t.Run("MnemonicError", func(t *testing.T) {
-
-		mnemonic = "invalid"
-
-		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
-		})
-
-		mnemonic = "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
 
 	})
 
@@ -2296,7 +2261,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		}
 
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 
 		cosmosNewClient = func(models.CosmosNetworkConfig) (cosmos.CosmosClient, error) {
@@ -2321,7 +2286,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		}
 
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, newEthNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, newEthNetworks)
 		})
 
 		ethNewClient = func(config models.EthereumNetworkConfig) (eth.EthereumClient, error) {
@@ -2337,7 +2302,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		}
 
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 
 		ethNewMailboxContract = func(ethcommon.Address, bind.ContractBackend) (eth.MailboxContract, error) {
@@ -2350,7 +2315,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		mockWarpISM.EXPECT().ValidatorCount(mock.Anything).Return(big.NewInt(100), nil).Once()
 		mockWarpISM.EXPECT().SignerThreshold(mock.Anything).Return(big.NewInt(20), nil).Once()
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 	})
 
@@ -2358,7 +2323,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		mockWarpISM.EXPECT().ValidatorCount(mock.Anything).Return(big.NewInt(3), nil).Once()
 		mockWarpISM.EXPECT().SignerThreshold(mock.Anything).Return(big.NewInt(20), nil).Once()
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 	})
 
@@ -2367,7 +2332,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		mockWarpISM.EXPECT().SignerThreshold(mock.Anything).Return(big.NewInt(2), nil).Once()
 		mockWarpISM.EXPECT().Eip712Domain(mock.Anything).Return(util.DomainData{ChainId: big.NewInt(2), VerifyingContract: ethcommon.HexToAddress(config.WarpISMAddress)}, nil).Once()
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 	})
 
@@ -2376,7 +2341,7 @@ func TestNewMessageSignerFailures(t *testing.T) {
 		mockWarpISM.EXPECT().SignerThreshold(mock.Anything).Return(big.NewInt(2), nil).Once()
 		mockWarpISM.EXPECT().Eip712Domain(mock.Anything).Return(util.DomainData{ChainId: big.NewInt(1), VerifyingContract: ethcommon.BytesToAddress([]byte("invalid"))}, nil).Once()
 		assert.Panics(t, func() {
-			NewMessageSigner(mnemonic, config, cosmosNetwork, ethNetworks)
+			NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)
 		})
 	})
 

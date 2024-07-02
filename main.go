@@ -58,6 +58,7 @@ func main() {
 	absYamlPath, absEnvPath := parseFlags()
 
 	signer, config := cfg.InitConfig(absYamlPath, absEnvPath)
+	defer signer.Destroy()
 
 	initLogger(config.Logger)
 

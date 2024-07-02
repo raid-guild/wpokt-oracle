@@ -95,7 +95,7 @@ mongodb:
 		assert.NoError(t, err)
 		defer os.Remove("test.yaml")
 
-		validatedConfig := InitConfig("test.yaml", "")
+		_, validatedConfig := InitConfig("test.yaml", "")
 		assert.NotNil(t, validatedConfig)
 		assert.Equal(t, config, validatedConfig)
 	})

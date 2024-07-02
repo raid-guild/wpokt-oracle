@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	clientMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	"github.com/dan13ram/wpokt-oracle/db"
@@ -27,6 +28,7 @@ func TestNewCosmosService(t *testing.T) {
 	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.CosmosNetworkConfig{
 		StartBlockHeight:   1,
@@ -124,10 +126,10 @@ func TestNewCosmosService(t *testing.T) {
 
 	assert.Panics(t, func() {
 		NewCosmosChainService(
+			signerKey,
 			config,
-			mintControllerMap,
-			mnemonic,
 			ethNetworks,
+			mintControllerMap,
 			nil,
 			nil,
 		)
@@ -150,10 +152,10 @@ func TestNewCosmosService(t *testing.T) {
 	}
 
 	service := NewCosmosChainService(
+		signerKey,
 		config,
-		mintControllerMap,
-		mnemonic,
 		ethNetworks,
+		mintControllerMap,
 		wg,
 		node,
 	)

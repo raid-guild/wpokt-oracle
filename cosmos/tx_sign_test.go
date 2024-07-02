@@ -14,8 +14,6 @@ import (
 	clientMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	"github.com/dan13ram/wpokt-oracle/models"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
@@ -31,8 +29,8 @@ import (
 func TestCosmosSignTx(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -58,9 +56,9 @@ func TestCosmosSignTx(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -110,8 +108,8 @@ func TestCosmosSignTx(t *testing.T) {
 func TestCosmosSignTx_InvalidSigner(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -155,13 +153,13 @@ func TestCosmosSignTx_InvalidSigner(t *testing.T) {
 func TestCosmosSignTx_AlreadySigned(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
 
-	signerAddr := ethcommon.BytesToAddress(signerKey.PubKey().Address().Bytes())
+	signerAddr := ethcommon.BytesToAddress(signerKey.CosmosPublicKey().Address().Bytes())
 
 	signatures := []models.Signature{
 		{
@@ -202,7 +200,7 @@ func TestCosmosSignTx_AlreadySigned(t *testing.T) {
 func TestCosmosSignTx_InvalidMultisigAddress(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
 
 	signatures := []models.Signature{}
@@ -239,8 +237,8 @@ func TestCosmosSignTx_InvalidMultisigAddress(t *testing.T) {
 func TestCosmosSignTx_ErrorNewTx(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -283,8 +281,8 @@ func TestCosmosSignTx_ErrorNewTx(t *testing.T) {
 func TestCosmosSignTx_WrapError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -332,8 +330,8 @@ func TestCosmosSignTx_WrapError(t *testing.T) {
 func TestCosmosSignTx_ErrorGetSigners(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -389,8 +387,8 @@ func TestCosmosSignTx_ErrorGetSigners(t *testing.T) {
 func TestCosmosSignTx_MultisigIsNotSigner(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -449,8 +447,8 @@ func TestCosmosSignTx_MultisigIsNotSigner(t *testing.T) {
 func TestCosmosSignTx_AccountError(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -478,10 +476,10 @@ func TestCosmosSignTx_AccountError(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		t.Errorf("utilSignWithPrivKey should not be called")
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -524,8 +522,8 @@ func TestCosmosSignTx_AccountError(t *testing.T) {
 func TestCosmosSignTx_ErrorSigning(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -553,9 +551,9 @@ func TestCosmosSignTx_ErrorSigning(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -598,8 +596,8 @@ func TestCosmosSignTx_ErrorSigning(t *testing.T) {
 func TestCosmosSignTx_ErrorGettingSignatures(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -632,9 +630,9 @@ func TestCosmosSignTx_ErrorGettingSignatures(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -678,8 +676,8 @@ func TestCosmosSignTx_ErrorGettingSignatures(t *testing.T) {
 func TestCosmosSignTx_ErrorSettingSignatures(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -707,9 +705,9 @@ func TestCosmosSignTx_ErrorSettingSignatures(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -752,8 +750,8 @@ func TestCosmosSignTx_ErrorSettingSignatures(t *testing.T) {
 func TestCosmosSignTx_ErrorEncoding(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -781,9 +779,9 @@ func TestCosmosSignTx_ErrorEncoding(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),
@@ -833,8 +831,8 @@ func TestCosmosSignTx_ErrorEncoding(t *testing.T) {
 func TestCosmosSignTx_TransactionBodyNonEmpty(t *testing.T) {
 	mockClient := clientMocks.NewMockCosmosClient(t)
 
-	signerKey := secp256k1.GenPrivKey()
-	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.PubKey()})
+	signerKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	multisigPk := multisig.NewLegacyAminoPubKey(1, []cryptotypes.PubKey{signerKey.CosmosPublicKey()})
 	multisigAddr, _ := common.Bech32FromBytes("pokt", multisigPk.Address().Bytes())
 
 	recipientAddr := ethcommon.BytesToAddress([]byte("recipient"))
@@ -863,9 +861,9 @@ func TestCosmosSignTx_TransactionBodyNonEmpty(t *testing.T) {
 		return txBuilder, txConfig, nil
 	}
 
-	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, cryptotypes.PrivKey, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
+	utilSignWithPrivKey = func(context.Context, signing.SignerData, client.TxBuilder, common.Signer, client.TxConfig, uint64) (signingtypes.SignatureV2, []byte, error) {
 		return signingtypes.SignatureV2{
-			PubKey: signerKey.PubKey(),
+			PubKey: signerKey.CosmosPublicKey(),
 			Data: &signingtypes.SingleSignatureData{
 				SignMode:  signingtypes.SignMode_SIGN_MODE_DIRECT,
 				Signature: []byte("signature"),

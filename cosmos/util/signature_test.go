@@ -6,19 +6,21 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
+	"github.com/dan13ram/wpokt-oracle/common"
 	clientMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
-	"github.com/dan13ram/wpokt-oracle/cosmos/util/mocks"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 func TestSignWithPrivKey(t *testing.T) {
 	// Generate a new private key
-	privKey := secp256k1.GenPrivKey()
+	privKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 
 	// Create a new TxConfig
 	txConfig := NewTxConfig("pokt")
@@ -31,8 +33,8 @@ func TestSignWithPrivKey(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        privKey.PubKey(),
-		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+		PubKey:        privKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(privKey.CosmosPublicKey().Address()).String(),
 	}
 
 	// Create a new context
@@ -44,17 +46,17 @@ func TestSignWithPrivKey(t *testing.T) {
 	// Assertions
 	assert.NoError(t, err)
 	assert.NotNil(t, sigV2)
-	assert.Equal(t, privKey.PubKey(), sigV2.PubKey)
+	assert.Equal(t, privKey.CosmosPublicKey(), sigV2.PubKey)
 	assert.Equal(t, signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON, sigV2.Data.(*signingtypes.SingleSignatureData).SignMode)
 	assert.NotEmpty(t, sigV2.Data.(*signingtypes.SingleSignatureData).Signature)
 	assert.Equal(t, uint64(1), sigV2.Sequence)
-	pub := privKey.PubKey()
+	pub := privKey.CosmosPublicKey()
 	assert.Equal(t, true, pub.VerifySignature(msg, sigV2.Data.(*signingtypes.SingleSignatureData).Signature))
 }
 
 func TestSignWithPrivKey_ErrorSignBytes(t *testing.T) {
 	// Generate a new private key
-	privKey := secp256k1.GenPrivKey()
+	privKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 
 	// Create a new TxConfig
 	txConfig := NewTxConfig("pokt")
@@ -83,9 +85,31 @@ func TestSignWithPrivKey_ErrorSignBytes(t *testing.T) {
 	assert.Empty(t, sigV2)
 }
 
+type mockSigner struct {
+}
+
+func (m *mockSigner) CosmosSign(msg []byte) ([]byte, error) {
+	return nil, errors.New("error signing")
+}
+
+func (m *mockSigner) CosmosPublicKey() types.PubKey {
+	return nil
+}
+
+func (m *mockSigner) EthSign(msg []byte) ([]byte, error) {
+	return nil, errors.New("error signing")
+}
+
+func (m *mockSigner) EthAddress() ethcommon.Address {
+	return ethcommon.Address{}
+}
+
+func (m *mockSigner) Destroy() {
+}
+
 func TestSignWithPrivKey_ErrorSigning(t *testing.T) {
 	// Generate a new private key
-	privKey := secp256k1.GenPrivKey()
+	privKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 
 	// Create a new TxConfig
 	txConfig := NewTxConfig("pokt")
@@ -98,15 +122,14 @@ func TestSignWithPrivKey_ErrorSigning(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        privKey.PubKey(),
-		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+		PubKey:        privKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(privKey.CosmosPublicKey().Address()).String(),
 	}
 
 	// Create a new context
 	ctx := context.Background()
 
-	mockPrivKey := mocks.NewMockPrivKey(t)
-	mockPrivKey.EXPECT().Sign(mock.Anything).Return(nil, errors.New("error signing"))
+	mockPrivKey := &mockSigner{}
 
 	// Call the SignWithPrivKey function
 	sigV2, _, err := SignWithPrivKey(ctx, signerData, txBuilder, mockPrivKey, txConfig, 1)
@@ -117,7 +140,7 @@ func TestSignWithPrivKey_ErrorSigning(t *testing.T) {
 }
 
 func TestValidateSignature(t *testing.T) {
-	privKey := secp256k1.GenPrivKey()
+	privKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 
 	// Create a new TxConfig
 	txConfig := NewTxConfig("pokt")
@@ -130,8 +153,8 @@ func TestValidateSignature(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        privKey.PubKey(),
-		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+		PubKey:        privKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(privKey.CosmosPublicKey().Address()).String(),
 	}
 
 	// Create a new context
@@ -151,7 +174,7 @@ func TestValidateSignature(t *testing.T) {
 }
 
 func TestValidateSignature_VerificationFailure(t *testing.T) {
-	privKey := secp256k1.GenPrivKey()
+	privKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 
 	// Create a new TxConfig
 	txConfig := NewTxConfig("pokt")
@@ -164,8 +187,8 @@ func TestValidateSignature_VerificationFailure(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        privKey.PubKey(),
-		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+		PubKey:        privKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(privKey.CosmosPublicKey().Address()).String(),
 	}
 
 	// Create a new context
@@ -186,7 +209,7 @@ func TestValidateSignature_VerificationFailure(t *testing.T) {
 }
 
 func TestValidateSignature_AnyError(t *testing.T) {
-	privKey := secp256k1.GenPrivKey()
+	privKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 
 	// Create a new TxConfig
 	txConfig := NewTxConfig("pokt")
@@ -199,8 +222,8 @@ func TestValidateSignature_AnyError(t *testing.T) {
 		ChainID:       "poktroll",
 		AccountNumber: 1,
 		Sequence:      1,
-		PubKey:        privKey.PubKey(),
-		Address:       sdk.AccAddress(privKey.PubKey().Address()).String(),
+		PubKey:        privKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(privKey.CosmosPublicKey().Address()).String(),
 	}
 
 	// Create a new context
@@ -223,7 +246,7 @@ func TestValidateSignature_AnyError(t *testing.T) {
 }
 
 func TestValidateSignature_TxError(t *testing.T) {
-	privKey := secp256k1.GenPrivKey()
+	privKey, _ := common.NewMnemonicSigner("test test test test test test test test test test test junk")
 
 	// Create a new TxConfig
 	txConfig := NewTxConfig("pokt")
@@ -237,7 +260,7 @@ func TestValidateSignature_TxError(t *testing.T) {
 
 	// Call the SignWithPrivKey function
 	sigV2 := signingtypes.SignatureV2{
-		PubKey: privKey.PubKey(),
+		PubKey: privKey.CosmosPublicKey(),
 	}
 
 	config := models.CosmosNetworkConfig{

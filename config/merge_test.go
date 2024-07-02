@@ -47,11 +47,11 @@ func TestMergeConfigs(t *testing.T) {
 
 	t.Run("Merge Mnemonic", func(t *testing.T) {
 		yamlConfig := models.Config{}
-		envConfig := models.Config{Mnemonic: "my_mnemonic"}
+		envConfig := models.Config{Signer: models.SignerConfig{Mnemonic: "my_mnemonic"}}
 
 		mergedConfig := mergeConfigs(yamlConfig, envConfig)
 
-		assert.Equal(t, "my_mnemonic", mergedConfig.Mnemonic)
+		assert.Equal(t, "my_mnemonic", mergedConfig.Signer.Mnemonic)
 	})
 
 	t.Run("Merge EthereumNetworks", func(t *testing.T) {

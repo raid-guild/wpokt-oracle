@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	cosmosMocks "github.com/dan13ram/wpokt-oracle/cosmos/client/mocks"
 	"github.com/dan13ram/wpokt-oracle/db"
@@ -35,6 +36,7 @@ func TestNewEthereumService(t *testing.T) {
 	mockCosmosClient := cosmosMocks.NewMockCosmosClient(t)
 
 	mnemonic := "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+	signerKey, _ := common.NewMnemonicSigner(mnemonic)
 
 	config := models.EthereumNetworkConfig{
 		StartBlockHeight:      1,
@@ -149,11 +151,11 @@ func TestNewEthereumService(t *testing.T) {
 
 	assert.Panics(t, func() {
 		NewEthereumChainService(
+			signerKey,
 			config,
 			cosmosNetwork,
-			mintControllerMap,
 			ethNetworks,
-			mnemonic,
+			mintControllerMap,
 			nil,
 			nil,
 		)
@@ -177,11 +179,11 @@ func TestNewEthereumService(t *testing.T) {
 	}
 
 	service := NewEthereumChainService(
+		signerKey,
 		config,
 		cosmosNetwork,
-		mintControllerMap,
 		ethNetworks,
-		mnemonic,
+		mintControllerMap,
 		wg,
 		node,
 	)

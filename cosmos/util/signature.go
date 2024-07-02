@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 
-	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -28,7 +27,7 @@ func SignWithPrivKey(
 	ctx context.Context,
 	signerData authsigning.SignerData,
 	txBuilder client.TxBuilder,
-	priv crypto.PrivKey,
+	signer common.Signer,
 	txConfig client.TxConfig,
 	accSeq uint64,
 ) (sigV2 signingtypes.SignatureV2, msg []byte, err error) {
@@ -40,7 +39,7 @@ func SignWithPrivKey(
 	}
 
 	// Sign those bytes
-	signature, err := priv.Sign(msg)
+	signature, err := signer.CosmosSign(msg)
 	if err != nil {
 		return sigV2, msg, err
 	}
@@ -52,7 +51,7 @@ func SignWithPrivKey(
 	}
 
 	sigV2 = signingtypes.SignatureV2{
-		PubKey:   priv.PubKey(),
+		PubKey:   signer.CosmosPublicKey(),
 		Data:     &sigData,
 		Sequence: accSeq,
 	}

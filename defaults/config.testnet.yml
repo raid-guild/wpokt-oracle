@@ -1,4 +1,6 @@
-mnemonic: ""
+signer:
+  mnemonic: ""
+  gcp_kms_key_name: ""
 health_check:
   interval_ms: 30000
   read_last_health: false

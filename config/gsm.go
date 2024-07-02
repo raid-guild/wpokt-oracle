@@ -64,7 +64,7 @@ func loadSecretsFromGSM(config models.Config) (models.Config, error) {
 	logger.Debugf("Loading secrets from GSM")
 	configWithSecrets := config
 
-	if !isGSMValue(config.MongoDB.URI) && !isGSMValue(config.Mnemonic) {
+	if !isGSMValue(config.MongoDB.URI) && !isGSMValue(config.Signer.Mnemonic) {
 		logger.Debugf("No secrets to load from GSM")
 		return configWithSecrets, nil
 	}
@@ -83,7 +83,7 @@ func loadSecretsFromGSM(config models.Config) (models.Config, error) {
 		return configWithSecrets, err
 	}
 
-	configWithSecrets.Mnemonic, err = readSecretFromGSM(client, "Mnemonic", config.Mnemonic)
+	configWithSecrets.Signer.Mnemonic, err = readSecretFromGSM(client, "Mnemonic", config.Signer.Mnemonic)
 	if err != nil {
 		return configWithSecrets, err
 	}

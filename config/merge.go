@@ -38,8 +38,12 @@ func mergeConfigs(yamlConfig models.Config, envConfig models.Config) models.Conf
 		mergedConfig.MongoDB.TimeoutMS = envConfig.MongoDB.TimeoutMS
 	}
 
-	if envConfig.Mnemonic != "" {
-		mergedConfig.Mnemonic = envConfig.Mnemonic
+	if envConfig.Signer.Mnemonic != "" {
+		mergedConfig.Signer.Mnemonic = envConfig.Signer.Mnemonic
+	}
+
+	if envConfig.Signer.GcpKmsKeyName != "" {
+		mergedConfig.Signer.GcpKmsKeyName = envConfig.Signer.GcpKmsKeyName
 	}
 
 	// Merge EthereumNetworks

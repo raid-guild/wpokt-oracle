@@ -3,6 +3,7 @@ package config
 import (
 	log "github.com/sirupsen/logrus"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 )
 
@@ -12,7 +13,7 @@ func init() {
 	logger = log.WithFields(log.Fields{"module": "config"})
 }
 
-func InitConfig(yamlFile string, envFile string) models.Config {
+func InitConfig(yamlFile string, envFile string) (common.Signer, models.Config) {
 	logger.Debug("Initializing config")
 	yamlConfig, err := loadConfigFromYamlFile(yamlFile)
 	if err != nil {
@@ -33,7 +34,7 @@ func InitConfig(yamlFile string, envFile string) models.Config {
 			WithFields(log.Fields{"error": err}).
 			Fatal("Error loading secrets from GSM")
 	}
-	err = validateConfig(gsmConfig)
+	signer, err := validateConfig(gsmConfig)
 
 	if err != nil {
 		logger.
@@ -41,5 +42,5 @@ func InitConfig(yamlFile string, envFile string) models.Config {
 			Fatal("Config validation failed")
 	}
 	logger.Info("Initialized config")
-	return gsmConfig
+	return signer, gsmConfig
 }

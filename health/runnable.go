@@ -98,20 +98,20 @@ func (x *healthCheckRunnable) PostHealth() bool {
 
 var osHostname = os.Hostname
 
-func newHealthCheck(config models.Config) *healthCheckRunnable {
+func newHealthCheck(signer common.Signer, config models.Config) *healthCheckRunnable {
 	logger := log.WithFields(log.Fields{
 		"module": "health",
 		"runner": "health",
 	})
 	logger.Debug("Initializing health")
 
-	ethAddressHex, _ := common.EthereumAddressFromMnemonic(config.Mnemonic)
+	ethAddressHex := signer.EthAddress().Hex()
 
 	logger.
 		WithField("eth_address", ethAddressHex).
 		Debugf("Initialized ethereum address")
 
-	cosmosPubKey, _ := common.CosmosPublicKeyFromMnemonic(config.Mnemonic)
+	cosmosPubKey := signer.CosmosPublicKey()
 
 	cosmosPubKeyHex := hex.EncodeToString(cosmosPubKey.Bytes())
 

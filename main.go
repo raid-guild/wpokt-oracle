@@ -57,7 +57,7 @@ func NewMintControllerMap(config models.Config) map[uint32][]byte {
 func main() {
 	absYamlPath, absEnvPath := parseFlags()
 
-	config := cfg.InitConfig(absYamlPath, absEnvPath)
+	signer, config := cfg.InitConfig(absYamlPath, absEnvPath)
 
 	initLogger(config.Logger)
 
@@ -69,7 +69,7 @@ func main() {
 	services := []service.ChainService{}
 	var wg sync.WaitGroup
 
-	healthService := health.NewHealthService(config, &wg)
+	healthService := health.NewHealthService(signer, config, &wg)
 
 	var nodeHealth *models.Node
 	var err error
@@ -87,11 +87,11 @@ func main() {
 	mintControllerMap := NewMintControllerMap(config)
 
 	for _, ethNetwork := range config.EthereumNetworks {
-		chainService := ethereum.NewEthereumChainService(ethNetwork, cosmosNetwork, mintControllerMap, config.EthereumNetworks, config.Mnemonic, &wg, nodeHealth)
+		chainService := ethereum.NewEthereumChainService(signer, ethNetwork, cosmosNetwork, config.EthereumNetworks, mintControllerMap, &wg, nodeHealth)
 		services = append(services, chainService)
 	}
 
-	cosmosService := cosmos.NewCosmosChainService(cosmosNetwork, mintControllerMap, config.Mnemonic, config.EthereumNetworks, &wg, nodeHealth)
+	cosmosService := cosmos.NewCosmosChainService(signer, cosmosNetwork, config.EthereumNetworks, mintControllerMap, &wg, nodeHealth)
 	services = append(services, cosmosService)
 
 	wg.Add(len(services) + 1)

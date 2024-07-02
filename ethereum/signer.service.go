@@ -3,7 +3,6 @@ package ethereum
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"strings"
@@ -43,7 +42,7 @@ type EthMessageSignerRunnable struct {
 
 	chain models.Chain
 
-	privateKey *ecdsa.PrivateKey
+	signer common.Signer
 
 	// TODO: validate maximumAmount
 	maximumAmount *big.Int
@@ -123,7 +122,7 @@ func (x *EthMessageSignerRunnable) SignMessage(messageDoc *models.Message) bool 
 		defer x.db.Unlock(lockID)
 	}
 
-	if err := utilSignMessage(messageDoc, x.domain, x.privateKey); err != nil {
+	if err := utilSignMessage(messageDoc, x.domain, x.signer); err != nil {
 		logger.WithError(err).Errorf("Error signing message")
 		return false
 	}
@@ -293,12 +292,7 @@ func (x *EthMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDoc *
 
 func (x *EthMessageSignerRunnable) SignMessages() bool {
 	x.logger.Infof("Signing messages")
-	addressHex, err := common.EthereumPrivateKeyToAddressHex(x.privateKey)
-	if err != nil {
-		x.logger.WithError(err).Errorf("Error getting address hex")
-		return false
-	}
-	messages, err := x.db.GetPendingMessages(common.Ensure0xPrefix(addressHex), x.chain)
+	messages, err := x.db.GetPendingMessages(common.Ensure0xPrefix(x.signer.EthAddress().Hex()), x.chain)
 
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending messages")
@@ -381,7 +375,7 @@ var ethNewWarpISMContract = eth.NewWarpISMContract
 var cosmosNewClient = cosmos.NewClient
 
 func NewMessageSigner(
-	mnemonic string,
+	signer common.Signer,
 	config models.EthereumNetworkConfig,
 	cosmosConfig models.CosmosNetworkConfig,
 	ethNetworks []models.EthereumNetworkConfig,
@@ -416,11 +410,6 @@ func NewMessageSigner(
 		logger.Fatal("Error connecting to warp ism contract: ", err)
 	}
 	logger.Debug("Connected to warp ism contract")
-
-	privateKey, err := common.EthereumPrivateKeyFromMnemonic(mnemonic)
-	if err != nil {
-		logger.Fatalf("Error getting private key from mnemonic: %s", err)
-	}
 
 	cosmosClient, err := cosmosNewClient(cosmosConfig)
 	if err != nil {
@@ -463,7 +452,7 @@ func NewMessageSigner(
 		mintController: mintController,
 		warpISM:        warpISM,
 
-		privateKey: privateKey,
+		signer: signer,
 
 		chain: utilParseChain(config),
 

@@ -41,7 +41,8 @@ func loadConfigFromEnv(envFile string) (models.Config, error) {
 	config.MongoDB.TimeoutMS = getUint64Env("MONGODB_TIMEOUT_MS")
 
 	// Mnemonic for both Ethereum and Cosmos networks
-	config.Mnemonic = getStringEnv("MNEMONIC")
+	config.Signer.Mnemonic = getStringEnv("SIGNER_MNEMONIC")
+	config.Signer.GcpKmsKeyName = getStringEnv("SIGNER_GCP_KMS_KEY_NAME")
 
 	numEthereumNetworksEnv := getUint64Env("NUM_ETHEREUM_NETWORKS")
 

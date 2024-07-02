@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
@@ -17,10 +18,10 @@ var utilParseChain = util.ParseChain
 var utilParseTxBody = util.ParseTxBody
 
 func NewCosmosChainService(
+	signer common.Signer,
 	config models.CosmosNetworkConfig,
-	mintControllerMap map[uint32][]byte,
-	mnemonic string,
 	ethNetworks []models.EthereumNetworkConfig,
+	mintControllerMap map[uint32][]byte,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
 ) service.ChainService {
@@ -51,7 +52,7 @@ func NewCosmosChainService(
 
 	var signerRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageSigner.Enabled {
-		signerRunnable = NewMessageSigner(mnemonic, config, mintControllerMap, ethNetworks)
+		signerRunnable = NewMessageSigner(signer, config, mintControllerMap, ethNetworks)
 	}
 
 	signerRunnerService := service.NewRunnerService(

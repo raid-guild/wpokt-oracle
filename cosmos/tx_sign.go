@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	crypto "github.com/cosmos/cosmos-sdk/crypto/types"
-
 	"github.com/dan13ram/wpokt-oracle/common"
 	cosmos "github.com/dan13ram/wpokt-oracle/cosmos/client"
 	"github.com/dan13ram/wpokt-oracle/models"
@@ -25,7 +23,7 @@ var ErrAlreadySigned = fmt.Errorf("already signed")
 var CosmosSignTx = cosmosSignTx
 
 func cosmosSignTx(
-	signerKey crypto.PrivKey,
+	signer common.Signer,
 	config models.CosmosNetworkConfig,
 	client cosmos.CosmosClient,
 	sequence uint64,
@@ -37,11 +35,11 @@ func cosmosSignTx(
 ) (string, []models.Signature, error) {
 
 	for _, sig := range signatures {
-		signer, err := common.BytesFromAddressHex(sig.Signer)
+		signerAddr, err := common.BytesFromAddressHex(sig.Signer)
 		if err != nil {
 			return "", nil, fmt.Errorf("error parsing signer: %w", err)
 		}
-		if bytes.Equal(signer, signerKey.PubKey().Address().Bytes()) {
+		if bytes.Equal(signerAddr, signer.CosmosPublicKey().Address().Bytes()) {
 			return "", nil, ErrAlreadySigned
 		}
 	}
@@ -88,21 +86,19 @@ func cosmosSignTx(
 		return "", nil, fmt.Errorf("error getting account: %w", err)
 	}
 
-	pubKey := signerKey.PubKey()
-
 	signerData := authsigning.SignerData{
 		ChainID:       config.ChainID,
 		AccountNumber: account.AccountNumber,
 		Sequence:      sequence,
-		PubKey:        pubKey,
-		Address:       sdk.AccAddress(pubKey.Address()).String(),
+		PubKey:        signer.CosmosPublicKey(),
+		Address:       sdk.AccAddress(signer.CosmosPublicKey().Address()).String(),
 	}
 
 	sigV2, _, err := utilSignWithPrivKey(
 		context.Background(),
 		signerData,
 		txBuilder,
-		signerKey,
+		signer,
 		txConfig,
 		sequence,
 	)

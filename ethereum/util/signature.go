@@ -1,7 +1,6 @@
 package util
 
 import (
-	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
 	"math/big"
@@ -9,7 +8,6 @@ import (
 	"strings"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
@@ -91,11 +89,11 @@ var apitypesTypedDataAndHash = apitypes.TypedDataAndHash
 func signTypedData(
 	content models.MessageContent,
 	domainData DomainData,
-	key *ecdsa.PrivateKey,
+	signer common.Signer,
 ) ([]byte, error) {
 
-	if key == nil {
-		return nil, errors.New("invalid key")
+	if signer == nil {
+		return nil, errors.New("invalid signer")
 	}
 
 	messageBodyBytes, err := content.MessageBody.EncodeToBytes()
@@ -132,13 +130,9 @@ func signTypedData(
 		return nil, err
 	}
 
-	signature, err := crypto.Sign(sighash, key)
+	signature, err := signer.EthSign(sighash)
 	if err != nil {
 		return nil, err
-	}
-
-	if signature[64] == 0 || signature[64] == 1 {
-		signature[64] += 27
 	}
 
 	return signature, err
@@ -147,9 +141,9 @@ func signTypedData(
 func SignMessage(
 	message *models.Message,
 	domain DomainData,
-	privateKey *ecdsa.PrivateKey,
+	signer common.Signer,
 ) error {
-	signature, err := signTypedData(message.Content, domain, privateKey)
+	signature, err := signTypedData(message.Content, domain, signer)
 	if err != nil {
 		return err
 	}
@@ -157,7 +151,7 @@ func SignMessage(
 	signatures := message.Signatures
 
 	sig := models.Signature{
-		Signer:    strings.ToLower(crypto.PubkeyToAddress(privateKey.PublicKey).Hex()),
+		Signer:    strings.ToLower(signer.EthAddress().Hex()),
 		Signature: common.HexFromBytes(signature),
 	}
 	signatures = append(signatures, sig)

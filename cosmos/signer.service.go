@@ -34,7 +34,7 @@ import (
 
 type CosmosMessageSignerRunnable struct {
 	multisigPk *multisig.LegacyAminoPubKey
-	signerKey  crypto.PrivKey
+	signer     common.Signer
 
 	mintControllerMap         map[uint32][]byte
 	ethClientMap              map[uint32]eth.EthereumClient
@@ -107,7 +107,7 @@ func (x *CosmosMessageSignerRunnable) Sign(
 	}
 
 	txBody, finalSignatures, err := CosmosSignTx(
-		x.signerKey,
+		x.signer,
 		x.config,
 		x.client,
 		*sequence,
@@ -290,7 +290,7 @@ func (x *CosmosMessageSignerRunnable) ValidateEthereumTxAndSignMessage(messageDo
 
 func (x *CosmosMessageSignerRunnable) SignMessages() bool {
 	x.logger.Infof("Signing messages")
-	addressHex, _ := common.AddressHexFromBytes(x.signerKey.PubKey().Address().Bytes())
+	addressHex, _ := common.AddressHexFromBytes(x.signer.CosmosPublicKey().Address().Bytes())
 	messages, err := x.db.GetPendingMessages(addressHex, x.chain)
 
 	if err != nil {
@@ -831,7 +831,7 @@ func (x *CosmosMessageSignerRunnable) ValidateCosmosTxAndSignRefund(
 
 func (x *CosmosMessageSignerRunnable) SignRefunds() bool {
 	x.logger.Infof("Signing refunds")
-	addressHex, _ := common.AddressHexFromBytes(x.signerKey.PubKey().Address().Bytes())
+	addressHex, _ := common.AddressHexFromBytes(x.signer.CosmosPublicKey().Address().Bytes())
 	refunds, err := x.db.GetPendingRefunds(addressHex)
 	if err != nil {
 		x.logger.WithError(err).Errorf("Error getting pending refunds")
@@ -850,7 +850,7 @@ var ethNewClient = eth.NewClient
 var ethNewMailboxContract = eth.NewMailboxContract
 
 func NewMessageSigner(
-	mnemonic string,
+	signer common.Signer,
 	config models.CosmosNetworkConfig,
 	mintControllerMap map[uint32][]byte,
 	ethNetworks []models.EthereumNetworkConfig,
@@ -888,11 +888,6 @@ func NewMessageSigner(
 		logger.WithError(err).Fatalf("Error creating cosmos client")
 	}
 
-	privKey, err := common.CosmosPrivateKeyFromMnemonic(mnemonic)
-	if err != nil {
-		logger.WithError(err).Fatalf("Error getting private key from mnemonic")
-	}
-
 	ethClientMap := make(map[uint32]eth.EthereumClient)
 	mailboxMap := make(map[uint32]eth.MailboxContract)
 	supportedChainIDsEthereum := make(map[uint32]bool)
@@ -924,7 +919,7 @@ func NewMessageSigner(
 		currentBlockHeight: 0,
 		client:             client,
 
-		signerKey: privKey,
+		signer: signer,
 
 		chain: utilParseChain(config),
 

@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	cosmosUtil "github.com/dan13ram/wpokt-oracle/cosmos/util"
 	"github.com/dan13ram/wpokt-oracle/ethereum/util"
 	"github.com/dan13ram/wpokt-oracle/models"
@@ -17,11 +18,11 @@ var ethValidateTransactionByHash = ValidateTransactionByHash
 var utilValidateTxToCosmosMultisig = cosmosUtil.ValidateTxToCosmosMultisig
 
 func NewEthereumChainService(
+	signer common.Signer,
 	config models.EthereumNetworkConfig,
 	cosmosConfig models.CosmosNetworkConfig,
-	mintControllerMap map[uint32][]byte,
 	ethNetworks []models.EthereumNetworkConfig,
-	mnemonic string,
+	mintControllerMap map[uint32][]byte,
 	wg *sync.WaitGroup,
 	nodeHealth *models.Node,
 ) service.ChainService {
@@ -52,7 +53,7 @@ func NewEthereumChainService(
 
 	var signerRunnable service.Runnable = &service.EmptyRunnable{}
 	if config.MessageSigner.Enabled {
-		signerRunnable = NewMessageSigner(mnemonic, config, cosmosConfig, ethNetworks)
+		signerRunnable = NewMessageSigner(signer, config, cosmosConfig, ethNetworks)
 	}
 	signerRunnerService := service.NewRunnerService(
 		"signer",

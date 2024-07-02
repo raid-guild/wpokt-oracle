@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/dan13ram/wpokt-oracle/common"
 	"github.com/dan13ram/wpokt-oracle/models"
 	"github.com/dan13ram/wpokt-oracle/service"
 )
@@ -58,12 +59,13 @@ func (x *healthService) Stop() {
 }
 
 func NewHealthService(
+	signer common.Signer,
 	config models.Config,
 	wg *sync.WaitGroup,
 ) HealthService {
 	interval := time.Duration(config.HealthCheck.IntervalMS) * time.Millisecond
 	return &healthService{
-		runnable: newHealthCheck(config),
+		runnable: newHealthCheck(signer, config),
 		interval: interval,
 		stop:     make(chan bool, 1),
 		wg:       wg,

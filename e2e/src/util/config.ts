@@ -7,17 +7,10 @@ const CONFIG_PATH =
 
 
 export type Config = {
-  mnemonic: string;
-  health_check: HealthCheckConfig;
   logger: LoggerConfig;
   mongodb: MongoConfig;
   ethereum_networks: EthereumNetworkConfig[];
   cosmos_network: CosmosNetworkConfig;
-};
-
-export type HealthCheckConfig = {
-  interval_ms: number;
-  read_last_health: boolean;
 };
 
 export type LoggerConfig = {
@@ -43,9 +36,6 @@ export type EthereumNetworkConfig = {
   omni_token_address: string;
   warp_ism_address: string;
   oracle_addresses: string[];
-  message_monitor: ServiceConfig;
-  message_signer: ServiceConfig;
-  message_relayer: ServiceConfig;
 };
 
 export type CosmosNetworkConfig = {
@@ -64,14 +54,6 @@ export type CosmosNetworkConfig = {
   multisig_address: string;
   multisig_public_keys: string[];
   multisig_threshold: number;
-  message_monitor: ServiceConfig;
-  message_signer: ServiceConfig;
-  message_relayer: ServiceConfig;
-};
-
-export type ServiceConfig = {
-  enabled: boolean;
-  interval_ms: number;
 };
 
 export const config = yaml.load(fs.readFileSync(CONFIG_PATH, "utf8")) as Config;

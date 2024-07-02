@@ -26,7 +26,7 @@ services:
     environment:
       LOGGER_LEVEL: info
       LOGGER_FORMAT: text
-      MNEMONIC: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
+      SIGNER_MNEMONIC: "infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve"
       COSMOS_NETWORK_GRPC_ENABLED: false
 
   oracle-two:
@@ -36,7 +36,7 @@ services:
     environment:
       LOGGER_LEVEL: info
       LOGGER_FORMAT: text
-      MNEMONIC: "shy smile praise educate custom fashion gun enjoy zero powder garden second"
+      SIGNER_MNEMONIC: "shy smile praise educate custom fashion gun enjoy zero powder garden second"
 
   oracle-three:
     image: dan13ram/wpokt-oracle:v0.0.1
@@ -45,7 +45,7 @@ services:
     environment:
       LOGGER_LEVEL: info
       LOGGER_FORMAT: text
-      MNEMONIC: "wink giant track dwarf visa feed visual drip play grant royal noise"
+      SIGNER_MNEMONIC: "wink giant track dwarf visa feed visual drip play grant royal noise"
 
   mongodb:
     image: mongo

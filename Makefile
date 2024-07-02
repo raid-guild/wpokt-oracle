@@ -6,13 +6,13 @@ all: clean install test build
 dev : dev_one
 
 .PHONY: dev_one
-dev_one:; MNEMONIC="infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve" go run . --yaml ./defaults/config.local.yml
+dev_one:; SIGNER_MNEMONIC="infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve" go run . --yaml ./defaults/config.local.yml
 
 .PHONY: dev_two
-dev_two:; MNEMONIC="shy smile praise educate custom fashion gun enjoy zero powder garden second" go run . --yaml ./defaults/config.local.yml
+dev_two:; SIGNER_MNEMONIC="shy smile praise educate custom fashion gun enjoy zero powder garden second" go run . --yaml ./defaults/config.local.yml
 
 .PHONY: dev_three
-dev_three:; MNEMONIC="wink giant track dwarf visa feed visual drip play grant royal noise" go run . --yaml ./defaults/config.local.yml
+dev_three:; SIGNER_MNEMONIC="wink giant track dwarf visa feed visual drip play grant royal noise" go run . --yaml ./defaults/config.local.yml
 
 .PHONY: clean
 clean: clean_tmp_data
@@ -49,13 +49,13 @@ docker_push :; docker push dan13ram/wpokt-oracle:v0.0.1
 docker_dev : docker_one
 
 .PHONY: docker_one
-docker_one :; MNEMONIC="infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
+docker_one :; SIGNER_MNEMONIC="infant apart enroll relief kangaroo patch awesome wagon trap feature armor approve" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
 
 .PHONY: docker_two
-docker_two :; MNEMONIC="shy smile praise educate custom fashion gun enjoy zero powder garden second" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
+docker_two :; SIGNER_MNEMONIC="shy smile praise educate custom fashion gun enjoy zero powder garden second" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
 
 .PHONY: docker_three
-docker_three :; MNEMONIC="wink giant track dwarf visa feed visual drip play grant royal noise" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
+docker_three :; SIGNER_MNEMONIC="wink giant track dwarf visa feed visual drip play grant royal noise" YAML_FILE=/app/defaults/config.local.yml docker compose -f docker/docker-compose.yml up --force-recreate
 
 .PHONY: localnet_up
 localnet_up:; docker compose -f e2e/docker-compose.yml up --force-recreate

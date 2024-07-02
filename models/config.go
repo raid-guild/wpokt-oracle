@@ -1,12 +1,17 @@
 package models
 
 type Config struct {
-	Mnemonic         string                  `yaml:"mnemonic" json:"mnemonic"`
+	Signer           SignerConfig            `yaml:"signer" json:"signer"`
 	HealthCheck      HealthCheckConfig       `yaml:"health_check" json:"health_check"`
 	Logger           LoggerConfig            `yaml:"logger" json:"logger"`
 	MongoDB          MongoConfig             `yaml:"mongodb" json:"mongodb"`
 	EthereumNetworks []EthereumNetworkConfig `yaml:"ethereum_networks" json:"ethereum_networks"`
 	CosmosNetwork    CosmosNetworkConfig     `yaml:"cosmos_network" json:"cosmos_network"`
+}
+
+type SignerConfig struct {
+	Mnemonic      string `yaml:"mnemonic" json:"mnemonic"`
+	GcpKmsKeyName string `yaml:"gcp_kms_key_name" json:"gcp_kms_key_name"`
 }
 
 type HealthCheckConfig struct {

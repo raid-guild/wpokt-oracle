@@ -20,7 +20,7 @@ services:
       - "38546"
 
   oracle-one:
-    image: dan13ram/wpokt-oracle:v0.0.1
+    image: dan13ram/wpokt-oracle:v0.0.2
     network_mode: host
     entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.yml"]
     environment:
@@ -30,7 +30,7 @@ services:
       COSMOS_NETWORK_GRPC_ENABLED: false
 
   oracle-two:
-    image: dan13ram/wpokt-oracle:v0.0.1
+    image: dan13ram/wpokt-oracle:v0.0.2
     network_mode: host
     entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.yml"]
     environment:
@@ -39,7 +39,7 @@ services:
       SIGNER_MNEMONIC: "shy smile praise educate custom fashion gun enjoy zero powder garden second"
 
   oracle-three:
-    image: dan13ram/wpokt-oracle:v0.0.1
+    image: dan13ram/wpokt-oracle:v0.0.2
     network_mode: host
     entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.yml"]
     environment:

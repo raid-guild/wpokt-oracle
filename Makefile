@@ -43,10 +43,10 @@ open_test_coverage :; bash ./coverage.sh && open ./coverage.html
 build :; go build -o wpokt-oracle .
 
 .PHONY: docker_build
-docker_build :; docker buildx build . -t dan13ram/wpokt-oracle:v0.0.1 --file ./docker/Dockerfile
+docker_build :; docker buildx build . -t dan13ram/wpokt-oracle:v0.0.2 --file ./docker/Dockerfile
 
 .PHONY: docker_push
-docker_push :; docker push dan13ram/wpokt-oracle:v0.0.1
+docker_push :; docker push dan13ram/wpokt-oracle:v0.0.2
 
 .PHONY: docker_dev
 docker_dev : docker_one

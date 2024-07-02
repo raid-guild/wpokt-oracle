@@ -57,3 +57,6 @@ docker/
 
 # secrets
 secrets/
+
+# make
+Makefile

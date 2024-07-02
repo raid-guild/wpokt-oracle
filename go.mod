@@ -8,7 +8,7 @@ require (
 	cosmossdk.io/math v1.3.0
 	cosmossdk.io/x/tx v0.13.2
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
-	github.com/cometbft/cometbft v0.38.6
+	github.com/cometbft/cometbft v0.38.8
 	github.com/cosmos/cosmos-sdk v0.50.6
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/gogoproto v1.4.12

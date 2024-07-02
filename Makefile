@@ -81,4 +81,4 @@ generate_keys :; go run scripts/generate_keys/main.go --mnemonic "${mnemonic}"
 generate_multisig :; go run scripts/generate_multisig/main.go --publickeys "${publickeys}" --threshold ${threshold}
 
 .PHONY: gcp_kms
-gcp_kms :; GCP_CREDS_JSON=${GCP_CREDS_JSON} GCP_KMS_KEY_NAME=${GCP_KMS_KEY_NAME} go run scripts/gcp_kms/main.go
+gcp_kms :; GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS} GCP_KMS_KEY_NAME=${GCP_KMS_KEY_NAME} go run scripts/gcp_kms/main.go

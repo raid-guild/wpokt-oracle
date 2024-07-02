@@ -15,15 +15,16 @@ import (
 	dcrecSecp256k1 "github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"google.golang.org/api/option"
+
+	"github.com/cosmos/cosmos-sdk/crypto/types"
 )
 
 // Interface Definition
-type KmsSigner interface {
-	EthSignHash(hash common.Hash) ([]byte, error)
-	CosmosSignHash(hash [32]byte) ([]byte, error)
+type Signer interface {
+	EthSign(data []byte) ([]byte, error)
+	CosmosSign(data []byte) ([]byte, error)
 	EthAddress() common.Address
-	CosmosPublicKey() *secp256k1.PubKey
+	CosmosPublicKey() types.PubKey
 }
 
 // Struct Definition
@@ -31,21 +32,23 @@ type GcpKmsSigner struct {
 	client          *kms.KeyManagementClient
 	keyName         string
 	ethAddress      common.Address
-	cosmosPubKey    *secp256k1.PubKey
+	cosmosPubKey    types.PubKey
 	secp256k1PubKey *dcrecSecp256k1.PublicKey
 }
 
+var _ Signer = &GcpKmsSigner{}
+
 // Constructor Function
-func NewGcpKmsSigner(credsFilePath, keyName string) (*GcpKmsSigner, error) {
-	client, err := kms.NewKeyManagementClient(context.Background(), option.WithCredentialsFile(credsFilePath))
+func NewGcpKmsSigner(keyName string) (Signer, error) {
+	client, err := kms.NewKeyManagementClient(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("failed to create KMS client: %v", err)
+		return nil, fmt.Errorf("failed to create KMS client: %w", err)
 	}
 
 	// verify key algorithm
 	keyVersionDetails, err := getKeyVersionDetails(client, keyName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get key version details: %v", err)
+		return nil, fmt.Errorf("failed to get key version details: %w", err)
 	}
 
 	if keyVersionDetails.Algorithm != kmspb.CryptoKeyVersion_EC_SIGN_SECP256K1_SHA256 {
@@ -54,12 +57,12 @@ func NewGcpKmsSigner(credsFilePath, keyName string) (*GcpKmsSigner, error) {
 
 	ethAddress, err := resolveEthAddr(client, keyName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve Ethereum address: %v", err)
+		return nil, fmt.Errorf("failed to resolve Ethereum address: %w", err)
 	}
 
 	secp256k1PubKey, err := resolveSecp256k1PubKey(client, keyName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve Secp256k1 public key: %v", err)
+		return nil, fmt.Errorf("failed to resolve Secp256k1 public key: %w", err)
 	}
 
 	cosmosPubKey := &secp256k1.PubKey{Key: secp256k1PubKey.SerializeCompressed()}
@@ -74,11 +77,21 @@ func NewGcpKmsSigner(credsFilePath, keyName string) (*GcpKmsSigner, error) {
 }
 
 // Method Implementations
-func (s *GcpKmsSigner) EthSignHash(hash common.Hash) ([]byte, error) {
+func (s *GcpKmsSigner) EthSign(data []byte) ([]byte, error) {
+	digest := data
+	if len(digest) != 32 {
+		digest = crypto.Keccak256(data)
+	}
+	hash := common.BytesToHash(digest)
 	return ethSignHash(hash, s.client, s.keyName, s.ethAddress)
 }
 
-func (s *GcpKmsSigner) CosmosSignHash(hash common.Hash) ([]byte, error) {
+func (s *GcpKmsSigner) CosmosSign(data []byte) ([]byte, error) {
+	digest := data
+	if len(digest) != 32 {
+		digest = crypto.Keccak256(data)
+	}
+	hash := common.BytesToHash(digest)
 	return cosmosSignHash(s.client, s.keyName, hash, s.secp256k1PubKey)
 }
 
@@ -86,7 +99,7 @@ func (s *GcpKmsSigner) EthAddress() common.Address {
 	return s.ethAddress
 }
 
-func (s *GcpKmsSigner) CosmosPublicKey() *secp256k1.PubKey {
+func (s *GcpKmsSigner) CosmosPublicKey() types.PubKey {
 	return s.cosmosPubKey
 }
 
@@ -108,7 +121,7 @@ func resolveEthAddr(client *kms.KeyManagementClient, keyName string) (common.Add
 	}
 	_, err = asn1.Unmarshal(block.Bytes, &info)
 	if err != nil {
-		return common.Address{}, fmt.Errorf("public key %q PEM block %q: %v", keyName, block.Type, err)
+		return common.Address{}, fmt.Errorf("public key %q PEM block %q: %w", keyName, block.Type, err)
 	}
 
 	wantAlg := asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
@@ -200,7 +213,7 @@ func cosmosSignHash(client *kms.KeyManagementClient, keyName string, hash [32]by
 
 	resp, err := client.AsymmetricSign(context.Background(), req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to sign: %v", err)
+		return nil, fmt.Errorf("failed to sign: %w", err)
 	}
 
 	signature := resp.Signature
@@ -225,7 +238,7 @@ func cosmosSignHash(client *kms.KeyManagementClient, keyName string, hash [32]by
 
 	sig, err := signatureFromBytes(finalSig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse signature: %v", err)
+		return nil, fmt.Errorf("failed to parse signature: %w", err)
 	}
 
 	if !sig.Verify(hash[:], pubKey) {
@@ -254,7 +267,7 @@ func signatureFromBytes(sigStr []byte) (*btcecdsa.Signature, error) {
 // func resolveCosmosPubKey(client *kms.KeyManagementClient, keyName string) (*secp256k1.PubKey, error) {
 // 	pubkeyObject, err := resolveSecp256k1PubKey(client, keyName)
 // 	if err != nil {
-// 		return nil, fmt.Errorf("failed to resolve public key: %v", err)
+// 		return nil, fmt.Errorf("failed to resolve public key: %w", err)
 // 	}
 //
 // 	pk := pubkeyObject.SerializeCompressed()
@@ -265,7 +278,7 @@ func signatureFromBytes(sigStr []byte) (*btcecdsa.Signature, error) {
 func resolveSecp256k1PubKey(client *kms.KeyManagementClient, keyName string) (*dcrecSecp256k1.PublicKey, error) {
 	publicKeyResp, err := client.GetPublicKey(context.Background(), &kmspb.GetPublicKeyRequest{Name: keyName})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get public key: %v", err)
+		return nil, fmt.Errorf("failed to get public key: %w", err)
 	}
 
 	publicKeyPem := publicKeyResp.Pem
@@ -281,7 +294,7 @@ func resolveSecp256k1PubKey(client *kms.KeyManagementClient, keyName string) (*d
 	}
 	_, err = asn1.Unmarshal(block.Bytes, &info)
 	if err != nil {
-		return nil, fmt.Errorf("public key %q PEM block %q: %v", keyName, block.Type, err)
+		return nil, fmt.Errorf("public key %q PEM block %q: %w", keyName, block.Type, err)
 	}
 
 	wantAlg := asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1}
@@ -291,7 +304,7 @@ func resolveSecp256k1PubKey(client *kms.KeyManagementClient, keyName string) (*d
 
 	pubkeyObject, err := dcrecSecp256k1.ParsePubKey(info.Key.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %v", err)
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}
 
 	return pubkeyObject, nil
@@ -305,7 +318,7 @@ func getKeyVersionDetails(client *kms.KeyManagementClient, keyName string) (*kms
 
 	resp, err := client.GetCryptoKeyVersion(context.Background(), req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get key version details: %v", err)
+		return nil, fmt.Errorf("failed to get key version details: %w", err)
 	}
 
 	return resp, nil

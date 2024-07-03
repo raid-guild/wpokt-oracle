@@ -55,7 +55,7 @@ The wPOKT Oracle can be configured in the following ways:
    - Set the required environment variables directly in your terminal:
 
     ```bash
-    MNEMONIC="your_mnemonic" MONGODB_URI="your_mongodb_uri" ... go run .
+    SIGNER_MNEMONIC="your_mnemonic" MONGODB_URI="your_mongodb_uri" ... go run .
     ```
 
 If both a config file and an env file are provided, the config file will be loaded first, followed by the env file. Non-empty values from the env file or provided through environment variables will take precedence over the corresponding values from the config file.
@@ -131,6 +131,7 @@ To test the core functionalities of the wPOKT Oracle in a controlled environment
     ```bash
     git clone https://github.com/pokt-network/poktroll
     cd poktroll
+    make localnet_up
     ```
 
     - Follow instructions at [poktroll quickstart](https://dev.poktroll.com/develop/developer_guide/quickstart) for more details on running the poktroll network locally.

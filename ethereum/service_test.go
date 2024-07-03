@@ -142,6 +142,7 @@ func TestNewEthereumService(t *testing.T) {
 	mockWarpISM.EXPECT().ValidatorCount(mock.Anything).Return(big.NewInt(3), nil)
 	mockWarpISM.EXPECT().SignerThreshold(mock.Anything).Return(big.NewInt(2), nil)
 	mockWarpISM.EXPECT().Eip712Domain(mock.Anything).Return(util.DomainData{ChainId: big.NewInt(1), VerifyingContract: ethcommon.HexToAddress(config.WarpISMAddress)}, nil)
+	mockWarpISM.EXPECT().Validators(mock.Anything, mock.Anything).Return(true, nil)
 	mockMintController.EXPECT().MaxMintLimit(mock.Anything).Return(big.NewInt(100), nil)
 
 	mintControllerMap := map[uint32][]byte{

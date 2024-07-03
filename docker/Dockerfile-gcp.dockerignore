@@ -1,0 +1,62 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+*.html
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+
+# Go workspace file
+go.work
+
+# vim files
+*.sw[a-z]
+
+# config
+*.yml
+!config.sample.yml
+!config.test.yml
+
+# env
+.env*
+
+# google cloud
+# credentials.json
+
+# mockery
+.mockery.yaml
+
+# build
+./wpokt-oracle
+
+LICENSE.md
+README.md
+sample.env
+
+# scripts not needed on image
+scripts/
+
+# test files
+*_test.go
+
+# e2e test files
+e2e/
+
+# docker files
+docker/
+!docker/set_eth_envs.sh
+
+# secrets
+secrets/
+
+# make
+Makefile

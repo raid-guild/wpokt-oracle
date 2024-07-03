@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -271,4 +272,91 @@ func TestValidateSignature_TxError(t *testing.T) {
 	err := ValidateSignature(config, &sigV2, 1, 1, txConfig, txBuilder)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "expected Tx to be signing.V2AdaptableTx")
+}
+
+func TestSignWithPrivKey_WithGCPKMS(t *testing.T) {
+	keyName := os.Getenv("GCP_KMS_KEY_NAME")
+	if keyName == "" {
+		t.Skip("GCP KMS key name not set")
+	}
+	credentails := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credentails == "" {
+		t.Skip("GCP credentials not set")
+	}
+
+	privKey, _ := common.NewGcpKmsSigner(keyName)
+
+	// Create a new TxConfig
+	txConfig := NewTxConfig("pokt")
+
+	// Create a new TxBuilder
+	txBuilder := txConfig.NewTxBuilder()
+
+	// Create dummy signer data
+	signerData := authsigning.SignerData{
+		ChainID:       "poktroll",
+		AccountNumber: 1,
+		Sequence:      1,
+		PubKey:        privKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(privKey.CosmosPublicKey().Address()).String(),
+	}
+
+	// Create a new context
+	ctx := context.Background()
+
+	// Call the SignWithPrivKey function
+	sigV2, msg, err := SignWithPrivKey(ctx, signerData, txBuilder, privKey, txConfig, 1)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, sigV2)
+	assert.Equal(t, privKey.CosmosPublicKey(), sigV2.PubKey)
+	assert.Equal(t, signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON, sigV2.Data.(*signingtypes.SingleSignatureData).SignMode)
+	assert.NotEmpty(t, sigV2.Data.(*signingtypes.SingleSignatureData).Signature)
+	assert.Equal(t, uint64(1), sigV2.Sequence)
+	pub := privKey.CosmosPublicKey()
+	assert.Equal(t, true, pub.VerifySignature(msg, sigV2.Data.(*signingtypes.SingleSignatureData).Signature))
+}
+
+func TestValidateSignature_WithGCPKMS(t *testing.T) {
+	keyName := os.Getenv("GCP_KMS_KEY_NAME")
+	if keyName == "" {
+		t.Skip("GCP KMS key name not set")
+	}
+	credentails := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credentails == "" {
+		t.Skip("GCP credentials not set")
+	}
+
+	privKey, _ := common.NewGcpKmsSigner(keyName)
+
+	// Create a new TxConfig
+	txConfig := NewTxConfig("pokt")
+
+	// Create a new TxBuilder
+	txBuilder := txConfig.NewTxBuilder()
+
+	// Create dummy signer data
+	signerData := authsigning.SignerData{
+		ChainID:       "poktroll",
+		AccountNumber: 1,
+		Sequence:      1,
+		PubKey:        privKey.CosmosPublicKey(),
+		Address:       sdk.AccAddress(privKey.CosmosPublicKey().Address()).String(),
+	}
+
+	// Create a new context
+	ctx := context.Background()
+
+	// Call the SignWithPrivKey function
+	sigV2, _, err := SignWithPrivKey(ctx, signerData, txBuilder, privKey, txConfig, 1)
+	assert.NoError(t, err)
+
+	config := models.CosmosNetworkConfig{
+		ChainID:      "poktroll",
+		Bech32Prefix: "pokt",
+	}
+
+	err = ValidateSignature(config, &sigV2, 1, 1, txConfig, txBuilder)
+	assert.NoError(t, err)
 }

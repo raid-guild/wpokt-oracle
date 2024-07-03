@@ -370,6 +370,20 @@ func (x *EthMessageSignerRunnable) UpdateMaxMintLimit() {
 	x.maximumAmount = mintLimit
 }
 
+func (x *EthMessageSignerRunnable) EnsureSignerIsValidator() {
+	signerAddress := x.signer.EthAddress()
+	ctx, cancel := context.WithTimeout(context.Background(), x.timeout)
+	defer cancel()
+	opts := &bind.CallOpts{Context: ctx, Pending: false}
+	isValidator, err := x.warpISM.Validators(opts, signerAddress)
+	if err != nil {
+		x.logger.WithError(err).Fatalf("Error checking if signer is validator")
+	}
+	if !isValidator {
+		x.logger.Fatalf("Signer is not a validator")
+	}
+}
+
 var ethNewMintControllerContract = eth.NewMintControllerContract
 var ethNewWarpISMContract = eth.NewWarpISMContract
 var cosmosNewClient = cosmos.NewClient
@@ -494,6 +508,8 @@ func NewMessageSigner(
 	}
 
 	x.UpdateMaxMintLimit()
+
+	x.EnsureSignerIsValidator()
 
 	logger.Infof("Initialized")
 

@@ -16,6 +16,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
+	cryptotypes "github.com/cometbft/cometbft/crypto"
+
 	gax "github.com/googleapis/gax-go/v2"
 
 	"github.com/cosmos/cosmos-sdk/crypto/types"
@@ -111,7 +113,7 @@ func (s *GcpKmsSigner) EthSign(data []byte) ([]byte, error) {
 func (s *GcpKmsSigner) CosmosSign(data []byte) ([]byte, error) {
 	digest := data
 	if len(digest) != 32 {
-		digest = crypto.Keccak256(data)
+		digest = cryptotypes.Sha256(data)
 	}
 	hash := common.BytesToHash(digest)
 	return cosmosSignHash(s.client, s.keyName, hash, s.secp256k1PubKey)

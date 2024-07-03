@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/dan13ram/wpokt-oracle/common"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 // Main Function
@@ -25,6 +27,13 @@ func main() {
 	fmt.Println("Eth Address: ", signer.EthAddress())
 
 	fmt.Println("Cosmos Public Key: ", signer.CosmosPublicKey())
+
+	cosmosAddrBytes := signer.CosmosPublicKey().Address().Bytes()
+	cosmosAddr := ethcommon.BytesToAddress(cosmosAddrBytes)
+	cosmosBech32, _ := common.Bech32FromBytes("pokt", cosmosAddrBytes)
+
+	fmt.Println("Cosmos Address: ", cosmosAddr)
+	fmt.Println("Cosmos Bech32: ", cosmosBech32)
 
 	// Prepare the transaction data (example)
 	txData := []byte("example transaction data")

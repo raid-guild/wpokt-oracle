@@ -1920,6 +1920,72 @@ func TestUpdateDomainData(t *testing.T) {
 	assert.Equal(t, signer.domain, util.DomainData{Version: "6"})
 }
 
+func TestEnsureSignerIsValidator(t *testing.T) {
+	mockDB := mocks.NewMockDB(t)
+	mockEthClient := clientMocks.NewMockEthereumClient(t)
+	mockCosmosClient := cosmosMocks.NewMockCosmosClient(t)
+	logger := log.New().WithField("test", "signer")
+
+	warpISM := clientMocks.NewMockWarpISMContract(t)
+
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	assert.NoError(t, err)
+
+	signer := &EthMessageSignerRunnable{
+		db:              mockDB,
+		client:          mockEthClient,
+		cosmosClient:    mockCosmosClient,
+		logger:          logger,
+		timeout:         10 * time.Second,
+		signerThreshold: 1,
+		warpISM:         warpISM,
+		signer:          signerKey,
+	}
+
+	warpISM.EXPECT().Validators(mock.Anything, mock.Anything).Return(true, nil)
+
+	signer.EnsureSignerIsValidator()
+}
+
+func TestEnsureSignerIsValidator_Error(t *testing.T) {
+
+	defer func() { log.StandardLogger().ExitFunc = nil }()
+	log.StandardLogger().ExitFunc = func(num int) { panic(fmt.Sprintf("exit %d", num)) }
+
+	mockDB := mocks.NewMockDB(t)
+	mockEthClient := clientMocks.NewMockEthereumClient(t)
+	mockCosmosClient := cosmosMocks.NewMockCosmosClient(t)
+	logger := log.WithField("test", "signer")
+
+	warpISM := clientMocks.NewMockWarpISMContract(t)
+
+	signerKey, err := common.NewMnemonicSigner("test test test test test test test test test test test junk")
+	assert.NoError(t, err)
+
+	signer := &EthMessageSignerRunnable{
+		db:              mockDB,
+		client:          mockEthClient,
+		cosmosClient:    mockCosmosClient,
+		logger:          logger,
+		timeout:         10 * time.Second,
+		signerThreshold: 1,
+		warpISM:         warpISM,
+		signer:          signerKey,
+	}
+
+	warpISM.EXPECT().Validators(mock.Anything, mock.Anything).Return(true, assert.AnError).Once()
+
+	assert.Panics(t, func() {
+		signer.EnsureSignerIsValidator()
+	})
+
+	warpISM.EXPECT().Validators(mock.Anything, mock.Anything).Return(false, nil).Once()
+
+	assert.Panics(t, func() {
+		signer.EnsureSignerIsValidator()
+	})
+}
+
 func TestSignerRun(t *testing.T) {
 	mockDB := mocks.NewMockDB(t)
 	mockEthClient := clientMocks.NewMockEthereumClient(t)
@@ -2063,6 +2129,7 @@ func TestNewMessageSigner(t *testing.T) {
 	mockWarpISM.EXPECT().ValidatorCount(mock.Anything).Return(big.NewInt(3), nil)
 	mockWarpISM.EXPECT().SignerThreshold(mock.Anything).Return(big.NewInt(2), nil)
 	mockWarpISM.EXPECT().Eip712Domain(mock.Anything).Return(util.DomainData{ChainId: big.NewInt(1), VerifyingContract: ethcommon.HexToAddress(config.WarpISMAddress)}, nil)
+	mockWarpISM.EXPECT().Validators(mock.Anything, mock.Anything).Return(true, nil)
 	mockMintController.EXPECT().MaxMintLimit(mock.Anything).Return(big.NewInt(100), nil)
 
 	runnable := NewMessageSigner(signerKey, config, cosmosNetwork, ethNetworks)

@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  wpokt-hyperlane-one:
+    image: dan13ram/wpokt-hyperlane-contracts-local-gcp:v0.0.1
+    network_mode: host
+    environment:
+      PORT: "38545"
+      CHAIN_ID: "38545"
+    expose:
+      - "38545"
+
+  wpokt-hyperlane-two:
+    image: dan13ram/wpokt-hyperlane-contracts-local-gcp:v0.0.1
+    network_mode: host
+    environment:
+      PORT: "38546"
+      CHAIN_ID: "38546"
+    expose:
+      - "38546"
+
+  oracle-one:
+    image: dan13ram/wpokt-oracle-local-gcp:v0.0.2
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.gcp.yml"]
+    environment:
+      LOGGER_LEVEL: info
+      LOGGER_FORMAT: text
+      SIGNER_GCP_KMS_KEY_NAME: ${GCP_KEY_ONE}
+      COSMOS_NETWORK_GRPC_ENABLED: false
+
+  oracle-two:
+    image: dan13ram/wpokt-oracle-local-gcp:v0.0.2
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.gcp.yml"]
+    environment:
+      LOGGER_LEVEL: info
+      LOGGER_FORMAT: text
+      SIGNER_GCP_KMS_KEY_NAME: ${GCP_KEY_TWO}
+
+  oracle-three:
+    image: dan13ram/wpokt-oracle-local-gcp:v0.0.2
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c", "sleep 30 && /app/set_eth_envs.sh && /bin/oracle --yaml /app/defaults/config.local.gcp.yml"]
+    environment:
+      LOGGER_LEVEL: info
+      LOGGER_FORMAT: text
+      SIGNER_GCP_KMS_KEY_NAME: ${GCP_KEY_THREE}
+
+  mongodb:
+    image: mongo
+    network_mode: host
+    volumes:
+      - /tmp/data/oracle/mongodb:/data/db
+    expose:
+      - "27017"
+    command: mongod --quiet --logpath /dev/null

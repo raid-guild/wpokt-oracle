@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/asn1"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -151,4 +152,32 @@ func TestGcpKmsSigner_Destroy(t *testing.T) {
 
 	signer.Destroy()
 	mockClient.AssertExpectations(t)
+}
+
+func TestGcpKmsSigner_WithGCPKMS(t *testing.T) {
+
+	keyName := os.Getenv("GCP_KMS_KEY_NAME")
+	if keyName == "" {
+		t.Skip("GCP KMS key name not set")
+	}
+	credentails := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credentails == "" {
+		t.Skip("GCP credentials not set")
+	}
+
+	signer, err := NewGcpKmsSigner(keyName)
+	assert.NoError(t, err)
+
+	data := []byte("example transaction data")
+
+	// Test EthSign
+	sig, err := signer.EthSign(data)
+	assert.NoError(t, err)
+	assert.NotNil(t, sig)
+
+	// Test CosmosSign
+	sig, err = signer.CosmosSign(data)
+	assert.NoError(t, err)
+	assert.NotNil(t, sig)
+
 }

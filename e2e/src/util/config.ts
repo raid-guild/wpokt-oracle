@@ -5,6 +5,7 @@ import { Hex } from "viem";
 const CONFIG_PATH =
   process.env.CONFIG_PATH || "../defaults/config.local.yml";
 
+console.log(`Loading config from ${CONFIG_PATH}`);
 
 export type Config = {
   logger: LoggerConfig;
@@ -58,7 +59,9 @@ export type CosmosNetworkConfig = {
 
 export const config = yaml.load(fs.readFileSync(CONFIG_PATH, "utf8")) as Config;
 
+export const IsRandomWalletEnabled = true;
 export const HyperlaneVersion = 3;
+
 export const Mailbox = config.ethereum_networks[0].mailbox_address as Hex;
 export const WarpISM = config.ethereum_networks[0].warp_ism_address as Hex;
 export const Token = config.ethereum_networks[0].omni_token_address as Hex;

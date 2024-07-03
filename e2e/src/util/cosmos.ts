@@ -9,7 +9,7 @@ import {
   SigningStargateClient,
   StargateClient,
 } from "@cosmjs/stargate";
-import { config } from "./config";
+import { IsRandomWalletEnabled, config } from "./config";
 import {
   parseUnits,
   Hex,
@@ -142,12 +142,16 @@ let signer: DirectSecp256k1HdWallet | null = null;
 
 export const getSigner = async (): Promise<DirectSecp256k1HdWallet> => {
 
-  if (!signer) {
+  const faucetWallet = await DirectSecp256k1HdWallet.fromMnemonic(
+    FAUCET_MNEMONIC,
+    { prefix: PREFIX },
+  );
 
-    const faucetWallet = await DirectSecp256k1HdWallet.fromMnemonic(
-      FAUCET_MNEMONIC,
-      { prefix: PREFIX },
-    );
+  if (!IsRandomWalletEnabled) {
+    return faucetWallet;
+  }
+
+  if (!signer) {
 
     signer = await DirectSecp256k1HdWallet.generate(12, { prefix: PREFIX });
 

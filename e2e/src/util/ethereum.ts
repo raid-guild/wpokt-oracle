@@ -18,7 +18,7 @@ import {
   privateKeyToAccount,
 } from "viem/accounts";
 import { Chain } from "viem/chains";
-import { MintController, EthereumNetworkConfig, config } from "./config";
+import { MintController, EthereumNetworkConfig, config, IsRandomWalletEnabled } from "./config";
 import { MailboxAbi, MintControllerAbi, OmniTokenAbi } from "./abis";
 import * as cosmos from "./cosmos";
 import { formatMessageBody, addressHexToBytes32 } from "./message";
@@ -141,6 +141,10 @@ export const getWallet: (
 ) => Promise<WalletClient<Transport, Chain, Account>> = async (
   chain_id: number,
 ) => {
+
+    if (!IsRandomWalletEnabled) {
+      return getDefaultWalletClient(chain_id);
+    }
 
     let walletClient: WalletClient<Transport, Chain, Account> | undefined = wallets[chain_id];
 

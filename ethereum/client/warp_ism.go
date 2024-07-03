@@ -14,6 +14,7 @@ type WarpISMContract interface {
 	ValidatorCount(opts *bind.CallOpts) (*big.Int, error)
 	SignerThreshold(opts *bind.CallOpts) (*big.Int, error)
 	Eip712Domain(opts *bind.CallOpts) (util.DomainData, error)
+	Validators(opts *bind.CallOpts, addr common.Address) (bool, error)
 }
 
 type warpISMContract struct {

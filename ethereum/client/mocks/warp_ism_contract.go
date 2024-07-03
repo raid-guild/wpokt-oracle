@@ -7,6 +7,8 @@ import (
 
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 
+	common "github.com/ethereum/go-ethereum/common"
+
 	mock "github.com/stretchr/testify/mock"
 
 	util "github.com/dan13ram/wpokt-oracle/ethereum/util"
@@ -193,6 +195,63 @@ func (_c *MockWarpISMContract_ValidatorCount_Call) Return(_a0 *big.Int, _a1 erro
 }
 
 func (_c *MockWarpISMContract_ValidatorCount_Call) RunAndReturn(run func(*bind.CallOpts) (*big.Int, error)) *MockWarpISMContract_ValidatorCount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Validators provides a mock function with given fields: opts, addr
+func (_m *MockWarpISMContract) Validators(opts *bind.CallOpts, addr common.Address) (bool, error) {
+	ret := _m.Called(opts, addr)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Validators")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*bind.CallOpts, common.Address) (bool, error)); ok {
+		return rf(opts, addr)
+	}
+	if rf, ok := ret.Get(0).(func(*bind.CallOpts, common.Address) bool); ok {
+		r0 = rf(opts, addr)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(*bind.CallOpts, common.Address) error); ok {
+		r1 = rf(opts, addr)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockWarpISMContract_Validators_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Validators'
+type MockWarpISMContract_Validators_Call struct {
+	*mock.Call
+}
+
+// Validators is a helper method to define mock.On call
+//   - opts *bind.CallOpts
+//   - addr common.Address
+func (_e *MockWarpISMContract_Expecter) Validators(opts interface{}, addr interface{}) *MockWarpISMContract_Validators_Call {
+	return &MockWarpISMContract_Validators_Call{Call: _e.mock.On("Validators", opts, addr)}
+}
+
+func (_c *MockWarpISMContract_Validators_Call) Run(run func(opts *bind.CallOpts, addr common.Address)) *MockWarpISMContract_Validators_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*bind.CallOpts), args[1].(common.Address))
+	})
+	return _c
+}
+
+func (_c *MockWarpISMContract_Validators_Call) Return(_a0 bool, _a1 error) *MockWarpISMContract_Validators_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockWarpISMContract_Validators_Call) RunAndReturn(run func(*bind.CallOpts, common.Address) (bool, error)) *MockWarpISMContract_Validators_Call {
 	_c.Call.Return(run)
 	return _c
 }

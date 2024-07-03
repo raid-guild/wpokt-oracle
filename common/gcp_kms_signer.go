@@ -77,7 +77,16 @@ func NewGcpKmsSigner(keyName string) (Signer, error) {
 		return nil, fmt.Errorf("failed to resolve public key: %w", err)
 	}
 
+	ethPublicKey, err := crypto.UnmarshalPubkey(pubKeyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal public key: %w", err)
+	}
+
 	ethAddress := getEthAddr(pubKeyBytes)
+
+	if ethAddress != crypto.PubkeyToAddress(*ethPublicKey) {
+		return nil, fmt.Errorf("ethereum address mismatch")
+	}
 
 	secp256k1PubKey, err := getSecp256k1PubKey(pubKeyBytes)
 	if err != nil {
@@ -207,6 +216,7 @@ func ethSignHash(hash common.Hash, client GCPKeyManagementClient, keyName string
 
 	// Brute force try includes KMS verification
 	var recoverErr error
+	var finalSig []byte
 	for recoveryID := byte(0); recoveryID < 2; recoveryID++ {
 		sig[0] = recoveryID + 27 // BitCoin header
 		btcsig := sig[:65]       // Exclude Ethereum 'v' parameter
@@ -219,11 +229,41 @@ func ethSignHash(hash common.Hash, client GCPKeyManagementClient, keyName string
 		if getEthAddr(pubKey.SerializeUncompressed()) == ethAddress {
 			// Sign the transaction
 			sig[65] = recoveryID // Ethereum 'v' parameter
-			return sig[1:], nil  // Exclude BitCoin header
+
+			finalSig = sig[1:] // Exclude BitCoin header
+			break
+
 		}
 	}
-	// RecoverErr can be nil, but that's OK
-	return nil, fmt.Errorf("asymmetric signature address recovery mis: %w", recoverErr)
+
+	if recoverErr != nil {
+		return nil, fmt.Errorf("asymmetric signature address recovery failed: %w", recoverErr)
+	}
+
+	if finalSig == nil {
+		return nil, fmt.Errorf("signature address mismatch")
+	}
+
+	recoveredPubKey, err := crypto.Ecrecover(hash[:], finalSig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to recover public key: %w", err)
+	}
+
+	recoveredPubKeyECDSA, err := crypto.UnmarshalPubkey(recoveredPubKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal recoverred public key: %w", err)
+	}
+
+	recoveredAddr := crypto.PubkeyToAddress(*recoveredPubKeyECDSA)
+	if recoveredAddr != ethAddress {
+		return nil, fmt.Errorf("recovered address mismatch")
+	}
+
+	if finalSig[64] < 4 {
+		finalSig[64] += 27
+	}
+
+	return finalSig, nil
 }
 
 func cosmosSignHash(client GCPKeyManagementClient, keyName string, hash [32]byte, pubKey *dcrecSecp256k1.PublicKey) ([]byte, error) {
@@ -322,4 +362,5 @@ func resolveKeyVersionDetails(client GCPKeyManagementClient, keyName string) (*k
 	}
 
 	return resp, nil
+
 }

@@ -42,14 +42,20 @@ func (m *MockGCPKeyManagementClient) GetCryptoKeyVersion(ctx context.Context, re
 	return args.Get(0).(*kmspb.CryptoKeyVersion), args.Error(1)
 }
 
-func mockASN1Signature() []byte {
-	r, _ := new(big.Int).SetString("0adb0cad4842abd2003c8dcf4f2663b1ba9106b208a8b9f62aaa628121d7e818", 16)
-	s, _ := new(big.Int).SetString("05a2e4ace4f4dae5437804d8ff3a67151e96d0efad0427cb49844ea80c3a03a5", 16)
+func mockEthASN1Signature() []byte {
+	r, _ := new(big.Int).SetString("81318ab2232fbc4fd547d968ff554e9bd791543a1785fe075338693d946cb6ec", 16)
+	s, _ := new(big.Int).SetString("3c7829539dc8fd5e3b6e4dc9b3d6c5c9628bcb72d2639df18e6078af0273cf98", 16)
+	return asn1Bytes(r, s)
+}
+
+func mockCosmosASN1Signature() []byte {
+	r, _ := new(big.Int).SetString("5f7833a1432cb88825ba1d4ebd79cfcbe9693c08ab47ca42b596a0938c1dbe05", 16)
+	s, _ := new(big.Int).SetString("4826a12d3b9406b21754f395cb40955477ac4ae77c51be1659fdcc6657bb5900", 16)
 	return asn1Bytes(r, s)
 }
 
 func mockPublicKey() []byte {
-	keyHex := "0459fe4b6a8682418cb86df571c0a36b06f1b37e6760985009599c31d783c6ccac6cb07ba459e7d4949d12b178f8468802ebf7d932007e46b02fc7a2bf90761fd6"
+	keyHex := "0466673eea9ed9e7c2e838e566cc3424505d1b07be6a415c5e62cb56e69f9543da0104d2c81e9f7512687f11d65b714d852139680ff08923b4d9696f2960271f15"
 	return common.Hex2Bytes(keyHex)
 }
 
@@ -88,7 +94,7 @@ func TestNewGcpKmsSigner(t *testing.T) {
 func TestGcpKmsSigner_EthSign(t *testing.T) {
 	mockClient := new(MockGCPKeyManagementClient)
 	keyName := "test-key"
-	ethAddress := common.HexToAddress("0xE14FE42D9Cf3C39c27E1c1Ca3dAa033C43eD4d88")
+	ethAddress := common.HexToAddress("0x14BFf3BDb55E171Dc5af4B0F6F779752bC146C6E")
 
 	signer := &GcpKmsSigner{
 		client:     mockClient,
@@ -99,7 +105,7 @@ func TestGcpKmsSigner_EthSign(t *testing.T) {
 	data := []byte("example transaction data")
 	// expectedHash := crypto.Keccak256(data)
 	expectedSignature := &kmspb.AsymmetricSignResponse{
-		Signature: mockASN1Signature(),
+		Signature: mockEthASN1Signature(),
 	}
 	mockClient.On("AsymmetricSign", mock.Anything, mock.Anything, mock.Anything).Return(expectedSignature, nil)
 
@@ -128,7 +134,7 @@ func TestGcpKmsSigner_CosmosSign(t *testing.T) {
 	data := []byte("example transaction data")
 	// expectedHash := crypto.Keccak256(data)
 	expectedSignature := &kmspb.AsymmetricSignResponse{
-		Signature: mockASN1Signature(),
+		Signature: mockCosmosASN1Signature(),
 	}
 	mockClient.On("AsymmetricSign", mock.Anything, mock.Anything, mock.Anything).Return(expectedSignature, nil)
 
